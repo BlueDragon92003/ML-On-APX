@@ -28,8 +28,6 @@ train-classify		Runs the training algorithm for the classification model.
 hls4ml-translate	Convert the generated models for use and testing in FPGAs or
 					emulation software for evaluation of success.
 
-----------------------------------------------------------------
-All Functions:
 
 endef
 export readme
@@ -47,14 +45,20 @@ clean-identify:
 clean-classify:
 	./bash/clean-classification.sh
 
-generate-data:
+generate-data: data/PLACEHOLDER.csv
 	@echo "This process is currently unsupported."
 
-train-identify:
+train-identify: generate-data
 	python3 "./cluster-identification/main.py"
 
-train-classify:
+train-classify: generate-data
 	python3 "./cluster-classification/main.py"
 
-hls4ml-translate:
+hls4ml-translate: models/current-classification.pth models/current-identification.pth
 	@echo "This process is currently unsupported."
+
+models/current-identification.pth: train-identify
+	@echo "Training missing identification model before translation"
+
+models/current-classification.pth: train-classification
+	@echo "Training missing classification model before translation"

@@ -53,5 +53,5 @@ while(sentinal):
     pass
 
 # Softlink the last checkpoint
-os.symlink( f"checkpoint-{(epoch // CHECKPOINT_RATE):>05d}-identification.pth", f"current-identification.pth" )
+os.symlink( f"checkpoint-{(epoch // CHECKPOINT_RATE):>05d}-identification.pth", "current-identification.pth" )
 
