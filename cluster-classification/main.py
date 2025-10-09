@@ -63,7 +63,7 @@ while(sentinal):
         logging.debug("Checkpoint")
         logging.debug(string)
         # save the model as a checkpoint
-        torch.save(model, f"checkpoint-{(epoch // CHECKPOINT_RATE):>3d}-classification.pth")
+        torch.save(model, f"checkpoint-{(epoch // CHECKPOINT_RATE):>05d}-classification.pth")
         if (acc > STOP_THRESHOLD):
             # If the accuracy is hight enough, exit training
             logging.info("Accuracy threshold reached.")
@@ -77,5 +77,5 @@ while(sentinal):
     epoch = epoch + 1
 
 # Softlink the last checkpoint
-os.symlink( f"checkpoint-{(epoch // CHECKPOINT_RATE):>3d}.pth", f"current-classification.pth" )
+os.symlink( f"checkpoint-{(epoch // CHECKPOINT_RATE):>05d}-classification.pth", f"current-classification.pth" )
 
