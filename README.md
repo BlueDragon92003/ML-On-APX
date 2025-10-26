@@ -10,12 +10,16 @@ efficient or more accurate than the current algorithmic method in use.
 
 ## Project Milestones
 
-- [ ] Develop a model for classifying identified events between hadronic (pions,
-        etc.) and electromagnetic (electrons, photons, etc.) events and applying
-        the relevant energies to hadronic events
+- [ ] Develop a model for classifying identified clusters between hadronic 
+      (pions, etc.) and electromagnetic (electrons, photons, etc.) clusters. 
+      Data is obtained from two sources, RCT with ECAL energy clusters at the
+      crystal-level (0.087x0.087) resolution and HCAL at tower-level (0.35x0.35)
+      resolution. These data need to be correlated and compared to make the
+      classification. The lateral cluster size in ECAL and HCAL also has some
+      discrimination power.
 - [ ] Evaluate if the accuracy of the model is high enough to continue with this
         project, and perhaps retrain the model to reach desired accuracies.
-- [ ] Develop a model for identifying those events and passing them to the next
+- [ ] Develop a model for identifying those clusters and passing them to the next
         model in the expected format
 - [ ] Evaluate if the accuracy of the model is high enough to continue with this
         project, and perhaps retrain the model to reach desired accuracies.
