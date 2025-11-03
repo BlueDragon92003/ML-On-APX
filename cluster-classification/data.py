@@ -18,6 +18,9 @@ class Type(Enum):
     TRAINING = 1
     TESTING = 2
 
+'''
+Return a pytorch dataloader of the requisite type
+'''
 def get_data(type, batch_size, ):
     logging.info("Getting data")
     match type:
