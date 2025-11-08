@@ -16,7 +16,7 @@ from constants import *
 from model import Model
 from test import test_loop
 from train import train_loop
-from data import get_data, Type
+from data import get_data, DatasourceType
 
 # After how many epochs should a checkpoint be made?
 CHECKPOINT_RATE = 10
@@ -31,6 +31,9 @@ BATCH_SIZE = 1
 
 logging.basicConfig(filename='./logs/classification-latest.log', level=logging.INFO)
 
+# Instantiate a Model object:
+model = Model()
+
 # Set device
 device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
 logging.info(f"Using {device} device")
@@ -40,11 +43,11 @@ loss_fn = nn.CrossEntropyLoss()
 loss_fn.to(device)
 
 # Collect data
-training_data = get_data(Type.TRAINING, BATCH_SIZE)
-testing_data  = get_data(Type.TESTING, BATCH_SIZE)
+training_data = get_data(DatasourceType.TRAINING, BATCH_SIZE)
+testing_data  = get_data(DatasourceType.TESTING, BATCH_SIZE)
 
 # Stochastic Gradient Descent
-optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
+optimizer = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE)
 
 last_acc = 0
 sentinal = True

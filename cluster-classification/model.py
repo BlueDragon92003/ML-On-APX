@@ -1,11 +1,11 @@
+import torch
+from torch import nn
+
 +'''
 model.py
 
 This file contains the definition for the model used in training.
 '''
-
-import torch
-from torch import nn
 
 class Model(nn.Module):
     def __init__(self):

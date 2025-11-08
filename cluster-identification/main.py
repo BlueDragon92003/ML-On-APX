@@ -16,7 +16,7 @@ from constants import *
 from model import Model
 from test import test_loop
 from train import train_loop
-from data import get_data, Type
+from data import get_data, DatasourceType
 
 # After how many epochs should a checkpoint be made?
 CHECKPOINT_RATE = 10
@@ -40,7 +40,7 @@ loss_fn = nn.CrossEntropyLoss()
 loss_fn.to(device)
 
 # Collect data
-training_data = get_data(Type.TRAINING, BATCH_SIZE)
+training_data = get_data(DatasourceType.TRAINING, BATCH_SIZE)
 
 # Stochastic Gradient Descent
 optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
