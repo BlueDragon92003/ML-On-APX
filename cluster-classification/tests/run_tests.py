@@ -1,3 +1,5 @@
-from tests_dataset_subset import TestsDatasetSubset
+import unittest
+import tests_dataset_subset
 
-TestsDatasetSubset.run_tests()
+if __name__ == "__main__":
+    unittest.main()

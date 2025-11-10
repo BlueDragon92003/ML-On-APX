@@ -2,17 +2,20 @@ from cluster import ClusterType
 
 # Represents a particular subset of all valid 
 class DatasetSubset:
-    def __init__(self, number, filenames, cluster_types):
-        self.bitstring = number
-        self.filenames = filenames
-        self.cluster_types = cluster_types
+    def __init__(self, bitstring, filename=None, cluster_type=None, data=None):
+        self.bitstring = bitstring
+        if (data is None):
+            if ((filename is None) or (cluster_type is None)):
+                raise ValueError("Must provide a filename and cluster type")
+            self.data = {(filename,cluster_type)}
+        else:
+            self.data = data
 
     # Combine with another available dataset into a new, larger dataset
     def __or__(self, other):
         bitstring = self.bitstring | other.bitstring
-        filenames = self.filenames + other.filenames
-        cluster_types = self.cluster_types + self.cluster_types
-        return DatasetSubset(bitstring, filenames, cluster_types)
+        data = self.filenames | other.filenames
+        return DatasetSubset(bitstring, data)
     
     # Get a hex representation of which sets are in this dataset. Enables easy
     # classification for pickling.
@@ -24,17 +27,13 @@ class DatasetSubset:
             bitstring = bitstring >> 4
         return string
     
-    # Get the list of names of .h5 files to load.
-    def get_filenames(self):
-        return self.filenames
-
-    # Get the list of cluster types. Indices match those from `get_filenames`. 
-    def get_cluster_types(self):
-        return self.cluster_types
+    # Get a set of tuples containing filename and cluster type info.
+    def get_data(self):
+        return self.data.map
 
     # Get number of elements in the former two lists, for iteration purposes.
     def __len__(self):
-        return len(self.cluster_types)
+        return len(self.data)
 
 DatasetSubset.DOUBLE_ELECTRON = DatasetSubset(
     0b0000_0000_0000_0000_0000_0000_0000_0001,
