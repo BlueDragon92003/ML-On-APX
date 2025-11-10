@@ -7,6 +7,9 @@ Functions available in this project:
 clean				Removes the current model links and any intermediate files
 					used in training models.
 
+test-codebase		Runs the test suite to ensure non-model-training code
+					behaves as expected.
+
 clean-identify		Removes the current model softlink and any intermeidate
 					files used in training the identification model.
 
@@ -35,9 +38,11 @@ export readme
 _readme:
 	@echo "$$readme"
 
-clean:
-	./bash/clean-identification.sh
-	./bash/clean-classification.sh
+clean: clean-identify clean-classify
+
+test-codebase:
+	./bash/test-identification.sh
+	./bash/test-classification.sh	
 
 clean-identify:
 	./bash/clean-identification.sh
