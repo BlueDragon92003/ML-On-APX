@@ -57,10 +57,10 @@ while(sentinal):
     logging.info(f"Epoch {epoch}")
     logging.debug("Entering training loop")
     # Run through the training data once
-    train_loop(training_data, model, loss_fn, optimizer)
+    train_loop(device, training_data, model, loss_fn, optimizer)
     logging.debug("Entering testing loop")
     # Run through the testing data once and evaluate the model's accuracy
-    acc, string = test_loop(testing_data, model, loss_fn)
+    acc, string = test_loop(device, testing_data, model, loss_fn)
     # If the epoch is a checpoint epoch,
     if (epoch % CHECKPOINT_RATE == 0):
         logging.debug("Checkpoint")

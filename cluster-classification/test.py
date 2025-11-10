@@ -4,8 +4,11 @@ test.py
 This file contains the code used to test the model.
 '''
 
-def test_loop(dataloader, model, loss_fn):
-    logging.debug(f"Testing step")
+import logging
+import torch
+
+def test_loop(device, dataloader, model, loss_fn):
+    logging.debug("Testing step")
     # Set the model to evaluation mode
     model.eval()
     model.to(device)
