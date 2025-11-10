@@ -11,6 +11,7 @@ import h5py
 from enum import Enum
 
 from cluster import ClusterType
+from dataset_subset import DatasetSubset
 
 '''
 data.py
@@ -22,36 +23,6 @@ PyTorch.
 class DatasourceType(Enum):
     TRAINING = 1
     TESTING = 2
-
-# Represents a particular subset of all valid 
-class DatasetSubset:
-    def __init__(self, number, filename, type):
-        pass
-
-    # Combine with another available dataset into a new, larger dataset
-    def __or__(self, other):
-        pass
-    
-    # Get a hex representation of which sets are in this dataset. Enables easy
-    # classification for pickling.
-    def get_hex(self):
-        pass
-    
-    # Get the list of names of .h5 files to load.
-    def get_filenames(self):
-        pass
-
-    # Get the list of cluster types. Indices match those from `get_filenames`. 
-    def get_cluster_types(self):
-        pass
-
-    # Get number of elements in the former two lists, for iteration purposes.
-    def __len__(self):
-        pass
-DatasetSubset.DOUBLE_ELECTRON = DatasetSubset(
-    0b0000_0000_0000_0000_0000_0000_0000_0001,
-    "double_electron", ClusterType.ELECTROMAGNETIC
-    )
 
 # Return a PyTorch DataLoader with a specified batch size and datatype.
 def get_data(datasource_type, batch_size,):
@@ -80,7 +51,7 @@ def get_data(datasource_type, batch_size,):
 # If the preserved dataset is outdated or does not exist, then a new one is
 # created from h5 data.
 def load_data(datasource_type, datasets):
-    pass
+    dataset_code = datasets.get_hex()
     # return ClusterClassificationDataset(datasource_type, data)
 
 class ClusterClassificationDataset(Dataset):
