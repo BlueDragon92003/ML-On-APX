@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Set
 
 from cluster import ClusterType
 
@@ -30,7 +30,7 @@ class DatasetSubset:
         return string
     
     # Get a set of tuples containing filename and cluster type info.
-    def get_data(self) -> Tuple[str, ClusterType]:
+    def get_data(self) -> Set[Tuple[str, ClusterType]]:
         return self.data
 
     # Get number of elements in the former two lists, for iteration purposes.

@@ -1,6 +1,6 @@
+import os
 import pickle
-
-from typing import Tuple
+import textwrap
 
 import logging
 
@@ -14,6 +14,7 @@ from enum import Enum
 
 from cluster import ClusterType
 from dataset_subset import DatasetSubset
+from cluster_classification_dataset import ClusterClassificationDataset
 
 '''
 data.py
@@ -52,30 +53,44 @@ def get_data(datasource_type: DatasourceType, batch_size: int,):
 # 
 # If the preserved dataset is outdated or does not exist, then a new one is
 # created from h5 data.
-def load_data(datasource_type: DatasourceType, datasets: DatasetSubset):
-    dataset_code = datasets.get_hex()
-    # return ClusterClassificationDataset(datasource_type, data)
+def load_data(datasource_type: DatasourceType, datasets: DatasetSubset) -> ClusterClassificationDataset:
+    dataset_id = datasets.get_hex()
+    pickle_path = '../data/pickled/classification/' + '/'.join(textwrap.wrap(dataset_id, 4)) + '.pckl'
+    
+    create_new = False
 
-class ClusterClassificationDataset(Dataset):
-    # Setup the dataset with the provided source type (training or testing) and
-    # loaded h5 data file.
-    # 
-    # The data must be provided in a list of tuples. The first element in the 
-    # tuple is the cluster type the datafile provides. The second element is
-    # the data itself, loaded from a .h5 file, with the following required
-    # structure:
-    # 
-    def __init__(self, datasource_type: DatasourceType, *marked_h5_data: h5py.File):
+    if os.path.isfile(pickle_path):
+        file = os.open(pickle_path)
+        # Pickled file exists, check if it's outdated:
+        # Check if it's an old version of the class
+        if os.path.getmtime('./cluster_classification_dataset.py') > file.getmtime():
+            create_new = True
+        # Check if it's outdated compared to its source datasets
+        for (component_filename, _) in datasets.get_data():
+            component_path = '../data/classification/'+component_filename
+            if os.path.getmtime(component_path) > file.getmtime():
+                create_new = True
+    else:
+        create_new = True
+    # Pickled file does not exist or is outdated; create a new one
+    if create_new:
+        components = set()
+        for (component_filename, component_type) in datasets.get_data():
+            component_path = '../data/classification/'+component_filename
+            component = h5py.File(component_path)
+            components.add( (component_type, component) )
+        classifier = ClusterClassificationDataset(datasource_type, components)
+        with os.open(pickle_path, mode='w') as pickled:
+            pickle.dump(classifier, pickled)
+    # Pickled file exisits and is ready to use; load it
+    else:
         pass
+    return classifier
 
-    # Overwrites the Dataset method. Provides a tuple of tensors to be given
-    # to the model for training or testing purposes. 
-    # 
-    # The 
-    def __getitem__(self, index):
-        pass
 
-    # Overwrites the Dataset method. Provides an indication of how many elements
-    # are in this dataset.
-    def __len__(self):
-        pass
+
+
+
+# return ClusterClassificationDataset(datasource_type, data)
+
+
