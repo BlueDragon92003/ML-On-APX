@@ -14,8 +14,8 @@ class DatasetSubset:
     # Combine with another available dataset into a new, larger dataset
     def __or__(self, other):
         bitstring = self.bitstring | other.bitstring
-        data = self.filenames | other.filenames
-        return DatasetSubset(bitstring, data)
+        data = self.data | other.data
+        return DatasetSubset(bitstring, data=data)
     
     # Get a hex representation of which sets are in this dataset. Enables easy
     # classification for pickling.
@@ -29,7 +29,7 @@ class DatasetSubset:
     
     # Get a set of tuples containing filename and cluster type info.
     def get_data(self):
-        return self.data.map
+        return self.data
 
     # Get number of elements in the former two lists, for iteration purposes.
     def __len__(self):
@@ -37,5 +37,5 @@ class DatasetSubset:
 
 DatasetSubset.DOUBLE_ELECTRON = DatasetSubset(
     0b0000_0000_0000_0000_0000_0000_0000_0001,
-    ["double_electron"], [ClusterType.ELECTROMAGNETIC]
+    "double_electron", ClusterType.ELECTROMAGNETIC
     )
