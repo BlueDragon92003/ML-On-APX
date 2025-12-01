@@ -84,13 +84,6 @@ def load_data(datasource_type: DatasourceType, datasets: DatasetSubset) -> Clust
             pickle.dump(classifier, pickled)
     # Pickled file exisits and is ready to use; load it
     else:
-        pass
+        classifier = pickle.load(pickle_path)
     return classifier
-
-
-
-
-
-# return ClusterClassificationDataset(datasource_type, data)
-
 
