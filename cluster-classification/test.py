@@ -9,9 +9,8 @@ import torch
 
 def test_loop(device, dataloader, model, loss_fn):
     """
-    Test the current training state of the model and report this status to both
-    the logging system and program control to provide an estimation of progress
-    to the observer and determine whether or not training should stop.
+    Test the current training state of the model and report this status to
+    program control to determine whether or not training should stop.
     """
 
     logging.debug("Testing step")
