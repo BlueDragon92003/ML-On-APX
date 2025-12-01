@@ -9,6 +9,10 @@ import logging
 from torch import nn
 
 def train_loop(device, dataloader, model, loss_fn, optimizer):
+    """
+    Train the model on the provided data.
+    """
+
     logging.debug("Training step")
     # size = len(dataloader.dataset)
     # Set the model to training mode - important for batch normalization and dropout layers

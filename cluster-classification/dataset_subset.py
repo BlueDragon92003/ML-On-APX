@@ -2,9 +2,20 @@ from typing import Tuple, Set
 
 from cluster import ClusterType
 
-# Represents a particular subset of all valid 
 class DatasetSubset:
+    """
+    Represents a particular subset of all available data sources that will be
+    under use.
+    """
+
     def __init__(self, bitstring, filename: str = None, cluster_type: ClusterType = None, data: Tuple[str, ClusterType] = None):
+        """
+        Create a new subset with a given bitstring and either a filename and
+        cluster type or other data.
+        
+        Subsets should either be created as constants later in this file or
+        by combining other datasets using the or operator.
+        """
         self.bitstring = bitstring
         if (data is None):
             if ((filename is None) or (cluster_type is None)):
@@ -13,15 +24,17 @@ class DatasetSubset:
         else:
             self.data = data
 
-    # Combine with another available dataset into a new, larger dataset
     def __or__(self, other):
+        """Combine with another available dataset into a new, larger dataset"""
         bitstring = self.bitstring | other.bitstring
         data = self.data | other.data
         return DatasetSubset(bitstring, data=data)
     
-    # Get a hex representation of which sets are in this dataset. Enables easy
-    # classification for pickling.
     def get_hex(self) -> str:
+        """
+        Get a hex representation of which sets are in this dataset. Enables easy
+        classification for pickling.
+        """
         bitstring = self.bitstring
         string = ""
         for _ in range(8):
@@ -29,12 +42,14 @@ class DatasetSubset:
             bitstring = bitstring >> 4
         return string
     
-    # Get a set of tuples containing filename and cluster type info.
     def get_data(self) -> Set[Tuple[str, ClusterType]]:
+        """Get a set of tuples containing filename and cluster type info."""
         return self.data
 
-    # Get number of elements in the former two lists, for iteration purposes.
     def __len__(self) -> int:
+        """
+        Get number of elements in the former two lists, for iteration purposes.
+        """
         return len(self.data)
 
 DatasetSubset.DOUBLE_ELECTRON = DatasetSubset(

@@ -1,13 +1,11 @@
 import torch
 from torch import nn
 
-+'''
-model.py
-
-This file contains the definition for the model used in training.
-'''
 
 class Model(nn.Module):
+    """
+    The structure of the classification model.
+    """
     def __init__(self):
         super().__init__()
         # Other layers to try: Dropout and batch normalization,

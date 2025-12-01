@@ -24,11 +24,15 @@ PyTorch.
 '''
 
 class DatasourceType(Enum):
+    """
+    The `DatasourceType` enum marks if the data being generated is being used
+    for training or testing purposes. 
+    """
     TRAINING = 1
     TESTING = 2
 
-# Return a PyTorch DataLoader with a specified batch size and datatype.
 def get_data(datasource_type: DatasourceType, batch_size: int,):
+    """Return a PyTorch DataLoader with a specified batch size and datatype."""
     logging.info("Getting data")
     data = load_data(datasource_type, DatasetSubset.DOUBLE_ELECTRON)
     return DataLoader(
@@ -43,22 +47,26 @@ def get_data(datasource_type: DatasourceType, batch_size: int,):
             shuffle=True,
             )
 
-# Loads the data as a PyTorch Dataset, provided a specific type (training or
-# testing) and a set of h5 data to use as samples.
-# 
-# First, the function checks if such a Dataset has already been created. If so,
-# it checks if the preserved Dataset needs to be updated (i.e. at least one of
-# the datafiles is newer than the picked Dataset). If the preserved Dataset
-# exists and is not outdated, it is unpicked and returned.
-# 
-# If the preserved dataset is outdated or does not exist, then a new one is
-# created from h5 data.
 def load_data(datasource_type: DatasourceType, datasets: DatasetSubset) -> ClusterClassificationDataset:
+    """
+    Loads the data as a PyTorch Dataset, provided a specific type (training or
+    testing) and a set of h5 data to use as samples.
+    
+    First, the function checks if such a Dataset has already been created. If so,
+    it checks if the preserved Dataset needs to be updated (i.e. at least one of
+    the datafiles is newer than the picked Dataset). If the preserved Dataset
+    exists and is not outdated, it is unpicked and returned.
+    
+    If the preserved dataset is outdated or does not exist, then a new one is
+    created from h5 data.
+    """
+    # Extract the filepath where a picked file is/will be stored
     dataset_id = datasets.get_hex()
     pickle_path = '../data/pickled/classification/' + '/'.join(textwrap.wrap(dataset_id, 4)) + '.pckl'
     
     create_new = False
 
+    # Check if the file needs to be created
     if os.path.isfile(pickle_path):
         file = os.open(pickle_path)
         # Pickled file exists, check if it's outdated:
@@ -72,6 +80,7 @@ def load_data(datasource_type: DatasourceType, datasets: DatasetSubset) -> Clust
                 create_new = True
     else:
         create_new = True
+    
     # Pickled file does not exist or is outdated; create a new one
     if create_new:
         components = set()
@@ -85,5 +94,6 @@ def load_data(datasource_type: DatasourceType, datasets: DatasetSubset) -> Clust
     # Pickled file exisits and is ready to use; load it
     else:
         classifier = pickle.load(pickle_path)
+    
     return classifier
 
