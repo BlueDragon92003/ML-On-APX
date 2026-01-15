@@ -17,7 +17,7 @@ class Model(nn.Module):
             nn.Linear(16,8),
             nn.ReLU(),
             nn.Linear(8, 2),
-            # Hadronic Certainty, Electromagnetic certainty
+            # em similarity, tau similarity
         )
 
     def forward(self, x):
