@@ -4,32 +4,34 @@ Please see the README for project information.
 ----------------------------------------------------------------
 Functions available in this project:
 
-clean				Removes the current model links and any intermediate files
-					used in training models.
+install-dependencies	Installs relevant dependencies via pip
 
-run-tests			Runs the test suite to ensure non-model-training code
-					behaves as expected.
+clean					Removes the current model links and any intermediate
+						files used in training models.
 
-clean-identify		Removes the current model softlink and any intermeidate
-					files used in training the identification model.
+run-tests				Runs the test suite to ensure non-model-training code
+						behaves as expected.
 
-clean-classify		Removes the current model softlink and any intermeidate
-					files used in training the classification model.
+clean-identify			Removes the current model softlink and any intermeidate
+						files used in training the identification model.
 
-generate-data		Generates the training and testing data needed to train and
-					evaluate the models.
+clean-classify			Removes the current model softlink and any intermeidate
+						files used in training the classification model.
 
-train-identify		Runs the training algorithm for the identification model.
-					More information to follow once the identification model
-					is designed.
+generate-data			Generates the training and testing data needed to train and
+						evaluate the models.
 
-train-classify		Runs the training algorithm for the classification model.
-					Once the model stops making significant improvements,
-					updates the current model softlink and generates an accuracy
-					report.
+train-identify			Runs the training algorithm for the identification
+						model. More information to follow once the
+						identification model is designed.
 
-hls4ml-translate	Convert the generated models for use and testing in FPGAs or
-					emulation software for evaluation of success.
+train-classify			Runs the training algorithm for the classification
+						model. Once the model stops making significant
+						improvements, updates the current model softlink and
+						generates an accuracy report.
+
+hls4ml-translate		Convert the generated models for use and testing in
+						FPGAs or emulation software for evaluation of success.
 
 
 endef
@@ -37,6 +39,15 @@ export readme
 
 _readme:
 	@echo "$$readme"
+
+install-dependencies:
+	python -m ensurepip --upgrade
+	pip install torch==2.9 torchvision==0.24 --index-url https://download.pytorch.org/whl/cu130
+	pip install h5py==3.14
+	pip install numpy==2.3
+	pip install colour-runner==0.1.1
+	pip install argparse==1.4
+	pip intsall hls4ml==1.1
 
 clean: clean-identify clean-classify
 
