@@ -8,19 +8,19 @@ class DatasetSubset:
     under use.
     """
 
-    def __init__(self, bitstring, filename: str = None, cluster_type: ClusterType = None, data: Tuple[str, ClusterType] = None):
+    def __init__(self, bitstring, filename: str = None, data: Set[str] = None):
         """
-        Create a new subset with a given bitstring and either a filename and
-        cluster type or other data.
+        Create a new subset with a given bitstring and a (tuple of)
+        corresponding filename(s).
         
         Subsets should either be created as constants later in this file or
         by combining other datasets using the or operator.
         """
         self.bitstring = bitstring
         if (data is None):
-            if ((filename is None) or (cluster_type is None)):
-                raise ValueError("Must provide a filename and cluster type")
-            self.data = {(filename,cluster_type)}
+            if (filename is None):
+                raise ValueError("Must provide a filename")
+            self.data = { filename }
         else:
             self.data = data
 
@@ -43,7 +43,7 @@ class DatasetSubset:
         return string
     
     def get_data(self) -> Set[Tuple[str, ClusterType]]:
-        """Get a set of tuples containing filename and cluster type info."""
+        """Retern all filenames considered by this data subset."""
         return self.data
 
     def __len__(self) -> int:
@@ -54,5 +54,5 @@ class DatasetSubset:
 
 DatasetSubset.DOUBLE_ELECTRON = DatasetSubset(
     0b0000_0000_0000_0000_0000_0000_0000_0001,
-    "double_electron", ClusterType.ELECTROMAGNETIC
+    "double_electron.h5"
     )

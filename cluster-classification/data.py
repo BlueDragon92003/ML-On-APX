@@ -84,10 +84,9 @@ def load_data(datasource_type: DatasourceType, datasets: DatasetSubset) -> Clust
     # Pickled file does not exist or is outdated; create a new one
     if create_new:
         components = set()
-        for (component_filename, component_type) in datasets.get_data():
+        for component_filename in datasets.get_data():
             component_path = '../data/classification/'+component_filename
-            component = h5py.File(component_path)
-            components.add( (component_type, component) )
+            components.add( h5py.File(component_path) )
         classifier = ClusterClassificationDataset(datasource_type, components)
         with os.open(pickle_path, mode='w') as pickled:
             pickle.dump(classifier, pickled)
