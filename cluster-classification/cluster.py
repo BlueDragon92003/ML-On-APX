@@ -6,5 +6,5 @@ class ClusterType(Enum):
     The `ClusterType` enum exists to mark the type of event under consideration.
     """
 
-    HADRONIC = 1,
-    ELECTROMAGNETIC = 2,
+    BACKGROUND = 1,
+    SIGNAL_HADRONIC = 2,

@@ -43,7 +43,7 @@ _readme:
 install-dependencies:
 	python -m ensurepip --upgrade
 	pip install torch==2.9 torchvision==0.24 --index-url https://download.pytorch.org/whl/cu130
-	pip install h5py==3.14
+	pip install uproot=5.7.1
 	pip install numpy==2.3
 	pip install colour-runner==0.1.1
 	pip install argparse==1.4

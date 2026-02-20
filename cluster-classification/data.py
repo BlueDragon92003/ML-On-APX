@@ -8,7 +8,7 @@ from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 
 import numpy as np
-import h5py
+import uproot
 
 from enum import Enum
 
@@ -19,7 +19,7 @@ from cluster_classification_dataset import ClusterClassificationDataset
 '''
 data.py
 
-This file processes data provided in the h5 format into a DataLoader usable by
+This file processes data provided in the root format into a DataLoader usable by
 PyTorch.
 '''
 
@@ -84,9 +84,9 @@ def load_data(datasource_type: DatasourceType, datasets: DatasetSubset) -> Clust
     # Pickled file does not exist or is outdated; create a new one
     if create_new:
         components = set()
-        for component_filename in datasets.get_data():
+        for (component_filename, cluster_type) in datasets.get_data():
             component_path = '../data/classification/'+component_filename
-            components.add( h5py.File(component_path) )
+            components.add( (uproot.open(component_path), cluster_type) )
         classifier = ClusterClassificationDataset(datasource_type, components)
         with os.open(pickle_path, mode='w') as pickled:
             pickle.dump(classifier, pickled)

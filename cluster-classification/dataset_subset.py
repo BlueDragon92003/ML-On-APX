@@ -8,7 +8,7 @@ class DatasetSubset:
     under use.
     """
 
-    def __init__(self, bitstring, filename: str = None, data: Set[str] = None):
+    def __init__(self, bitstring, filename: str = None, data_type: ClusterType = None, data: Set[Tuple[str,ClusterType]] = None):
         """
         Create a new subset with a given bitstring and a (tuple of)
         corresponding filename(s).
@@ -20,7 +20,9 @@ class DatasetSubset:
         if (data is None):
             if (filename is None):
                 raise ValueError("Must provide a filename")
-            self.data = { filename }
+            if (data_type is None):
+                raise ValueError("Must provide a filename")
+            self.data = { (filename,ClusterType) }
         else:
             self.data = data
 
@@ -54,5 +56,5 @@ class DatasetSubset:
 
 DatasetSubset.DOUBLE_ELECTRON = DatasetSubset(
     0b0000_0000_0000_0000_0000_0000_0000_0001,
-    "double_electron.h5"
+    "double_electron.root"
     )
