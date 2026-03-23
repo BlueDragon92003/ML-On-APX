@@ -2,7 +2,7 @@ from typing import Set, Tuple
 
 from torch.utils.data import Dataset
 import uproot
-import numpy
+import numpy as np
 
 from data import DatasourceType
 from cluster import ClusterType
@@ -16,9 +16,26 @@ class ClusterClassificationDataset(Dataset):
     def __init__(self, datasource_type: DatasourceType, root_files: Set[Tuple[uproot.Model, ClusterType]]):
         """
         Setup the dataset with the provided source type (training or testing) and
-        loaded h5 data file.
+        loaded root data file.
         """
-        pass
+        # Data structure:
+        # data [ event ][ card ][ SLR ][ feature ]
+        self.data = []
+        for (file, cluster_type) in root_files:
+            tree = file["l1NtupleProducer/linkTree;1"]
+            # General data structure:
+            # data [ SLR ][ feature ][ event ][ card ]
+            # Vaguely backwards, but what am I to say
+            cluster_data = np.array(4)
+            ecal_data = [None for x in range(4)]
+            hcal_data = [None for x in range(4)]
+            for slr in range(4):
+                cluster_data[slr] = get_clusters(tree,slr)
+                ecal_data[slr] = get_ecal_towers(tree,slr)
+                hcal_data[slr] = get_hcal_towers(tree,slr)
+            # TODO reindex the data to the much easier to use form
+            # WITHOUT just using for loops. I don't want O(n^2) time...
+
 
     def __getitem__(self, index):
         """
@@ -33,3 +50,68 @@ class ClusterClassificationDataset(Dataset):
         are in this dataset.
         """
         pass
+
+    # Written by Ryan Simeon
+    # Taken from https://github.com/rpsimeon34/L1CaloPhase2Analyzer/tree/15_0_0_pre3_calojet
+    # File src/L1Trigger/L1CaloPhase2Analyzer/test/examine_MLonRCT_features.py
+
+def get_clusters(tree,SLR):
+    seed_energy = tree[f"SLR{SLR}_cluster_seed_energy"].array()*0.5 #account for LSB
+    energy = tree[f"SLR{SLR}_cluster_energy"].array()*0.5
+    eta = tree[f"SLR{SLR}_cluster_eta"].array()
+    phi = tree[f"SLR{SLR}_cluster_phi"].array()
+    et5x5 = tree[f"SLR{SLR}_cluster_et5x5"].array()*0.5
+    et2x5 = tree[f"SLR{SLR}_cluster_et2x5"].array()*0.5
+    timing = tree[f"SLR{SLR}_cluster_timing"].array()
+    spike = tree[f"SLR{SLR}_cluster_spike"].array()
+    satur = tree[f"SLR{SLR}_cluster_satur"].array()
+    brems = tree[f"SLR{SLR}_cluster_brems"].array()
+    spare = tree[f"SLR{SLR}_cluster_spare"].array()
+
+    out = {
+        "seed_energy": seed_energy,
+        "energy": energy,
+        "eta": eta,
+        "phi": phi,
+        "et5x5": et5x5,
+        "et2x5": et2x5,
+        "timing": timing,
+        "spike": spike,
+        "satur": satur,
+        "brems": brems,
+        "spare": spare
+    }
+
+    return out
+
+def get_ecal_towers(tree,SLR):
+    et = tree[f"ECALUnclusteredSLR{SLR}_tower_et"].array()*0.5
+    eta = tree[f"ECALUnclusteredSLR{SLR}_tower_eta"].array()
+    phi = tree[f"ECALUnclusteredSLR{SLR}_tower_phi"].array()
+    timing = tree[f"ECALUnclusteredSLR{SLR}_tower_timing"].array()
+    spike = tree[f"ECALUnclusteredSLR{SLR}_tower_spike"].array()
+
+    out = {
+        "et": et,
+        "eta": eta,
+        "phi": phi,
+        "timing": timing,
+        "spike": spike
+    }
+
+    return out
+
+def get_hcal_towers(tree,link):
+    et = tree[f"HCAL{link}_tower_et"].array()*0.5
+    eta = tree[f"HCAL{link}_tower_eta"].array()
+    phi = tree[f"HCAL{link}_tower_phi"].array()
+    fb = tree[f"HCAL{link}_tower_fb"].array()
+
+    out = {
+        "et": et,
+        "eta": eta,
+        "phi": phi,
+        "fb": fb
+    }
+
+    return out

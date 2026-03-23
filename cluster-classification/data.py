@@ -4,15 +4,15 @@ import textwrap
 
 import logging
 
-from torch.utils.data import Dataset
+#from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 
-import numpy as np
+#import numpy as np
 import uproot
 
 from enum import Enum
 
-from cluster import ClusterType
+#from cluster import ClusterType
 from dataset_subset import DatasetSubset
 from cluster_classification_dataset import ClusterClassificationDataset
 
@@ -50,7 +50,7 @@ def get_data(datasource_type: DatasourceType, batch_size: int,):
 def load_data(datasource_type: DatasourceType, datasets: DatasetSubset) -> ClusterClassificationDataset:
     """
     Loads the data as a PyTorch Dataset, provided a specific type (training or
-    testing) and a set of h5 data to use as samples.
+    testing) and a set of root data to use as samples.
     
     First, the function checks if such a Dataset has already been created. If so,
     it checks if the preserved Dataset needs to be updated (i.e. at least one of
@@ -58,7 +58,7 @@ def load_data(datasource_type: DatasourceType, datasets: DatasetSubset) -> Clust
     exists and is not outdated, it is unpicked and returned.
     
     If the preserved dataset is outdated or does not exist, then a new one is
-    created from h5 data.
+    created from root data.
     """
     # Extract the filepath where a picked file is/will be stored
     dataset_id = datasets.get_hex()
