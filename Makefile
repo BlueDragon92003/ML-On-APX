@@ -42,12 +42,11 @@ _readme:
 
 install-dependencies:
 	python -m ensurepip --upgrade
-	pip install torch==2.9 torchvision==0.24 --index-url https://download.pytorch.org/whl/cu130
-	pip install uproot=5.7.1
-	pip install numpy==2.3
-	pip install colour-runner==0.1.1
-	pip install argparse==1.4
-	pip intsall hls4ml==1.1
+	python -m pip install torch==2.9.1 torchvision==0.24.1
+	python -m pip install uproot=5.7.1
+	python -m pip install numpy==2.3
+	python -m pip install colour-runner==0.1.1
+	python -m pip install argparse==1.4
 
 clean: clean-identify clean-classify
 
