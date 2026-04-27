@@ -52,6 +52,7 @@ install-dependencies:
 	python3 -m pip install uproot==5.7.1
 	python3 -m pip install numpy==2.3
 	python3 -m pip install colour-runner==0.1.1
+	python3 -m pip install parameterized==0.9.0
 	python3 -m pip install argparse==1.4
 
 clean: clean-identify clean-classify

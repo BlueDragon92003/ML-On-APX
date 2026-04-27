@@ -56,5 +56,6 @@ class DatasetSubset:
 
 DatasetSubset.DOUBLE_ELECTRON = DatasetSubset(
     0b0000_0000_0000_0000_0000_0000_0000_0001,
-    "double_electron.root"
+    "double_electron.root",
+    ClusterType.BACKGROUND,
     )

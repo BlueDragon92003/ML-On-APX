@@ -10,14 +10,14 @@ class TestDatasetSubset(unittest.TestCase):
         """
         Test that nothing blows up when a new subset is created using data.
         """
-        DatasetSubset(0x0, data={("test", ClusterType.HADRONIC)})
+        DatasetSubset(0x0, data={("test", ClusterType.SIGNAL_HADRONIC)})
 
     def test_dataset_subset__instantiation_file_type(self):
         """
         Test that nothing blows up when a new subset is created using the
         file/type method
         """
-        DatasetSubset(0x0, filename="test", cluster_type=ClusterType.HADRONIC)
+        DatasetSubset(0x0, filename="test", data_type=ClusterType.SIGNAL_HADRONIC)
 
     def test_dataset_subset__instantiation_breaks(self):
         """Ensure that an error is raised if a subset is created improperly."""
@@ -26,7 +26,7 @@ class TestDatasetSubset(unittest.TestCase):
         with self.assertRaises(ValueError):
             DatasetSubset(0x0, filename="test")
         with self.assertRaises(ValueError):
-            DatasetSubset(0x0, cluster_type=ClusterType.ELECTROMAGNETIC)
+            DatasetSubset(0x0, data_type=ClusterType.BACKGROUND)
     
     @parameterized.expand([
         ["Zero", 0, "00000000"],
@@ -35,18 +35,18 @@ class TestDatasetSubset(unittest.TestCase):
     ])
     def test_dataset_subset__get_hex(self, name, bitstring, expected):
         """Test that the `get_hex` method works as expected."""
-        sub = DatasetSubset(bitstring, filename="test", cluster_type=ClusterType.HADRONIC)
+        sub = DatasetSubset(bitstring, filename="test", data_type=ClusterType.SIGNAL_HADRONIC)
         self.assertEqual(expected, sub.get_hex())
     
     @parameterized.expand([
         ["Empty", set()],
-        ["One", {("test", ClusterType.ELECTROMAGNETIC)}],
-        ["Many", {  ("zero", ClusterType.HADRONIC),
-                    ("one", ClusterType.ELECTROMAGNETIC),
-                    ("two", ClusterType.HADRONIC),
-                    ("three", ClusterType.ELECTROMAGNETIC),
-                    ("four", ClusterType.HADRONIC),
-                    ("five", ClusterType.HADRONIC)
+        ["One", {("test", ClusterType.BACKGROUND)}],
+        ["Many", {  ("zero", ClusterType.SIGNAL_HADRONIC),
+                    ("one", ClusterType.BACKGROUND),
+                    ("two", ClusterType.SIGNAL_HADRONIC),
+                    ("three", ClusterType.BACKGROUND),
+                    ("four", ClusterType.SIGNAL_HADRONIC),
+                    ("five", ClusterType.SIGNAL_HADRONIC)
                 }],
     ])
     def test_dataset_subset__get_data(self, name, data):
@@ -56,13 +56,13 @@ class TestDatasetSubset(unittest.TestCase):
     
     @parameterized.expand([
         ["Empty", set(), 0],
-        ["One", {("test", ClusterType.ELECTROMAGNETIC)}, 1],
-        ["Many", {  ("zero", ClusterType.HADRONIC),
-                    ("one", ClusterType.ELECTROMAGNETIC),
-                    ("two", ClusterType.HADRONIC),
-                    ("three", ClusterType.ELECTROMAGNETIC),
-                    ("four", ClusterType.HADRONIC),
-                    ("five", ClusterType.HADRONIC)
+        ["One", {("test", ClusterType.BACKGROUND)}, 1],
+        ["Many", {  ("zero", ClusterType.SIGNAL_HADRONIC),
+                    ("one", ClusterType.BACKGROUND),
+                    ("two", ClusterType.SIGNAL_HADRONIC),
+                    ("three", ClusterType.BACKGROUND),
+                    ("four", ClusterType.SIGNAL_HADRONIC),
+                    ("five", ClusterType.SIGNAL_HADRONIC)
                 }, 6],
     ])
     def test_dataset_subset__len(self, name, data, length):
@@ -88,9 +88,9 @@ class TestDatasetSubset(unittest.TestCase):
 
     @parameterized.expand([
         ["Empty", set(), set()],
-        ["Zero", {("test", ClusterType.ELECTROMAGNETIC)}, set()],
-        ["Same", {("test", ClusterType.HADRONIC)}, {("test", ClusterType.HADRONIC)}],
-        ["Different", {("test1", ClusterType.ELECTROMAGNETIC)}, {("test2", ClusterType.HADRONIC)}],
+        ["Zero", {("test", ClusterType.BACKGROUND)}, set()],
+        ["Same", {("test", ClusterType.SIGNAL_HADRONIC)}, {("test", ClusterType.SIGNAL_HADRONIC)}],
+        ["Different", {("test1", ClusterType.BACKGROUND)}, {("test2", ClusterType.SIGNAL_HADRONIC)}],
     ])
     def test_dataset_subset__combo__get_data(self, name, data1, data2):
         """
@@ -105,9 +105,9 @@ class TestDatasetSubset(unittest.TestCase):
     
     @parameterized.expand([
         ["Empty", set(), set(), 0],
-        ["Zero", {("test", ClusterType.ELECTROMAGNETIC)}, set(), 1],
-        ["Same", {("test", ClusterType.HADRONIC)}, {("test", ClusterType.HADRONIC)}, 1],
-        ["Different", {("test1", ClusterType.ELECTROMAGNETIC)}, {("test2", ClusterType.HADRONIC)}, 2],
+        ["Zero", {("test", ClusterType.BACKGROUND)}, set(), 1],
+        ["Same", {("test", ClusterType.SIGNAL_HADRONIC)}, {("test", ClusterType.SIGNAL_HADRONIC)}, 1],
+        ["Different", {("test1", ClusterType.BACKGROUND)}, {("test2", ClusterType.SIGNAL_HADRONIC)}, 2],
     ])
     def test_dataset_subset__combo__len(self, name, data1, data2, expected):
         """
