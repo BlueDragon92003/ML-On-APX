@@ -41,12 +41,18 @@ _readme:
 	@echo "$$readme"
 
 install-dependencies:
-	python -m ensurepip --upgrade
-	python -m pip install torch==2.9.1 torchvision==0.24.1
-	python -m pip install uproot=5.7.1
-	python -m pip install numpy==2.3
-	python -m pip install colour-runner==0.1.1
-	python -m pip install argparse==1.4
+	if [ --version | grep "3.14" -neq 0 ]; then \
+		echo "Python 3.14 is the intended Python version for this project. \
+		Please install it and try again."; \
+		exit 1; \
+	fi
+	python3 -m ensurepip
+	python3 -m pip install --upgrade pip
+	python3 -m pip install torch==2.9.1 torchvision==0.24.1
+	python3 -m pip install uproot==5.7.1
+	python3 -m pip install numpy==2.3
+	python3 -m pip install colour-runner==0.1.1
+	python3 -m pip install argparse==1.4
 
 clean: clean-identify clean-classify
 
