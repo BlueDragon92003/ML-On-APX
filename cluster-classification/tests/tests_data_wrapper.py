@@ -12,7 +12,17 @@ class TestDataWrapper(unittest.TestCase):
         """
         tree = uproot.open("data/testing/test.root")["l1NtupleProducer/linkTree;1"]
         cluster_data = cluster_classification_dataset.ClusterClassificationDataset.get_clusters(tree)
+        ecal_data = cluster_classification_dataset.ClusterClassificationDataset.get_clusters(tree)
+        hcal_data = cluster_classification_dataset.ClusterClassificationDataset.get_clusters(tree)
 
-        (len, cards, slr) = cluster_data.shape
+        (_, cards, slr) = cluster_data.shape
         self.assertEqual(4, slr)
+        self.assertEqual(24, cards)
+
+        (_, cards, slr) = ecal_data.shape
+        self.assertEqual(4, slr)
+        self.assertEqual(24, cards)
+
+        (_, cards, link) = hcal_data.shape
+        self.assertEqual(4, link)
         self.assertEqual(24, cards)
