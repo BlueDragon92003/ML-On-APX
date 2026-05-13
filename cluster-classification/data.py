@@ -86,8 +86,8 @@ def load_data(datasource_type: DatasourceType, datasets: DatasetSubset) -> Clust
         components = set()
         for (component_filename, cluster_type) in datasets.get_data():
             component_path = '../data/classification/'+component_filename
-            components.add( (uproot.open(component_path), cluster_type) )
-        classifier = ClusterClassificationDataset(datasource_type, components)
+            components.add( (component_path, cluster_type) )
+        classifier = ClusterClassificationDataset(components)
         with os.open(pickle_path, mode='w') as pickled:
             pickle.dump(classifier, pickled)
     # Pickled file exisits and is ready to use; load it
