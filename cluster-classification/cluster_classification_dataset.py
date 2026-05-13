@@ -1,6 +1,7 @@
 from typing import Set, Tuple
+import math
 
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, get_worker_info
 import uproot
 import numpy as np
 
@@ -13,41 +14,144 @@ class ClusterClassificationDataset(Dataset):
     """
 
     def __init__(self, root_files: Set[Tuple[uproot.Model, ClusterType]]):
+        super(ClusterClassificationDataset).__init__()
         """
         Setup the dataset with the provided source type (training or testing) and
         loaded root data file.
         """
-        # Data structure:
-        # data [ event ][ card ][ SLR or link ][ feature ]
-        self.data = []
+        # Data structure: data [cluster][features]
+        self.__data = []
         for (file, cluster_type) in root_files:
             tree = file["l1NtupleProducer/linkTree;1"]
             # General data structure:
             # data [ SLR/link + feature ][ event ][ card ]
-            # Adapted from
-            # https://github.com/rpsimeon34/L1CaloPhase2Analyzer/tree/15_0_0_pre3_calojet
-            # File src/L1Trigger/L1CaloPhase2Analyzer/test/examine_MLonRCT_features.py
+            
+            # ..._data [ event ][ card ][ SLR or link ][ feature ]
             cluster_data = self.get_clusters(tree)
-            unclustered_ecal_data = self.get_ecal_towers(tree)
+            ecal_data = self.get_ecal_towers(tree)
             # Note! HCAL links indices have been reduced by 5
             # (link 5 @ index 0, link 7 & index 2)
             hcal_data = self.get_hcal_towers(tree)
+
+            """
+             0: cluster_et
+             1: cluster_seed
+             2: cluster_et5x5
+             3: cluster_et2x5
+             4: cluster_timing
+             5: cluster_spike
+             6: cluster_brems
+             7: cluster_satur
+             9: cluster_spare
+             9: ecal_tower_et
+            10: ecal_tower_timing
+            11: ecal_tower_spike
+            12: hcal$_et (4)
+            16: hcal$_fb (4)
+            20: classification
+            """
+            # TODO Refactor to use builtins/GPU where available
+            for iEvent in range(len(cluster_data)):
+                for card in range(24):
+                    for slr in range(4):
+                        for cluster in range(9):
+                            cluster_slr = cluster_data[iEvent][card][slr]
+                            ecal_slr = ecal_data[iEvent][card][slr]
+                            hcal_card = hcal_data[iEvent][card]
+
+                            i_eta = ['cluster_eta'][cluster] / 5
+                            i_phi = cluster_data[iEvent][card][slr]['cluster_phi'][cluster] / 5
+
+                            cluster_et = cluster_slr['cluster_energy'][cluster]
+                            cluster_seed = cluster_slr['cluster_seed_energy'][cluster]
+                            cluster_et5x5 = cluster_slr['cluster_et5x5'][cluster]
+                            cluster_et2x5 = cluster_slr['cluster_et2x5'][cluster]
+                            cluster_timing = cluster_slr['cluster_timing'][cluster]
+                            cluster_spike = cluster_slr['cluster_spike'][cluster]
+                            cluster_brems = cluster_slr['cluster_brems'][cluster]
+                            cluster_satur = cluster_slr['cluster_satur'][cluster]
+                            cluster_spare = cluster_slr['cluster_spare'][cluster]
+
+                            ecal_tower_et = 0
+                            ecal_tower_timing = 0
+                            ecal_tower_spike = 0
+
+                            # Filter ECAL data
+                            for tower in range(12):
+                                if ecal_slr['tower_eta'][tower] == i_eta:
+                                    if ecal_slr['tower_phi'][tower] == i_phi:
+                                        ecal_tower_et = ecal_slr['tower_et'][tower]
+                                        ecal_tower_timing = ecal_slr['tower_timing'][tower]
+                                        ecal_tower_spike = ecal_slr['tower_spike'][tower]
+                            
+                            hcal_et = [0,0,0,0]
+                            hcal_fb = [0,0,0,0]
+                            
+                            # Filter HCAL Data
+                            for link in range(4):
+                                for tower in range(32):
+                                    if hcal_card[link]['tower_eta'][tower] == i_eta:
+                                        if hcal_card[link]['tower_phi'][tower] == i_phi:
+                                            hcal_et[link] = hcal_card[link]['tower_et'][tower]
+                                            hcal_fb[link] = hcal_card[link]['tower_fb'][tower]
+
+                            self.__data.append([
+                                cluster_et,
+                                cluster_seed,
+                                cluster_et5x5,
+                                cluster_et2x5,
+                                cluster_timing,
+                                cluster_spike,
+                                cluster_brems,
+                                cluster_satur,
+                                cluster_spare,
+                                ecal_tower_et,
+                                ecal_tower_timing,
+                                ecal_tower_spike,
+                                hcal_et[0], # HCAL 5
+                                hcal_et[1],
+                                hcal_et[2],
+                                hcal_et[3],
+                                hcal_fb[0],
+                                hcal_fb[1],
+                                hcal_fb[2], # HCAL 7
+                                hcal_fb[3],
+                                cluster_type
+                             ])
 
     def __getitem__(self, index):
         """
         Overwrites the Dataset method. Provides a tuple of tensors to be given
         to the model for training or testing purposes. 
         """
-        pass
+        return self.__data[index]
 
     def __len__(self):
         """
         Overwrites the Dataset method. Provides an indication of how many elements
         are in this dataset.
         """
-        pass
+        return len(self.__data)
+
+    def __iter__(self):
+        # Very much yoinked and adapted from the torch docs:
+        # https://docs.pytorch.org/docs/2.9/data.html#torch.utils.data.Dataset
+        #  
+        worker_info = get_worker_info()
+        if worker_info is None:  # single-process data loading, return the full iterator
+            iter_start = 0
+            iter_end = len(self)
+        else:  # in a worker process
+            max_size = len(self)
+            # split workload
+            per_worker = int(math.ceil((self.end - self.start) / float(worker_info.num_workers)))
+            worker_id = worker_info.id
+            iter_start = worker_id * per_worker
+            iter_end = min(iter_start + per_worker, max_size)
+        return iter(self.__data[iter_start:iter_end])
 
     # It looks like shit, but it'll be faster than for loops...
+    # TODO Refactor to use GPU where able
     # Adapted from https://github.com/rpsimeon34/L1CaloPhase2Analyzer/tree/15_0_0_pre3_calojet
     # File src/L1Trigger/L1CaloPhase2Analyzer/test/examine_MLonRCT_features.py
     
@@ -59,7 +163,8 @@ class ClusterClassificationDataset(Dataset):
                     { 'cluster_seed_energy': slr0_cluster_seed_energy[card], 'cluster_energy': slr0_cluster_energy[card], 'cluster_eta': slr0_cluster_eta[card], 'cluster_phi': slr0_cluster_phi[card], 'cluster_et5x5': slr0_cluster_et5x5[card], 'cluster_et2x5': slr0_cluster_et2x5[card], 'cluster_timing': slr0_cluster_timing[card], 'cluster_spike': slr0_cluster_spike[card], 'cluster_satur': slr0_cluster_satur[card], 'cluster_brems': slr0_cluster_brems[card], 'cluster_spare': slr0_cluster_spare[card] },
                     { 'cluster_seed_energy': slr1_cluster_seed_energy[card], 'cluster_energy': slr1_cluster_energy[card], 'cluster_eta': slr1_cluster_eta[card], 'cluster_phi': slr1_cluster_phi[card], 'cluster_et5x5': slr1_cluster_et5x5[card], 'cluster_et2x5': slr1_cluster_et2x5[card], 'cluster_timing': slr1_cluster_timing[card], 'cluster_spike': slr1_cluster_spike[card], 'cluster_satur': slr1_cluster_satur[card], 'cluster_brems': slr1_cluster_brems[card], 'cluster_spare': slr1_cluster_spare[card] },
                     { 'cluster_seed_energy': slr2_cluster_seed_energy[card], 'cluster_energy': slr2_cluster_energy[card], 'cluster_eta': slr2_cluster_eta[card], 'cluster_phi': slr2_cluster_phi[card], 'cluster_et5x5': slr2_cluster_et5x5[card], 'cluster_et2x5': slr2_cluster_et2x5[card], 'cluster_timing': slr2_cluster_timing[card], 'cluster_spike': slr2_cluster_spike[card], 'cluster_satur': slr2_cluster_satur[card], 'cluster_brems': slr2_cluster_brems[card], 'cluster_spare': slr2_cluster_spare[card] },
-                    { 'cluster_seed_energy': slr3_cluster_seed_energy[card], 'cluster_energy': slr3_cluster_energy[card], 'cluster_eta': slr3_cluster_eta[card], 'cluster_phi': slr3_cluster_phi[card], 'cluster_et5x5': slr3_cluster_et5x5[card], 'cluster_et2x5': slr3_cluster_et2x5[card], 'cluster_timing': slr3_cluster_timing[card], 'cluster_spike': slr3_cluster_spike[card], 'cluster_satur': slr3_cluster_satur[card], 'cluster_brems': slr3_cluster_brems[card], 'cluster_spare': slr3_cluster_spare[card] } ]
+                    { 'cluster_seed_energy': slr3_cluster_seed_energy[card], 'cluster_energy': slr3_cluster_energy[card], 'cluster_eta': slr3_cluster_eta[card], 'cluster_phi': slr3_cluster_phi[card], 'cluster_et5x5': slr3_cluster_et5x5[card], 'cluster_et2x5': slr3_cluster_et2x5[card], 'cluster_timing': slr3_cluster_timing[card], 'cluster_spike': slr3_cluster_spike[card], 'cluster_satur': slr3_cluster_satur[card], 'cluster_brems': slr3_cluster_brems[card], 'cluster_spare': slr3_cluster_spare[card] }
+                ]
                 for card in range(24)
             ],
             
@@ -172,18 +277,3 @@ class ClusterClassificationDataset(Dataset):
             tree["HCAL8_tower_fb"].array()
         )])
 
-        """
-        et = tree[f"HCAL{link}_tower_et"].array()*0.5
-        eta = tree[f"HCAL{link}_tower_eta"].array()
-        phi = tree[f"HCAL{link}_tower_phi"].array()
-        fb = tree[f"HCAL{link}_tower_fb"].array()
-
-        out = {
-            "et": et,
-            "eta": eta,
-            "phi": phi,
-            "fb": fb
-        }
-
-        return out
-        """
