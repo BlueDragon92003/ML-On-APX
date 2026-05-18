@@ -100,6 +100,7 @@ class ClusterClassificationDataset(IterableDataset):
         ecal_tower_timing = 0
         ecal_tower_spike = 0
 
+        # TODO check correctness
         # Filter ECAL data
         ecal_tower = filter(
             lambda tower: ecal_slr['tower_eta'][tower] == i_eta and ecal_slr['tower_phi'][tower] == i_phi,
