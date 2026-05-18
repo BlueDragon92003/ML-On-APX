@@ -54,16 +54,16 @@ class ClusterClassificationDataset(IterableDataset):
             """
 
             # Process the data in an actually efficient manner.
-            self.__pool = multiprocessing.Pool(256, None, None, maxtasksperchild=256)
-            self.__data.append(self.__pool.imap(
-                lambda x : self.__process_cluster(x, ecal_data, hcal_data, cluster_type),
-                [ (iEvent, card, slr, cluster)
-                    for iEvent in range(len(cluster_data))
-                    for card in range(24)
-                    for slr in range(4)
-                    for cluster in range(9)
-                    ]
-            ))
+            with multiprocessing.Pool(256, None, None, maxtasksperchild=256) as pool:
+                self.__data.append(pool.imap(
+                    lambda x : self.__process_cluster(x, ecal_data, hcal_data, cluster_type),
+                    [ (iEvent, card, slr, cluster)
+                        for iEvent in range(len(cluster_data))
+                        for card in range(24)
+                        for slr in range(4)
+                        for cluster in range(9)
+                        ]
+                ))
             # Convert the list of iterables into one iterable
             self.__data = itertools.chain.from_iterable(self.__data)
             # Ow...
