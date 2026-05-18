@@ -101,18 +101,19 @@ class ClusterClassificationDataset(IterableDataset):
         ecal_tower_spike = 0
 
         # Filter ECAL data
-        for tower in range(12):
-            if ecal_slr['tower_eta'][tower] == i_eta:
-                if ecal_slr['tower_phi'][tower] == i_phi:
-                    ecal_tower_et = ecal_slr['tower_et'][tower]
-                    ecal_tower_timing = ecal_slr['tower_timing'][tower]
-                    ecal_tower_spike = ecal_slr['tower_spike'][tower]
+        ecal_tower = filter(
+            lambda tower: ecal_slr['tower_eta'][tower] == i_eta and ecal_slr['tower_phi'][tower] == i_phi,
+            range(12)
+        )[0]
+        ecal_tower_et = ecal_slr['tower_et'][ecal_tower]
+        ecal_tower_timing = ecal_slr['tower_timing'][ecal_tower]
+        ecal_tower_spike = ecal_slr['tower_spike'][ecal_tower]
         
         hcal_et = [0,0,0,0]
         hcal_fb = [0,0,0,0]
-        
-        # Filter HCAL Data
+
         for link in range(4):
+            # TODO Replace with filter
             for tower in range(32):
                 if hcal_card[link]['tower_eta'][tower] == i_eta:
                     if hcal_card[link]['tower_phi'][tower] == i_phi:
