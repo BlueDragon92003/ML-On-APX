@@ -1,11 +1,11 @@
 from typing import Set, Tuple
 import math
-import torch.multiprocessing as multiprocessing
 import itertools
 
 from torch.utils.data import IterableDataset, get_worker_info
 import uproot
 import numpy as np
+from fast_map import fast_map
 
 from cluster import ClusterType
 
@@ -24,16 +24,17 @@ class ClusterClassificationDataset(IterableDataset):
         self.__data = []
         # Data structure: data [cluster][features]
         for (filepath, cluster_type) in components:
-            tree = (uproot.open(filepath))["l1NtupleProducer/linkTree;1"]
+            with uproot.open(filepath) as file:
+                tree = file["l1NtupleProducer/linkTree;1"]
             # General data structure:
             # data [ SLR/link + feature ][ event ][ card ]
             
             # ..._data [ event ][ card ][ SLR or link ][ feature ]
-            cluster_data = ClusterClassificationDataset.__get_clusters(tree)
-            ecal_data = ClusterClassificationDataset.__get_ecal_towers(tree)
+            cluster_data = get_clusters(tree)
+            ecal_data = get_ecal_towers(tree)
             # Note! HCAL links indices have been reduced by 5
             # (link 5 @ index 0, link 7 & index 2)
-            hcal_data = ClusterClassificationDataset.__get_hcal_towers(tree)
+            hcal_data = get_hcal_towers(tree)
 
             """
              0: cluster_et
@@ -44,7 +45,7 @@ class ClusterClassificationDataset(IterableDataset):
              5: cluster_spike
              6: cluster_brems
              7: cluster_satur
-             9: cluster_spare
+             8: cluster_spare
              9: ecal_tower_et
             10: ecal_tower_timing
             11: ecal_tower_spike
@@ -53,97 +54,22 @@ class ClusterClassificationDataset(IterableDataset):
             20: classification
             """
 
-            # Process the data in an actually efficient manner.
-            with multiprocessing.Pool(256, None, None, maxtasksperchild=256) as pool:
-                self.__data.append(pool.imap(
-                    lambda x : self.__process_cluster(x, ecal_data, hcal_data, cluster_type),
-                    [ (iEvent, card, slr, cluster)
-                        for iEvent in range(len(cluster_data))
-                        for card in range(24)
-                        for slr in range(4)
-                        for cluster in range(9)
-                        ]
-                ))
+            # Process the data in an efficient manner.
+            self.__data.append(fast_map(
+                process_cluster,
+                [ (iEvent, card, slr, cluster, ecal_data, hcal_data, cluster_type)
+                    for iEvent in range(len(cluster_data))
+                    for card in range(24)
+                    for slr in range(4)
+                    for cluster in range(9)
+                    ]
+            ))
+
             # Convert the list of iterables into one iterable
-            self.__data = itertools.chain.from_iterable(self.__data)
-            # Ow...
-            # (needed for the IterableDataset spec)
-            self.__data = np.array(self.__data)
-
-    def __process_cluster(cluster_index, cluster_data, ecal_data, hcal_data, cluster_type):
-        """
-        Processes data from a dataset subset into a packet that only contains data a
-        particular cluster is associated with.
-
-        This packet is then fed into the model for training.
-        """
-        (iEvent, card, slr, cluster) = cluster_index
-
-        cluster_slr = cluster_data[iEvent][card][slr]
-        ecal_slr = ecal_data[iEvent][card][slr]
-        hcal_card = hcal_data[iEvent][card]
-
-        i_eta = cluster_slr['cluster_eta'][cluster] / 5
-        i_phi = cluster_slr['cluster_phi'][cluster] / 5
-
-        cluster_et = cluster_slr['cluster_energy'][cluster]
-        cluster_seed = cluster_slr['cluster_seed_energy'][cluster]
-        cluster_et5x5 = cluster_slr['cluster_et5x5'][cluster]
-        cluster_et2x5 = cluster_slr['cluster_et2x5'][cluster]
-        cluster_timing = cluster_slr['cluster_timing'][cluster]
-        # cluster_spike = cluster_slr['cluster_spike'][cluster]
-        cluster_brems = cluster_slr['cluster_brems'][cluster]
-        # cluster_satur = cluster_slr['cluster_satur'][cluster]
-        cluster_spare = cluster_slr['cluster_spare'][cluster]
-
-        ecal_tower_et = 0
-        ecal_tower_timing = 0
-        ecal_tower_spike = 0
-
-        # TODO check correctness
-        # Filter ECAL data
-        ecal_tower = filter(
-            lambda tower: ecal_slr['tower_eta'][tower] == i_eta and ecal_slr['tower_phi'][tower] == i_phi,
-            range(12)
-        )[0]
-        ecal_tower_et = ecal_slr['tower_et'][ecal_tower]
-        ecal_tower_timing = ecal_slr['tower_timing'][ecal_tower]
-        ecal_tower_spike = ecal_slr['tower_spike'][ecal_tower]
-        
-        hcal_et = [0,0,0,0]
-        hcal_fb = [0,0,0,0]
-
-        for link in range(4):
-            hcal_tower = filter(
-                lambda tower : hcal_card[link]['tower_eta'][tower] == i_eta and hcal_card[link]['tower_phi'][tower] == i_phi,
-                range(32)
+            self.__data = np.fromiter(
+                itertools.chain.from_iterable(self.__data),
+                dtype=np.dtype(int, 21)
             )
-            hcal_et[link] = hcal_card[link]['tower_et'][hcal_tower]
-            hcal_fb[link] = hcal_card[link]['tower_fb'][hcal_tower]
-        
-        return np.array([
-            cluster_et,
-            cluster_seed,
-            cluster_et5x5,
-            cluster_et2x5,
-            cluster_timing,
-            0,#cluster_spike,
-            cluster_brems,
-            0,#cluster_satur,
-            cluster_spare,
-            ecal_tower_et,
-            ecal_tower_timing,
-            ecal_tower_spike,
-            hcal_et[0], # HCAL 5
-            hcal_et[1],
-            hcal_et[2],
-            hcal_et[3],
-            hcal_fb[0],
-            hcal_fb[1],
-            hcal_fb[2], # HCAL 7
-            hcal_fb[3],
-            cluster_type
-            ])
 
     def __getitem__(self, index):
         """
@@ -176,130 +102,209 @@ class ClusterClassificationDataset(IterableDataset):
             iter_end = min(iter_start + per_worker, max_size)
         return iter(self.__data[iter_start:iter_end])
 
-    # It looks like shit, but it'll be faster than for loops...
-    # TODO Refactor to use GPU/multiprocessing where able
-    # Adapted from https://github.com/rpsimeon34/L1CaloPhase2Analyzer/tree/15_0_0_pre3_calojet
-    # File src/L1Trigger/L1CaloPhase2Analyzer/test/examine_MLonRCT_features.py
+def process_cluster(input):
+    """
+    Processes data from a dataset subset into a packet that only contains data a
+    particular cluster is associated with.
+
+    This packet is then fed into the model for training.
+    """
+    (iEvent, card, slr, cluster, cluster_data, ecal_data, hcal_data, cluster_type) = input
+
+    cluster_slr = cluster_data[iEvent][card][slr]
+    ecal_slr = ecal_data[iEvent][card][slr]
+    hcal_card = hcal_data[iEvent][card]
+
+    i_eta = cluster_slr['cluster_eta'][cluster] / 5
+    i_phi = cluster_slr['cluster_phi'][cluster] / 5
+
+    cluster_et = cluster_slr['cluster_energy'][cluster]
+    cluster_seed = cluster_slr['cluster_seed_energy'][cluster]
+    cluster_et5x5 = cluster_slr['cluster_et5x5'][cluster]
+    cluster_et2x5 = cluster_slr['cluster_et2x5'][cluster]
+    cluster_timing = cluster_slr['cluster_timing'][cluster]
+    # cluster_spike = cluster_slr['cluster_spike'][cluster]
+    cluster_brems = cluster_slr['cluster_brems'][cluster]
+    # cluster_satur = cluster_slr['cluster_satur'][cluster]
+    cluster_spare = cluster_slr['cluster_spare'][cluster]
+
+    ecal_tower_et = 0
+    ecal_tower_timing = 0
+    ecal_tower_spike = 0
+
+    # TODO check correctness
+    # Filter ECAL data
+    ecal_tower = filter(
+        lambda tower: ecal_slr['tower_eta'][tower] == i_eta and ecal_slr['tower_phi'][tower] == i_phi,
+        range(12)
+    )[0]
+    ecal_tower_et = ecal_slr['tower_et'][ecal_tower]
+    ecal_tower_timing = ecal_slr['tower_timing'][ecal_tower]
+    ecal_tower_spike = ecal_slr['tower_spike'][ecal_tower]
     
-    def __get_clusters(tree):
-        return np.array([ x for x in map(
-            # events
-            lambda slr0_cluster_seed_energy, slr1_cluster_seed_energy, slr2_cluster_seed_energy, slr3_cluster_seed_energy, slr0_cluster_energy, slr1_cluster_energy, slr2_cluster_energy, slr3_cluster_energy, slr0_cluster_eta, slr1_cluster_eta, slr2_cluster_eta, slr3_cluster_eta, slr0_cluster_phi, slr1_cluster_phi, slr2_cluster_phi, slr3_cluster_phi, slr0_cluster_et5x5, slr1_cluster_et5x5, slr2_cluster_et5x5, slr3_cluster_et5x5, slr0_cluster_et2x5, slr1_cluster_et2x5, slr2_cluster_et2x5, slr3_cluster_et2x5, slr0_cluster_timing, slr1_cluster_timing, slr2_cluster_timing, slr3_cluster_timing, slr0_cluster_spike, slr1_cluster_spike, slr2_cluster_spike, slr3_cluster_spike, slr0_cluster_satur, slr1_cluster_satur, slr2_cluster_satur, slr3_cluster_satur, slr0_cluster_brems, slr1_cluster_brems, slr2_cluster_brems, slr3_cluster_brems, slr0_cluster_spare, slr1_cluster_spare, slr2_cluster_spare, slr3_cluster_spare: [
-                [
-                    { 'cluster_seed_energy': slr0_cluster_seed_energy[card], 'cluster_energy': slr0_cluster_energy[card], 'cluster_eta': slr0_cluster_eta[card], 'cluster_phi': slr0_cluster_phi[card], 'cluster_et5x5': slr0_cluster_et5x5[card], 'cluster_et2x5': slr0_cluster_et2x5[card], 'cluster_timing': slr0_cluster_timing[card], 'cluster_spike': slr0_cluster_spike[card], 'cluster_satur': slr0_cluster_satur[card], 'cluster_brems': slr0_cluster_brems[card], 'cluster_spare': slr0_cluster_spare[card] },
-                    { 'cluster_seed_energy': slr1_cluster_seed_energy[card], 'cluster_energy': slr1_cluster_energy[card], 'cluster_eta': slr1_cluster_eta[card], 'cluster_phi': slr1_cluster_phi[card], 'cluster_et5x5': slr1_cluster_et5x5[card], 'cluster_et2x5': slr1_cluster_et2x5[card], 'cluster_timing': slr1_cluster_timing[card], 'cluster_spike': slr1_cluster_spike[card], 'cluster_satur': slr1_cluster_satur[card], 'cluster_brems': slr1_cluster_brems[card], 'cluster_spare': slr1_cluster_spare[card] },
-                    { 'cluster_seed_energy': slr2_cluster_seed_energy[card], 'cluster_energy': slr2_cluster_energy[card], 'cluster_eta': slr2_cluster_eta[card], 'cluster_phi': slr2_cluster_phi[card], 'cluster_et5x5': slr2_cluster_et5x5[card], 'cluster_et2x5': slr2_cluster_et2x5[card], 'cluster_timing': slr2_cluster_timing[card], 'cluster_spike': slr2_cluster_spike[card], 'cluster_satur': slr2_cluster_satur[card], 'cluster_brems': slr2_cluster_brems[card], 'cluster_spare': slr2_cluster_spare[card] },
-                    { 'cluster_seed_energy': slr3_cluster_seed_energy[card], 'cluster_energy': slr3_cluster_energy[card], 'cluster_eta': slr3_cluster_eta[card], 'cluster_phi': slr3_cluster_phi[card], 'cluster_et5x5': slr3_cluster_et5x5[card], 'cluster_et2x5': slr3_cluster_et2x5[card], 'cluster_timing': slr3_cluster_timing[card], 'cluster_spike': slr3_cluster_spike[card], 'cluster_satur': slr3_cluster_satur[card], 'cluster_brems': slr3_cluster_brems[card], 'cluster_spare': slr3_cluster_spare[card] }
-                ]
-                for card in range(24)
-            ],
-            
-            tree["SLR0_cluster_seed_energy"].array() * 0.5,
-            tree["SLR1_cluster_seed_energy"].array() * 0.5,
-            tree["SLR2_cluster_seed_energy"].array() * 0.5,
-            tree["SLR3_cluster_seed_energy"].array() * 0.5,
-            tree["SLR0_cluster_energy"].array()*0.5,
-            tree["SLR1_cluster_energy"].array()*0.5,
-            tree["SLR2_cluster_energy"].array()*0.5,
-            tree["SLR3_cluster_energy"].array()*0.5,
-            tree["SLR0_cluster_eta"].array(),
-            tree["SLR1_cluster_eta"].array(),
-            tree["SLR2_cluster_eta"].array(),
-            tree["SLR3_cluster_eta"].array(),
-            tree["SLR0_cluster_phi"].array(),
-            tree["SLR1_cluster_phi"].array(),
-            tree["SLR2_cluster_phi"].array(),
-            tree["SLR3_cluster_phi"].array(),
-            tree["SLR0_cluster_et5x5"].array()*0.5,
-            tree["SLR1_cluster_et5x5"].array()*0.5,
-            tree["SLR2_cluster_et5x5"].array()*0.5,
-            tree["SLR3_cluster_et5x5"].array()*0.5,
-            tree["SLR0_cluster_et2x5"].array()*0.5,
-            tree["SLR1_cluster_et2x5"].array()*0.5,
-            tree["SLR2_cluster_et2x5"].array()*0.5,
-            tree["SLR3_cluster_et2x5"].array()*0.5,
-            tree["SLR0_cluster_timing"].array(),
-            tree["SLR1_cluster_timing"].array(),
-            tree["SLR2_cluster_timing"].array(),
-            tree["SLR3_cluster_timing"].array(),
-            tree["SLR0_cluster_spike"].array(),
-            tree["SLR1_cluster_spike"].array(),
-            tree["SLR2_cluster_spike"].array(),
-            tree["SLR3_cluster_spike"].array(),
-            tree["SLR0_cluster_satur"].array(),
-            tree["SLR1_cluster_satur"].array(),
-            tree["SLR2_cluster_satur"].array(),
-            tree["SLR3_cluster_satur"].array(),
-            tree["SLR0_cluster_brems"].array(),
-            tree["SLR1_cluster_brems"].array(),
-            tree["SLR2_cluster_brems"].array(),
-            tree["SLR3_cluster_brems"].array(),
-            tree["SLR0_cluster_spare"].array(),
-            tree["SLR1_cluster_spare"].array(),
-            tree["SLR2_cluster_spare"].array(),
-            tree["SLR3_cluster_spare"].array()
-        )])
+    hcal_et = [0,0,0,0]
+    hcal_fb = [0,0,0,0]
 
-    def __get_ecal_towers(tree):
-        return np.array([ x for x in map(
-            # events
-            lambda slr0_tower_et, slr1_tower_et, slr2_tower_et, slr3_tower_et, slr0_tower_eta, slr1_tower_eta, slr2_tower_eta, slr3_tower_eta, slr0_tower_phi, slr1_tower_phi, slr2_tower_phi, slr3_tower_phi, slr0_tower_timing, slr1_tower_timing, slr2_tower_timing, slr3_tower_timing, slr0_tower_spike, slr1_tower_spike, slr2_tower_spike, slr3_tower_spike: [
-                [
-                    { 'tower_et': slr0_tower_et[card], 'tower_eta': slr0_tower_eta[card], 'tower_phi': slr0_tower_phi[card], 'tower_timing': slr0_tower_timing[card], 'tower_spike': slr0_tower_spike[card] },
-                    { 'tower_et': slr1_tower_et[card], 'tower_eta': slr1_tower_eta[card], 'tower_phi': slr1_tower_phi[card], 'tower_timing': slr1_tower_timing[card], 'tower_spike': slr1_tower_spike[card] },
-                    { 'tower_et': slr2_tower_et[card], 'tower_eta': slr2_tower_eta[card], 'tower_phi': slr2_tower_phi[card], 'tower_timing': slr2_tower_timing[card], 'tower_spike': slr2_tower_spike[card] },
-                    { 'tower_et': slr3_tower_et[card], 'tower_eta': slr3_tower_eta[card], 'tower_phi': slr3_tower_phi[card], 'tower_timing': slr3_tower_timing[card], 'tower_spike': slr3_tower_spike[card] }
-                ]
-                for card in range(24)
-            ],
-            tree["ECALUnclusteredSLR0_tower_et"].array() * 0.5,
-            tree["ECALUnclusteredSLR1_tower_et"].array() * 0.5,
-            tree["ECALUnclusteredSLR2_tower_et"].array() * 0.5,
-            tree["ECALUnclusteredSLR3_tower_et"].array() * 0.5,
-            tree["ECALUnclusteredSLR0_tower_eta"].array(),
-            tree["ECALUnclusteredSLR1_tower_eta"].array(),
-            tree["ECALUnclusteredSLR2_tower_eta"].array(),
-            tree["ECALUnclusteredSLR3_tower_eta"].array(),
-            tree["ECALUnclusteredSLR0_tower_phi"].array(),
-            tree["ECALUnclusteredSLR1_tower_phi"].array(),
-            tree["ECALUnclusteredSLR2_tower_phi"].array(),
-            tree["ECALUnclusteredSLR3_tower_phi"].array(),
-            tree["ECALUnclusteredSLR0_tower_timing"].array(),
-            tree["ECALUnclusteredSLR1_tower_timing"].array(),
-            tree["ECALUnclusteredSLR2_tower_timing"].array(),
-            tree["ECALUnclusteredSLR3_tower_timing"].array(),
-            tree["ECALUnclusteredSLR0_tower_spike"].array(),
-            tree["ECALUnclusteredSLR1_tower_spike"].array(),
-            tree["ECALUnclusteredSLR2_tower_spike"].array(),
-            tree["ECALUnclusteredSLR3_tower_spike"].array()
-        )])
+    for link in range(4):
+        hcal_tower = filter(
+            lambda tower : hcal_card[link]['tower_eta'][tower] == i_eta and hcal_card[link]['tower_phi'][tower] == i_phi,
+            range(32)
+        )
+        hcal_et[link] = hcal_card[link]['tower_et'][hcal_tower]
+        hcal_fb[link] = hcal_card[link]['tower_fb'][hcal_tower]
+    
+    return np.array([
+        cluster_et,
+        cluster_seed,
+        cluster_et5x5,
+        cluster_et2x5,
+        cluster_timing,
+        0,#cluster_spike,
+        cluster_brems,
+        0,#cluster_satur,
+        cluster_spare,
+        ecal_tower_et,
+        ecal_tower_timing,
+        ecal_tower_spike,
+        hcal_et[0], # HCAL 5
+        hcal_et[1],
+        hcal_et[2],
+        hcal_et[3],
+        hcal_fb[0],
+        hcal_fb[1],
+        hcal_fb[2], # HCAL 7
+        hcal_fb[3],
+        cluster_type
+        ])
 
-    def __get_hcal_towers(tree):
-        return np.array([ x for x in map(
-            lambda HCAL5_tower_et, HCAL5_tower_eta, HCAL5_tower_phi, HCAL5_tower_fb, HCAL6_tower_et, HCAL6_tower_eta, HCAL6_tower_phi, HCAL6_tower_fb, HCAL7_tower_et, HCAL7_tower_eta, HCAL7_tower_phi, HCAL7_tower_fb, HCAL8_tower_et, HCAL8_tower_eta, HCAL8_tower_phi, HCAL8_tower_fb: [
-                [
-                    {'tower_et': HCAL5_tower_et[card], 'tower_eta': HCAL5_tower_eta[card], 'tower_phi': HCAL5_tower_phi[card], 'tower_fb': HCAL5_tower_fb[card] },
-                    {'tower_et': HCAL6_tower_et[card], 'tower_eta': HCAL6_tower_eta[card], 'tower_phi': HCAL6_tower_phi[card], 'tower_fb': HCAL6_tower_fb[card] },
-                    {'tower_et': HCAL7_tower_et[card], 'tower_eta': HCAL7_tower_eta[card], 'tower_phi': HCAL7_tower_phi[card], 'tower_fb': HCAL7_tower_fb[card] },
-                    {'tower_et': HCAL8_tower_et[card], 'tower_eta': HCAL8_tower_eta[card], 'tower_phi': HCAL8_tower_phi[card], 'tower_fb': HCAL8_tower_fb[card] }
-                ]
-                for card in range(24)
-            ],
-            tree['HCAL5_tower_et'].array()*0.5,
-            tree["HCAL5_tower_eta"].array(),
-            tree["HCAL5_tower_phi"].array(),
-            tree["HCAL5_tower_fb"].array(),
-            tree['HCAL6_tower_et'].array()*0.5,
-            tree["HCAL6_tower_eta"].array(),
-            tree["HCAL6_tower_phi"].array(),
-            tree["HCAL6_tower_fb"].array(),
-            tree['HCAL7_tower_et'].array()*0.5,
-            tree["HCAL7_tower_eta"].array(),
-            tree["HCAL7_tower_phi"].array(),
-            tree["HCAL7_tower_fb"].array(),
-            tree['HCAL8_tower_et'].array()*0.5,
-            tree["HCAL8_tower_eta"].array(),
-            tree["HCAL8_tower_phi"].array(),
-            tree["HCAL8_tower_fb"].array()
-        )])
+# It looks like shit, but it'll be faster than for loops...
+# TODO Refactor to use fast_map
+# Adapted from https://github.com/rpsimeon34/L1CaloPhase2Analyzer/tree/15_0_0_pre3_calojet
+# File src/L1Trigger/L1CaloPhase2Analyzer/test/examine_MLonRCT_features.py
 
+def reorganize_cluster_data(x):
+    (slr0_cluster_seed_energy, slr1_cluster_seed_energy, slr2_cluster_seed_energy, slr3_cluster_seed_energy, slr0_cluster_energy, slr1_cluster_energy, slr2_cluster_energy, slr3_cluster_energy, slr0_cluster_eta, slr1_cluster_eta, slr2_cluster_eta, slr3_cluster_eta, slr0_cluster_phi, slr1_cluster_phi, slr2_cluster_phi, slr3_cluster_phi, slr0_cluster_et5x5, slr1_cluster_et5x5, slr2_cluster_et5x5, slr3_cluster_et5x5, slr0_cluster_et2x5, slr1_cluster_et2x5, slr2_cluster_et2x5, slr3_cluster_et2x5, slr0_cluster_timing, slr1_cluster_timing, slr2_cluster_timing, slr3_cluster_timing, slr0_cluster_spike, slr1_cluster_spike, slr2_cluster_spike, slr3_cluster_spike, slr0_cluster_satur, slr1_cluster_satur, slr2_cluster_satur, slr3_cluster_satur, slr0_cluster_brems, slr1_cluster_brems, slr2_cluster_brems, slr3_cluster_brems, slr0_cluster_spare, slr1_cluster_spare, slr2_cluster_spare, slr3_cluster_spare) = x
+    return [
+            [
+                { 'cluster_seed_energy': slr0_cluster_seed_energy[card], 'cluster_energy': slr0_cluster_energy[card], 'cluster_eta': slr0_cluster_eta[card], 'cluster_phi': slr0_cluster_phi[card], 'cluster_et5x5': slr0_cluster_et5x5[card], 'cluster_et2x5': slr0_cluster_et2x5[card], 'cluster_timing': slr0_cluster_timing[card], 'cluster_spike': slr0_cluster_spike[card], 'cluster_satur': slr0_cluster_satur[card], 'cluster_brems': slr0_cluster_brems[card], 'cluster_spare': slr0_cluster_spare[card] },
+                { 'cluster_seed_energy': slr1_cluster_seed_energy[card], 'cluster_energy': slr1_cluster_energy[card], 'cluster_eta': slr1_cluster_eta[card], 'cluster_phi': slr1_cluster_phi[card], 'cluster_et5x5': slr1_cluster_et5x5[card], 'cluster_et2x5': slr1_cluster_et2x5[card], 'cluster_timing': slr1_cluster_timing[card], 'cluster_spike': slr1_cluster_spike[card], 'cluster_satur': slr1_cluster_satur[card], 'cluster_brems': slr1_cluster_brems[card], 'cluster_spare': slr1_cluster_spare[card] },
+                { 'cluster_seed_energy': slr2_cluster_seed_energy[card], 'cluster_energy': slr2_cluster_energy[card], 'cluster_eta': slr2_cluster_eta[card], 'cluster_phi': slr2_cluster_phi[card], 'cluster_et5x5': slr2_cluster_et5x5[card], 'cluster_et2x5': slr2_cluster_et2x5[card], 'cluster_timing': slr2_cluster_timing[card], 'cluster_spike': slr2_cluster_spike[card], 'cluster_satur': slr2_cluster_satur[card], 'cluster_brems': slr2_cluster_brems[card], 'cluster_spare': slr2_cluster_spare[card] },
+                { 'cluster_seed_energy': slr3_cluster_seed_energy[card], 'cluster_energy': slr3_cluster_energy[card], 'cluster_eta': slr3_cluster_eta[card], 'cluster_phi': slr3_cluster_phi[card], 'cluster_et5x5': slr3_cluster_et5x5[card], 'cluster_et2x5': slr3_cluster_et2x5[card], 'cluster_timing': slr3_cluster_timing[card], 'cluster_spike': slr3_cluster_spike[card], 'cluster_satur': slr3_cluster_satur[card], 'cluster_brems': slr3_cluster_brems[card], 'cluster_spare': slr3_cluster_spare[card] }
+            ]
+            for card in range(24)
+        ]
+
+def get_clusters(tree):
+    return np.array([ x for x in fast_map(
+        # events
+        reorganize_cluster_data,
+        [ (slr0_cluster_seed_energy, slr1_cluster_seed_energy, slr2_cluster_seed_energy, slr3_cluster_seed_energy, slr0_cluster_energy, slr1_cluster_energy, slr2_cluster_energy, slr3_cluster_energy, slr0_cluster_eta, slr1_cluster_eta, slr2_cluster_eta, slr3_cluster_eta, slr0_cluster_phi, slr1_cluster_phi, slr2_cluster_phi, slr3_cluster_phi, slr0_cluster_et5x5, slr1_cluster_et5x5, slr2_cluster_et5x5, slr3_cluster_et5x5, slr0_cluster_et2x5, slr1_cluster_et2x5, slr2_cluster_et2x5, slr3_cluster_et2x5, slr0_cluster_timing, slr1_cluster_timing, slr2_cluster_timing, slr3_cluster_timing, slr0_cluster_spike, slr1_cluster_spike, slr2_cluster_spike, slr3_cluster_spike, slr0_cluster_satur, slr1_cluster_satur, slr2_cluster_satur, slr3_cluster_satur, slr0_cluster_brems, slr1_cluster_brems, slr2_cluster_brems, slr3_cluster_brems, slr0_cluster_spare, slr1_cluster_spare, slr2_cluster_spare, slr3_cluster_spare)
+            for slr0_cluster_seed_energy in tree["SLR0_cluster_seed_energy"].array() * 0.5
+            for slr1_cluster_seed_energy in tree["SLR1_cluster_seed_energy"].array() * 0.5
+            for slr2_cluster_seed_energy in tree["SLR2_cluster_seed_energy"].array() * 0.5
+            for slr3_cluster_seed_energy in tree["SLR3_cluster_seed_energy"].array() * 0.5
+            for slr0_cluster_energy in tree["SLR0_cluster_energy"].array()*0.5
+            for slr1_cluster_energy in tree["SLR1_cluster_energy"].array()*0.5
+            for slr2_cluster_energy in tree["SLR2_cluster_energy"].array()*0.5
+            for slr3_cluster_energy in tree["SLR3_cluster_energy"].array()*0.5
+            for slr0_cluster_eta in tree["SLR0_cluster_eta"].array()
+            for slr1_cluster_eta in tree["SLR1_cluster_eta"].array()
+            for slr2_cluster_eta in tree["SLR2_cluster_eta"].array()
+            for slr3_cluster_eta in tree["SLR3_cluster_eta"].array()
+            for slr0_cluster_phi in tree["SLR0_cluster_phi"].array()
+            for slr1_cluster_phi in tree["SLR1_cluster_phi"].array()
+            for slr2_cluster_phi in tree["SLR2_cluster_phi"].array()
+            for slr3_cluster_phi in tree["SLR3_cluster_phi"].array()
+            for slr0_cluster_et5x5 in tree["SLR0_cluster_et5x5"].array()*0.5
+            for slr1_cluster_et5x5 in tree["SLR1_cluster_et5x5"].array()*0.5
+            for slr2_cluster_et5x5 in tree["SLR2_cluster_et5x5"].array()*0.5
+            for slr3_cluster_et5x5 in tree["SLR3_cluster_et5x5"].array()*0.5
+            for slr0_cluster_et2x5 in tree["SLR0_cluster_et2x5"].array()*0.5
+            for slr1_cluster_et2x5 in tree["SLR1_cluster_et2x5"].array()*0.5
+            for slr2_cluster_et2x5 in tree["SLR2_cluster_et2x5"].array()*0.5
+            for slr3_cluster_et2x5 in tree["SLR3_cluster_et2x5"].array()*0.5
+            for slr0_cluster_timing in tree["SLR0_cluster_timing"].array()
+            for slr1_cluster_timing in tree["SLR1_cluster_timing"].array()
+            for slr2_cluster_timing in tree["SLR2_cluster_timing"].array()
+            for slr3_cluster_timing in tree["SLR3_cluster_timing"].array()
+            for slr0_cluster_spike in tree["SLR0_cluster_spike"].array()
+            for slr1_cluster_spike in tree["SLR1_cluster_spike"].array()
+            for slr2_cluster_spike in tree["SLR2_cluster_spike"].array()
+            for slr3_cluster_spike in tree["SLR3_cluster_spike"].array()
+            for slr0_cluster_satur in tree["SLR0_cluster_satur"].array()
+            for slr1_cluster_satur in tree["SLR1_cluster_satur"].array()
+            for slr2_cluster_satur in tree["SLR2_cluster_satur"].array()
+            for slr3_cluster_satur in tree["SLR3_cluster_satur"].array()
+            for slr0_cluster_brems in tree["SLR0_cluster_brems"].array()
+            for slr1_cluster_brems in tree["SLR1_cluster_brems"].array()
+            for slr2_cluster_brems in tree["SLR2_cluster_brems"].array()
+            for slr3_cluster_brems in tree["SLR3_cluster_brems"].array()
+            for slr0_cluster_spare in tree["SLR0_cluster_spare"].array()
+            for slr1_cluster_spare in tree["SLR1_cluster_spare"].array()
+            for slr2_cluster_spare in tree["SLR2_cluster_spare"].array()
+            for slr3_cluster_spare in tree["SLR3_cluster_spare"].array()
+        ]
+    )])
+
+def get_ecal_towers(tree):
+    return np.array([ x for x in map(
+        # events
+        lambda slr0_tower_et, slr1_tower_et, slr2_tower_et, slr3_tower_et, slr0_tower_eta, slr1_tower_eta, slr2_tower_eta, slr3_tower_eta, slr0_tower_phi, slr1_tower_phi, slr2_tower_phi, slr3_tower_phi, slr0_tower_timing, slr1_tower_timing, slr2_tower_timing, slr3_tower_timing, slr0_tower_spike, slr1_tower_spike, slr2_tower_spike, slr3_tower_spike: [
+            [
+                { 'tower_et': slr0_tower_et[card], 'tower_eta': slr0_tower_eta[card], 'tower_phi': slr0_tower_phi[card], 'tower_timing': slr0_tower_timing[card], 'tower_spike': slr0_tower_spike[card] },
+                { 'tower_et': slr1_tower_et[card], 'tower_eta': slr1_tower_eta[card], 'tower_phi': slr1_tower_phi[card], 'tower_timing': slr1_tower_timing[card], 'tower_spike': slr1_tower_spike[card] },
+                { 'tower_et': slr2_tower_et[card], 'tower_eta': slr2_tower_eta[card], 'tower_phi': slr2_tower_phi[card], 'tower_timing': slr2_tower_timing[card], 'tower_spike': slr2_tower_spike[card] },
+                { 'tower_et': slr3_tower_et[card], 'tower_eta': slr3_tower_eta[card], 'tower_phi': slr3_tower_phi[card], 'tower_timing': slr3_tower_timing[card], 'tower_spike': slr3_tower_spike[card] }
+            ]
+            for card in range(24)
+        ],
+        tree["ECALUnclusteredSLR0_tower_et"].array() * 0.5,
+        tree["ECALUnclusteredSLR1_tower_et"].array() * 0.5,
+        tree["ECALUnclusteredSLR2_tower_et"].array() * 0.5,
+        tree["ECALUnclusteredSLR3_tower_et"].array() * 0.5,
+        tree["ECALUnclusteredSLR0_tower_eta"].array(),
+        tree["ECALUnclusteredSLR1_tower_eta"].array(),
+        tree["ECALUnclusteredSLR2_tower_eta"].array(),
+        tree["ECALUnclusteredSLR3_tower_eta"].array(),
+        tree["ECALUnclusteredSLR0_tower_phi"].array(),
+        tree["ECALUnclusteredSLR1_tower_phi"].array(),
+        tree["ECALUnclusteredSLR2_tower_phi"].array(),
+        tree["ECALUnclusteredSLR3_tower_phi"].array(),
+        tree["ECALUnclusteredSLR0_tower_timing"].array(),
+        tree["ECALUnclusteredSLR1_tower_timing"].array(),
+        tree["ECALUnclusteredSLR2_tower_timing"].array(),
+        tree["ECALUnclusteredSLR3_tower_timing"].array(),
+        tree["ECALUnclusteredSLR0_tower_spike"].array(),
+        tree["ECALUnclusteredSLR1_tower_spike"].array(),
+        tree["ECALUnclusteredSLR2_tower_spike"].array(),
+        tree["ECALUnclusteredSLR3_tower_spike"].array()
+    )])
+
+def get_hcal_towers(tree):
+    return np.array([ x for x in map(
+        lambda HCAL5_tower_et, HCAL5_tower_eta, HCAL5_tower_phi, HCAL5_tower_fb, HCAL6_tower_et, HCAL6_tower_eta, HCAL6_tower_phi, HCAL6_tower_fb, HCAL7_tower_et, HCAL7_tower_eta, HCAL7_tower_phi, HCAL7_tower_fb, HCAL8_tower_et, HCAL8_tower_eta, HCAL8_tower_phi, HCAL8_tower_fb: [
+            [
+                {'tower_et': HCAL5_tower_et[card], 'tower_eta': HCAL5_tower_eta[card], 'tower_phi': HCAL5_tower_phi[card], 'tower_fb': HCAL5_tower_fb[card] },
+                {'tower_et': HCAL6_tower_et[card], 'tower_eta': HCAL6_tower_eta[card], 'tower_phi': HCAL6_tower_phi[card], 'tower_fb': HCAL6_tower_fb[card] },
+                {'tower_et': HCAL7_tower_et[card], 'tower_eta': HCAL7_tower_eta[card], 'tower_phi': HCAL7_tower_phi[card], 'tower_fb': HCAL7_tower_fb[card] },
+                {'tower_et': HCAL8_tower_et[card], 'tower_eta': HCAL8_tower_eta[card], 'tower_phi': HCAL8_tower_phi[card], 'tower_fb': HCAL8_tower_fb[card] }
+            ]
+            for card in range(24)
+        ],
+        tree['HCAL5_tower_et'].array()*0.5,
+        tree["HCAL5_tower_eta"].array(),
+        tree["HCAL5_tower_phi"].array(),
+        tree["HCAL5_tower_fb"].array(),
+        tree['HCAL6_tower_et'].array()*0.5,
+        tree["HCAL6_tower_eta"].array(),
+        tree["HCAL6_tower_phi"].array(),
+        tree["HCAL6_tower_fb"].array(),
+        tree['HCAL7_tower_et'].array()*0.5,
+        tree["HCAL7_tower_eta"].array(),
+        tree["HCAL7_tower_phi"].array(),
+        tree["HCAL7_tower_fb"].array(),
+        tree['HCAL8_tower_et'].array()*0.5,
+        tree["HCAL8_tower_eta"].array(),
+        tree["HCAL8_tower_phi"].array(),
+        tree["HCAL8_tower_fb"].array()
+    )])

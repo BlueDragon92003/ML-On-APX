@@ -41,7 +41,7 @@ _readme:
 	@echo "$$readme"
 
 install-dependencies:
-	if [ --version | grep "3.14" -neq 0 ]; then \
+	@if [ python3 --version | grep "3.14" -neq 0 ]; then \
 		echo "Python 3.14 is the intended Python version for this project. \
 		Please install it and try again."; \
 		exit 1; \
@@ -54,6 +54,7 @@ install-dependencies:
 	python3 -m pip install colour-runner==0.1.1
 	python3 -m pip install parameterized==0.9.0
 	python3 -m pip install argparse==1.4
+	python3 -m pip install fast-map==0.3.1
 
 clean: clean-identify clean-classify
 
