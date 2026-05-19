@@ -114,12 +114,12 @@ class ClusterClassificationDataset(IterableDataset):
         hcal_fb = [0,0,0,0]
 
         for link in range(4):
-            # TODO Replace with filter
-            for tower in range(32):
-                if hcal_card[link]['tower_eta'][tower] == i_eta:
-                    if hcal_card[link]['tower_phi'][tower] == i_phi:
-                        hcal_et[link] = hcal_card[link]['tower_et'][tower]
-                        hcal_fb[link] = hcal_card[link]['tower_fb'][tower]
+            hcal_tower = filter(
+                lambda tower : hcal_card[link]['tower_eta'][tower] == i_eta and hcal_card[link]['tower_phi'][tower] == i_phi,
+                range(32)
+            )
+            hcal_et[link] = hcal_card[link]['tower_et'][hcal_tower]
+            hcal_fb[link] = hcal_card[link]['tower_fb'][hcal_tower]
         
         return np.array([
             cluster_et,
