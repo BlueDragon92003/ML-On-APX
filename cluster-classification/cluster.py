@@ -1,7 +1,7 @@
 
-from enum import Enum
+from enum import IntEnum
 
-class ClusterType(Enum):
+class ClusterType(IntEnum):
     """
     The `ClusterType` enum exists to mark the type of event under consideration.
     """
