@@ -25,7 +25,7 @@ class ClusterClassificationDataset(IterableDataset):
             with uproot.open(filepath) as file:
                 tree = file["l1NtupleProducer/linkTree;1"]
                 self.__data.append( np.fromiter(
-                    process_cluster(
+                    cluster_generator(
                         tree, cluster_type,
                         num_events=len(tree['SLR0_cluster_eta'].array())
                         )
@@ -133,14 +133,14 @@ def get_hcal_location(card, i_eta, i_phi):
     tower_index = 4*i_eta + (i_phi + 6 * high_link) % 4
     link += (i_phi + 6 * high_link) // 4 % 2 * 2
 
-    return tower_index, link
+    return tower_index, int(link)
 
-def process_cluster(tree, cluster_type, num_events):
+def cluster_generator(tree, cluster_type, num_events):
     """
-    Processes data from a dataset subset into a packet that only contains data a
+    Processes data from a dataset subset into packets that each contain data one
     particular cluster is associated with.
 
-    This packet is then fed into the model for training.
+    These packets are then fed into the model for training.
     """
     
     for event in range(num_events):
