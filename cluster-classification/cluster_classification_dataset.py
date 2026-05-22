@@ -29,8 +29,8 @@ class ClusterClassificationDataset(IterableDataset):
                         tree, cluster_type,
                         num_events=len(tree['SLR0_cluster_eta'].array())
                         )
-                    (int,15)
-                ) )                      
+                    (float,15)
+                ) )               
             # # General data structure:
             # # data [ SLR/link + feature ][ event ][ card ]
             """
@@ -150,8 +150,8 @@ def cluster_generator(tree, cluster_type, num_events):
                 for cluster in range(9):
                     # cluster i_eta and i_phi are in crystal;
                     # everyhting else is in tower
-                    i_eta = from_tree(tree, f'SLR{slr}_cluster_eta', event, card, cluster) / 5
-                    i_phi = from_tree(tree, f'SLR{slr}_cluster_phi', event, card, cluster) / 5
+                    i_eta = from_tree(tree, f'SLR{slr}_cluster_eta', event, card, cluster) // 5
+                    i_phi = from_tree(tree, f'SLR{slr}_cluster_phi', event, card, cluster) // 5
                     cluster_et = from_tree(tree, f'SLR{slr}_cluster_energy', event, card, cluster) * 0.5
 
                     if cluster_et == 0:
