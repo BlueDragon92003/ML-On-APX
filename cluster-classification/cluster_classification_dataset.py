@@ -118,7 +118,9 @@ def get_hcal_location(card, i_eta, i_phi):
         link += 1
         i_eta += -8 # index 0 of Link 6/8 is i_eta = 7
 
-    high_link = (card % 4 - 1) // 2 % 2 # 1(True) if Links 5/6 start with 2, 0(False) otherwise
+    high_link = i_phi + 6 * ( (card % 4 - 1) // 2 % 2 ) 
+    # 1(True) if Links 5/6 start with 2, 0(False) otherwise
+    # it's only ever actually used times 6 plus i_phi, so may as well do it here
     
     """
     | high_link | i_phi = 0 |   1   |   2   |   3   |   4   |   5   |
@@ -131,8 +133,8 @@ def get_hcal_location(card, i_eta, i_phi):
     The formula `(i_phi + 6 * high_link) // 4 % 2 * 2` calculates the link offset (L-5)
     """
 
-    tower_index = 4*i_eta + (i_phi + 6 * high_link) % 4
-    link += (i_phi + 6 * high_link) // 4 % 2 * 2
+    tower_index = 4*i_eta + high_link % 4
+    link += high_link // 4 % 2 * 2
 
     return tower_index, int(link)
 
@@ -152,7 +154,9 @@ def cluster_generator(tree, cluster_type, num_events):
                     # everyhting else is in tower
                     i_eta = from_tree(tree, f'SLR{slr}_cluster_eta', event, card, cluster) // 5
                     i_phi = from_tree(tree, f'SLR{slr}_cluster_phi', event, card, cluster) // 5
-                    cluster_et = from_tree(tree, f'SLR{slr}_cluster_energy', event, card, cluster) * 0.5
+                    cluster_et = from_tree(tree, f'SLR{slr}_cluster_energy', event, card, cluster)
+                    # Energy can be left in its integer format; the specific
+                    # values don't matter so much as the scale
 
                     if cluster_et == 0:
                         # Not a cluster
@@ -166,14 +170,14 @@ def cluster_generator(tree, cluster_type, num_events):
                     if hcal_info:
                         # HCAL information exists
                         (hcal_tower, link) = hcal_info
-                        hcal_et = from_tree(tree, f'HCAL{link}_tower_et', event, card, hcal_tower) * 0.5
+                        hcal_et = from_tree(tree, f'HCAL{link}_tower_et', event, card, hcal_tower)
                         hcal_fb = from_tree(tree, f'HCAL{link}_tower_fb', event, card, hcal_tower)
                     
                     yield [
                         cluster_et,
-                        from_tree(tree, f'SLR{slr}_cluster_seed_energy', event, card, cluster) * 0.5,
-                        from_tree(tree, f'SLR{slr}_cluster_et5x5', event, card, cluster) * 0.5,
-                        from_tree(tree, f'SLR{slr}_cluster_et2x5', event, card, cluster) * 0.5,
+                        from_tree(tree, f'SLR{slr}_cluster_seed_energy', event, card, cluster),
+                        from_tree(tree, f'SLR{slr}_cluster_et5x5', event, card, cluster),
+                        from_tree(tree, f'SLR{slr}_cluster_et2x5', event, card, cluster),
                         from_tree(tree, f'SLR{slr}_cluster_timing', event, card, cluster),
                         0, #from_tree(tree, f'SLR{slr}_cluster_spike', event, card, cluster),
                         from_tree(tree, f'SLR{slr}_cluster_brems', event, card, cluster),
