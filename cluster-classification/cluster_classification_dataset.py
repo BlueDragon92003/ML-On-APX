@@ -7,6 +7,7 @@ import numpy as np
 
 from signal_type import SignalType
 
+# TODO typing
 class ClusterClassificationDataset(IterableDataset):
     """Implements a PyTorch dataset to train the cluster classifier.
 
