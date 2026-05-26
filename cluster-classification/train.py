@@ -1,16 +1,20 @@
-'''
-train.py
-
-This file contains the code used to train the model.
-'''
-
 import logging
 
 from torch import nn
 
 def train_loop(device, dataloader, model, loss_fn, optimizer):
-    """
-    Train the model on the provided data.
+    """Evaluates the capabilities of the current model.
+
+    Arguments:
+    - `device`: The device this model will be training on
+    - `dataloader`: The data source to test the model in
+    - `model`: The model being tested
+    - `loss_fn`: The function used to evaluate the model.
+    - `optimizer`: The method used to optimize the model at each step.
+
+    Returns:
+    - A ratio of correctly-classified clusters to all clusters considered.
+    - A formatted string for user display messages.
     """
 
     logging.debug("Training step")

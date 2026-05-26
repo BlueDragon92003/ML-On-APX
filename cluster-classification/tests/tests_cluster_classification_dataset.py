@@ -1,9 +1,9 @@
-import cluster_classification_dataset
-from cluster import ClusterType
-
 import unittest
 
 from parameterized import parameterized
+
+import cluster_classification_dataset
+from cluster import SignalType
 
 class TestClusterClassificationDataset(unittest.TestCase):
     """Tests for the class `ClusterClassifcationDataset`
@@ -656,7 +656,7 @@ class TestClusterClassificationDataset(unittest.TestCase):
         data = []
         generator = cluster_classification_dataset.cluster_generator(
             from_tree,
-            ClusterType.BACKGROUND,
+            SignalType.BACKGROUND,
             2
         )
 
@@ -672,37 +672,37 @@ class TestClusterClassificationDataset(unittest.TestCase):
         cluster_0_expected = [ # extra zeros from dead data in provided file
             1, 2, 3, 4, 5, 0, 7,
             0, 9, 10, 11, 12, 13, 14,
-            ClusterType.BACKGROUND
+            SignalType.BACKGROUND
             ]
         
         cluster_1_expected = [ # extra zeros from dead data in provided file
             2, 3, 5, 7, 11, 0, 17,
             0, 29, 31, 37, 41, 43, 47,
-            ClusterType.BACKGROUND
+            SignalType.BACKGROUND
             ]
         
         cluster_2_expected = [ # extra zeros from dead data in provided file
             1, 1, 2, 3, 5, 0, 13,
             0, 34, 55, -39, 16, -23, -7,
-            ClusterType.BACKGROUND
+            SignalType.BACKGROUND
             ]
         
         cluster_3_expected = [ # extra zeros from dead data in provided file
             1, 8, 2, 9, 3, 0, 4,
             0, 5, 12, 6, 13, 7, 14,
-            ClusterType.BACKGROUND
+            SignalType.BACKGROUND
             ]
         
         cluster_4_expected = [ # extra zeros from dead data in provided file
             14, 13, 12, 11, 10, 0, 8,
             0, 6, 5, 4, 3, 2, 1,
-            ClusterType.BACKGROUND
+            SignalType.BACKGROUND
             ]
         
         cluster_5_expected = [ # extra zeros from dead data in provided file
             11, 9, 7, 5, 3, 0, 0,
             0, 4, 6, 8, 10, -1, -1,
-            ClusterType.BACKGROUND
+            SignalType.BACKGROUND
             ]
 
         self.assertIn( cluster_0_expected, data )

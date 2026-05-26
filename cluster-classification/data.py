@@ -1,26 +1,29 @@
 import os
 import pickle
 import textwrap
-
 import logging
+from enum import Enum
 
 from torch.utils.data import DataLoader
-
-from enum import Enum
 
 from dataset_subset import DatasetSubset
 from cluster_classification_dataset import ClusterClassificationDataset
 
 class DatasourceType(Enum):
-    """
-    The `DatasourceType` enum marks if the data being generated is being used
-    for training or testing purposes. 
-    """
+    """Marks if the datasource is for training or testing purposes"""
     TRAINING = 1
     TESTING = 2
 
 def get_data(datasource_type: DatasourceType, batch_size: int,):
-    """Return a PyTorch DataLoader with a specified batch size and datatype."""
+    """Return a PyTorch DataLoader with a specified batch size and datatype.
+    
+    Arguments:
+    - `datasource_type`: If the data is for testing or training purposes.
+    - `batch_size`: the size of batches the dataloader provides.
+
+    Returns:
+    - A PyTorch dataloader that serves cluster classification data. 
+    """
     logging.info("Getting data")
     data = load_data(datasource_type, DatasetSubset.DOUBLE_ELECTRON)
     return DataLoader(
@@ -36,9 +39,10 @@ def get_data(datasource_type: DatasourceType, batch_size: int,):
             )
 
 def load_data(datasource_type: DatasourceType, datasets: DatasetSubset) -> ClusterClassificationDataset:
-    """
+    """Intellegently loads or creates a `Dataset` given `DatasetSubsets`
+    
     Loads the data as a PyTorch Dataset, provided a specific type (training or
-    testing) and a set of root data to use as samples.
+    testing) and a set of ROOT data to use as samples.
     
     First, the function checks if such a Dataset has already been created. If so,
     it checks if the preserved Dataset needs to be updated (i.e. at least one of
@@ -46,7 +50,15 @@ def load_data(datasource_type: DatasourceType, datasets: DatasetSubset) -> Clust
     exists and is not outdated, it is unpicked and returned.
     
     If the preserved dataset is outdated or does not exist, then a new one is
-    created from root data.
+    created from ROOT data.
+
+    Arguments:
+    - `datasource_type`: If the data is for training or testing purposes.
+    - `datasets`: A dataset subset composed of varous `.root` files read for
+                    data.
+
+    Returns:
+    - A PyTorch Dataset of the requested ROOT data.
     """
     # Extract the filepath where a picked file is/will be stored
     dataset_id = datasets.get_hex()

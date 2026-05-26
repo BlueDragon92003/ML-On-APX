@@ -1,20 +1,34 @@
 from typing import Tuple, Set
 
-from cluster import ClusterType
+from cluster import SignalType
 
 class DatasetSubset:
-    """
-    Represents a particular subset of all available data sources that will be
-    under use.
+    """Represents a subset of data sources data is pulled from.
+
+    Public methods:
+    - `get_hex`
+    - `get_data`
+    
+    Behaviors:
+    - `len(self)`: Extracts the number of distinct source files in this
+                    `DatasetSubset`
+    - `self | other`: Composes two `DatasetSubsets` into a larger one.
     """
 
-    def __init__(self, bitstring, filename: str = None, data_type: ClusterType = None, data: Set[Tuple[str,ClusterType]] = None):
-        """
-        Create a new subset with a given bitstring and a (tuple of)
-        corresponding filename(s).
+    def __init__(self, bitstring, filename: str = None, data_type: SignalType = None, data: Set[Tuple[str,SignalType]] = None):
+        """Create a new subset from a ROOT file and a signal type or internal data.
         
-        Subsets should either be created as constants later in this file or
-        by combining other datasets using the or operator.
+        Subsets should either be created as constants later in this file using
+        filenames, unique bitstrings, and signal types; or by combining other
+        `DatasetSubsets` using the or (`|`) operator.
+
+        Arguments:
+        - `bitstring`: The bitstring this DsSs should use
+        - `filename`: The file name for a root file
+        - `data_type`: The signal type the root file represents
+        - `data`: A set of tuples of filenames and signal types this DsSs should
+                    contain.
+        ONLY `data` OR (`filename` AND `data_type`) should be used.
         """
         self.bitstring = bitstring
         if (data is None):
@@ -22,21 +36,18 @@ class DatasetSubset:
                 raise ValueError("Must provide a filename")
             if (data_type is None):
                 raise ValueError("Must provide a filename")
-            self.data = { (filename,ClusterType) }
+            self.data = { (filename,SignalType) }
         else:
             self.data = data
 
     def __or__(self, other):
-        """Combine with another available dataset into a new, larger dataset"""
+        """Combine with another available dataset into a new, larger dataset."""
         bitstring = self.bitstring | other.bitstring
         data = self.data | other.data
         return DatasetSubset(bitstring, data=data)
     
     def get_hex(self) -> str:
-        """
-        Get a hex representation of which sets are in this dataset. Enables easy
-        classification for pickling.
-        """
+        """Returns a hex ID for this dataset. Enables pickle identification."""
         bitstring = self.bitstring
         string = ""
         for _ in range(8):
@@ -44,18 +55,16 @@ class DatasetSubset:
             bitstring = bitstring >> 4
         return string
     
-    def get_data(self) -> Set[Tuple[str, ClusterType]]:
-        """Retern all filenames considered by this data subset."""
+    def get_data(self) -> Set[Tuple[str, SignalType]]:
+        """Return all filenames and corresponding signal types in this DsSs."""
         return self.data
 
     def __len__(self) -> int:
-        """
-        Get number of elements in the former two lists, for iteration purposes.
-        """
+        """Returns the number of datasets in this DsSs"""
         return len(self.data)
 
 DatasetSubset.DOUBLE_ELECTRON = DatasetSubset(
     0b0000_0000_0000_0000_0000_0000_0000_0001,
     "double_electron.root",
-    ClusterType.BACKGROUND,
+    SignalType.BACKGROUND,
     )

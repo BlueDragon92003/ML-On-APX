@@ -1,4 +1,3 @@
-
 from enum import IntEnum
 
 class SignalType(IntEnum):

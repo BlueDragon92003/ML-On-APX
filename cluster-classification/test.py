@@ -1,16 +1,19 @@
-'''
-test.py
-
-This file contains the code used to test the model.
-'''
-
 import logging
+
 import torch
 
 def test_loop(device, dataloader, model, loss_fn):
-    """
-    Test the current training state of the model and report this status to
-    program control to determine whether or not training should stop.
+    """Evaluates the capabilities of the current model.
+
+    Arguments:
+    - `device`: The device this model will be training on
+    - `dataloader`: The data source to test the model in
+    - `model`: The model being tested
+    - `loss_fn`: The function used to evaluate the model.
+
+    Returns:
+    - A ratio of correctly-classified clusters to all clusters considered.
+    - A formatted string for user display messages.
     """
 
     logging.debug("Testing step")
