@@ -6,12 +6,20 @@ import unittest
 from parameterized import parameterized
 
 class TestClusterClassificationDataset(unittest.TestCase):
+    """Tests for the class `ClusterClassifcationDataset`
 
-    def test_data_wrapper__get_ecal_tower_in_bounds(self):
-        """
-        Ensure that the ECAL tower function produces only in-range indices on
-        valid input.
-        """
+    Extends: `unittest.TestCase`
+
+    Public methods:
+    - `test_ccd__get_ecal_tower__in_bounds`
+    - `test_ccd__get_hcal_location__in_bounds`
+    - `test_ccd__get_ecal_tower__correctness` (parameterized)
+    - `test_ccd__get_hcal_location__correctness` (parameterized)
+    - `test_ccd__cluster_generator__correctness`
+    """
+
+    def test_ccd__get_ecal_tower__in_bounds(self):
+        """Tests if `get_ecal_tower` produces valid indices on valid input."""
         for i_phi in range(6):
             # {0,1}
             for i_eta in range(2):
@@ -30,10 +38,8 @@ class TestClusterClassificationDataset(unittest.TestCase):
                     self.assertLess( slri, 30 )
                     self.assertGreaterEqual( slri, 0 )
 
-    def test_data_wrapper__get_hcal_location_in_bounds(self):
-        """
-        Ensure that the HCAL location function produces only in-range indices.
-        """
+    def test_ccd__get_hcal_location__in_bounds(self):
+        """Tests if `get_hcal_location` produces valid indices on valid input."""
         for i_phi in range(6):
             for card in range(24):
                 # All i_eta > 17 should return None
@@ -62,8 +68,6 @@ class TestClusterClassificationDataset(unittest.TestCase):
                     self.assertGreaterEqual( tower, 0 )
                     self.assertIn( link, {6,8} )
 
-    # TODO create correctness tests
-
     @parameterized.expand([
         # TODO make the test coverage as good as hcal_location
         [0,1,0,6],
@@ -74,12 +78,18 @@ class TestClusterClassificationDataset(unittest.TestCase):
         [3,13,5,11],
         [3,16,0,24],
     ])
-    def test_data_wrapper__get_ecal_tower_correctness(self, slr, i_eta, i_phi, tower):
-        """
-        Ensures get_ecal_tower produces correct values for some indices.
-        Implies correctness for the rest of them.
+    def test_ccd__get_ecal_tower__correctness(self, slr, i_eta, i_phi, tower):
+        """Tests `get_ecal_tower` on select slr, i_eta, and i_phi indices.
+        
+        Parameterized Test:
+        - `slr`: the SLR index to pass to `get_ecal_tower`
+        - `i_eta`: the $i\eta$ position to pass to `get_ecal_tower`
+        - `i_phi`: the $i\phi$ position to pass to `get_ecal_tower`
 
-        Does not test what happens when given bad input.
+        Ensures `get_ecal_tower` produces correct values for select indices.
+        As the function is algebraic, it is assumed that all inputs should work.
+
+        Does **not** test what happens when given bad input.
         """
         self.assertEqual(
             tower,
@@ -106,24 +116,26 @@ class TestClusterClassificationDataset(unittest.TestCase):
         [13,14,4,(0+4*6,8)], # low link/high phi/high eta 1
         [14,15,5,(1+4*7,8)], # low link/high phi/high eta 2
     ])
-    def test_data_wrapper__get_hcal_tower_correctness(self, card, i_eta, i_phi, location):
-        """
-        Ensures get_hcal_location produces correct values for some indices.
-        Implies correctness for the rest of them.
+    def test_ccd__get_hcal_location__correctness(self, card, i_eta, i_phi, location):
+        """Tests `get_hcal_location` on select indices
+        
+        Parameterized Test:
+        - `card`: The RCT card to pass to `get_hcal_location`
+        - `i_eta`: the $i\eta$ position to pass to `get_hcal_location`
+        - `i_phi`: the $i\phi$ position to pass to `get_hcal_location`
 
-        Does not test what happens when given bad input.
+        Ensures `get_hcal_location produces` correct values for select indices.
+        As the function is algebraic, it is assumed that all inputs should work.
+
+        Does **not** test what happens when given bad input.
         """
         self.assertEqual(
             location,
             cluster_classification_dataset.get_hcal_location(card, i_eta, i_phi)
         )
 
-    def data_for__test_data_wrapper__cluster_generator_correctness(feature, event, card, final):
-        """
-        A simple method that serves as a datasource for the cluster_generator.
-        It allows for control over the data provided to the test and improves
-        test duration.
-        """
+    def __data_for__test_ccd__cluster_generator__correctness(feature, event, card, final):
+        """Provides data for `test_ccd__cluster_generator__correctness`."""
 
         # 6 total clusters will be generaed by this process:
         #   - 4 clusters are in event 0, 2 in event 1
@@ -636,8 +648,10 @@ class TestClusterClassificationDataset(unittest.TestCase):
 
         return 0
 
-    def test_data_wrapper__cluster_generator_correctness(self):
-        from_tree = TestClusterClassificationDataset.data_for__test_data_wrapper__cluster_generator_correctness
+    def test_ccd__cluster_generator__correctness(self):
+        """Tests the cluster generator for correctness."""
+
+        from_tree = TestClusterClassificationDataset.__data_for__test_ccd__cluster_generator__correctness
 
         data = []
         generator = cluster_classification_dataset.cluster_generator(

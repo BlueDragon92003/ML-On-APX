@@ -4,24 +4,12 @@ import textwrap
 
 import logging
 
-#from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
-
-#import numpy as np
-import uproot
 
 from enum import Enum
 
-#from cluster import ClusterType
 from dataset_subset import DatasetSubset
 from cluster_classification_dataset import ClusterClassificationDataset
-
-'''
-data.py
-
-This file processes data provided in the root format into a DataLoader usable by
-PyTorch.
-'''
 
 class DatasourceType(Enum):
     """

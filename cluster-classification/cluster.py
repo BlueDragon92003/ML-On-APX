@@ -1,10 +1,15 @@
 
 from enum import IntEnum
 
-class ClusterType(IntEnum):
-    """
-    The `ClusterType` enum exists to mark the type of event under consideration.
+class SignalType(IntEnum):
+    """Types of signal an individual event may be part of.
+    
+    Extends: `enum.IntEnum`
+
+    Values:
+    - `BACKGROUND` for background events;
+    - `HADRONIC` for hadronic events.
     """
 
     BACKGROUND = 1,
-    SIGNAL_HADRONIC = 2,
+    HADRONIC = 2,

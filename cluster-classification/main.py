@@ -1,17 +1,8 @@
-'''
-main.py
-
-This python script is executed to train and test the 
-'''
-
 import logging
 import os
 
 import torch
 from torch import nn
-
-from model import NeuralNetwork
-from constants import *
 
 from model import Model
 from test import test_loop
