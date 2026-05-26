@@ -96,7 +96,7 @@ def get_ecal_tower(slr, i_eta, i_phi):
             tower = tower - 12  # Index 0 in the SLR2 branch is eta=2,
                                 #   shifting indices by 12
         case 2:
-            tower = tower - 42
+            tower = tower - 42  # 12+30
         case 3:
             tower = tower - 72  # i_eta = 16, i_phi = 5 -> index 101
                                 #   101 - 72 = 29, the last index in SLR3 :)
