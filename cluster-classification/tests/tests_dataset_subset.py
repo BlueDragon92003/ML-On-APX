@@ -3,7 +3,7 @@ import unittest
 from parameterized import parameterized
 
 from dataset_subset import DatasetSubset
-from cluster import SignalType
+from signal_type import SignalType
 
 class TestDatasetSubset(unittest.TestCase):
     """Tests for the class `DatasetSubset`
@@ -23,11 +23,11 @@ class TestDatasetSubset(unittest.TestCase):
     """
 
     def test_dataset_subset__instantiation_data(self):
-        """Tests for errors when a new subset is created using data."""
+        """Tests for errors when a subset is created using data."""
         DatasetSubset(0x0, data={("test", SignalType.HADRONIC)})
 
     def test_dataset_subset__instantiation_file_type(self):
-        """Tests for errors when a new subset is created using files and /types"""
+        """Tests for errors when a subset is created using files and types"""
         DatasetSubset(0x0, filename="test", data_type=SignalType.HADRONIC)
 
     def test_dataset_subset__instantiation_breaks(self):
@@ -52,7 +52,11 @@ class TestDatasetSubset(unittest.TestCase):
         - `bitstring`: Provided bitstring for the dataset
         - `expected`: Expected hex string for the dataset
         """
-        sub = DatasetSubset(bitstring, filename="test", data_type=SignalType.HADRONIC)
+        sub = DatasetSubset(
+            bitstring,
+            filename="test",
+            data_type=SignalType.HADRONIC
+            )
         self.assertEqual(expected, sub.get_hex())
     
     @parameterized.expand([
@@ -121,8 +125,16 @@ class TestDatasetSubset(unittest.TestCase):
     @parameterized.expand([
         ["Empty", set(), set()],
         ["Zero", {("test", SignalType.BACKGROUND)}, set()],
-        ["Same", {("test", SignalType.HADRONIC)}, {("test", SignalType.HADRONIC)}],
-        ["Different", {("test1", SignalType.BACKGROUND)}, {("test2", SignalType.HADRONIC)}],
+        [
+            "Same",
+            {("test", SignalType.HADRONIC)},
+            {("test", SignalType.HADRONIC)}
+            ],
+        [
+            "Different",
+            {("test1", SignalType.BACKGROUND)},
+            {("test2", SignalType.HADRONIC)}
+            ],
     ])
     def test_dataset_subset__combo__get_data(self, name, data1, data2):
         """ Test that the `get_data` method when two sets are combined.
@@ -141,8 +153,18 @@ class TestDatasetSubset(unittest.TestCase):
     @parameterized.expand([
         ["Empty", set(), set(), 0],
         ["Zero", {("test", SignalType.BACKGROUND)}, set(), 1],
-        ["Same", {("test", SignalType.HADRONIC)}, {("test", SignalType.HADRONIC)}, 1],
-        ["Different", {("test1", SignalType.BACKGROUND)}, {("test2", SignalType.HADRONIC)}, 2],
+        [
+            "Same",
+            {("test", SignalType.HADRONIC)},
+            {("test", SignalType.HADRONIC)},
+            1
+            ],
+        [
+            "Different",
+            {("test1", SignalType.BACKGROUND)},
+            {("test2", SignalType.HADRONIC)},
+            2
+            ],
     ])
     def test_dataset_subset__combo__len(self, name, data1, data2, expected):
         """ Test that the `len` method when two sets are combined.

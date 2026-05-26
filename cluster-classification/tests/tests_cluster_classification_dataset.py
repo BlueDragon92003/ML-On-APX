@@ -3,7 +3,7 @@ import unittest
 from parameterized import parameterized
 
 import cluster_classification_dataset
-from cluster import SignalType
+from signal_type import SignalType
 
 class TestClusterClassificationDataset(unittest.TestCase):
     """Tests for the class `ClusterClassifcationDataset`
@@ -23,7 +23,9 @@ class TestClusterClassificationDataset(unittest.TestCase):
         for i_phi in range(6):
             # {0,1}
             for i_eta in range(2):
-                slr0 = cluster_classification_dataset.get_ecal_tower(0, i_eta, i_phi)
+                slr0 = cluster_classification_dataset.get_ecal_tower(
+                    0, i_eta, i_phi
+                    )
                 self.assertIs( type(slr0), int )
                 self.assertLess( slr0, 12 ) # SLR0 has only 12 towers
                 self.assertGreaterEqual( slr0, 0 )
@@ -33,7 +35,9 @@ class TestClusterClassificationDataset(unittest.TestCase):
                 # {7,8,9,10,11}
                 # {12,13,14,15,16}
                 for i_eta in range(2+5*slr,7+5*slr):
-                    slri = cluster_classification_dataset.get_ecal_tower(slr+1, i_eta, i_phi)
+                    slri = cluster_classification_dataset.get_ecal_tower(
+                        slr+1, i_eta, i_phi
+                        )
                     self.assertIs( type(slri), int )
                     self.assertLess( slri, 30 )
                     self.assertGreaterEqual( slri, 0 )
@@ -43,12 +47,16 @@ class TestClusterClassificationDataset(unittest.TestCase):
         for i_phi in range(6):
             for card in range(24):
                 # All i_eta > 17 should return None
-                info = cluster_classification_dataset.get_hcal_location(card, 17, i_phi)
+                info = cluster_classification_dataset.get_hcal_location(
+                    card, 17, i_phi
+                    )
                 self.assertIsNone(info)
                 
                 # If i_eta < 8, then data should be in links 5 or 7
                 for i_eta in range(8):
-                    info = cluster_classification_dataset.get_hcal_location(card, i_eta, i_phi)
+                    info = cluster_classification_dataset.get_hcal_location(
+                        card, i_eta, i_phi
+                        )
                     self.assertIsNotNone(info)
                     tower, link = info
                     self.assertIs( type(tower), int )
@@ -59,7 +67,9 @@ class TestClusterClassificationDataset(unittest.TestCase):
                 
                 # if i_eta > 7, data should be in links 6 or 8
                 for i_eta in range(8,16):
-                    info = cluster_classification_dataset.get_hcal_location(card, i_eta, i_phi)
+                    info = cluster_classification_dataset.get_hcal_location(
+                        card, i_eta, i_phi
+                        )
                     self.assertIsNotNone(info)
                     tower, link = info
                     self.assertIs( type(tower), int )
@@ -83,8 +93,8 @@ class TestClusterClassificationDataset(unittest.TestCase):
         
         Parameterized Test:
         - `slr`: the SLR index to pass to `get_ecal_tower`
-        - `i_eta`: the $i\eta$ position to pass to `get_ecal_tower`
-        - `i_phi`: the $i\phi$ position to pass to `get_ecal_tower`
+        - `i_eta`: the i eta position to pass to `get_ecal_tower`
+        - `i_phi`: the i phi position to pass to `get_ecal_tower`
 
         Ensures `get_ecal_tower` produces correct values for select indices.
         As the function is algebraic, it is assumed that all inputs should work.
@@ -116,13 +126,15 @@ class TestClusterClassificationDataset(unittest.TestCase):
         [13,14,4,(0+4*6,8)], # low link/high phi/high eta 1
         [14,15,5,(1+4*7,8)], # low link/high phi/high eta 2
     ])
-    def test_ccd__get_hcal_location__correctness(self, card, i_eta, i_phi, location):
+    def test_ccd__get_hcal_location__correctness(
+        self, card, i_eta, i_phi, location
+        ):
         """Tests `get_hcal_location` on select indices
         
         Parameterized Test:
         - `card`: The RCT card to pass to `get_hcal_location`
-        - `i_eta`: the $i\eta$ position to pass to `get_hcal_location`
-        - `i_phi`: the $i\phi$ position to pass to `get_hcal_location`
+        - `i_eta`: the i eta position to pass to `get_hcal_location`
+        - `i_phi`: the i phi position to pass to `get_hcal_location`
 
         Ensures `get_hcal_location produces` correct values for select indices.
         As the function is algebraic, it is assumed that all inputs should work.
@@ -134,7 +146,9 @@ class TestClusterClassificationDataset(unittest.TestCase):
             cluster_classification_dataset.get_hcal_location(card, i_eta, i_phi)
         )
 
-    def __data_for__test_ccd__cluster_generator__correctness(feature, event, card, final):
+    def __data_for__test_ccd__cluster_generator__correctness(
+        feature, event, card, final
+        ):
         """Provides data for `test_ccd__cluster_generator__correctness`."""
 
         # 6 total clusters will be generaed by this process:
@@ -651,7 +665,8 @@ class TestClusterClassificationDataset(unittest.TestCase):
     def test_ccd__cluster_generator__correctness(self):
         """Tests the cluster generator for correctness."""
 
-        from_tree = TestClusterClassificationDataset.__data_for__test_ccd__cluster_generator__correctness
+        from_tree = TestClusterClassificationDataset. \
+            __data_for__test_ccd__cluster_generator__correctness
 
         data = []
         generator = cluster_classification_dataset.cluster_generator(

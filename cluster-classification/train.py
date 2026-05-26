@@ -1,8 +1,15 @@
 import logging
 
+import torch
 from torch import nn
 
-def train_loop(device, dataloader, model, loss_fn, optimizer):
+def train_loop(
+    device: torch.device,
+    dataloader: torch.utils.data.DataLoader,
+    model: torch.nn.Module,
+    loss_fn: torch.nn._Loss,
+    optimizer: torch.optim.Optimizer,
+    ):
     """Evaluates the capabilities of the current model.
 
     Arguments:
@@ -19,7 +26,8 @@ def train_loop(device, dataloader, model, loss_fn, optimizer):
 
     logging.debug("Training step")
     # size = len(dataloader.dataset)
-    # Set the model to training mode - important for batch normalization and dropout layers
+    # Set the model to training mode - important for batch normalization and
+    #       dropout layers
     model.train()
     model.to(device)
 

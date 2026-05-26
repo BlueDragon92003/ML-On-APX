@@ -20,13 +20,17 @@ LEARNING_RATE = 1e-4
 # How many data points to analyze in a batch.
 BATCH_SIZE = 1
 
-logging.basicConfig(filename='./logs/classification-latest.log', level=logging.INFO)
+logging.basicConfig(
+    filename='./logs/classification-latest.log',
+    level=logging.INFO
+    )
 
 # Instantiate a Model object:
 model = Model()
 
 # Set device
-device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
+device = torch.accelerator.current_accelerator().type if \
+    torch.accelerator.is_available() else "cpu"
 logging.info(f"Using {device} device")
 
 # Set loss function
@@ -57,7 +61,10 @@ while(sentinal):
         logging.debug("Checkpoint")
         logging.debug(string)
         # save the model as a checkpoint
-        torch.save(model, f"checkpoint-{(epoch // CHECKPOINT_RATE):>05d}-classification.pth")
+        torch.save(
+            model,
+            f"checkpoint-{(epoch // CHECKPOINT_RATE):>05d}-classification.pth"
+            )
         if (acc > STOP_THRESHOLD):
             # If the accuracy is hight enough, exit training
             logging.info("Accuracy threshold reached.")
@@ -71,5 +78,8 @@ while(sentinal):
     epoch = epoch + 1
 
 # Softlink the last checkpoint
-os.symlink( f"checkpoint-{(epoch // CHECKPOINT_RATE):>05d}-classification.pth", "current-classification.pth" )
+os.symlink(
+    f"checkpoint-{(epoch // CHECKPOINT_RATE):>05d}-classification.pth",
+    "current-classification.pth"
+    )
 

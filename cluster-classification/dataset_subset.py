@@ -1,6 +1,6 @@
-from typing import Tuple, Set
+from typing import Tuple, Set, Self
 
-from cluster import SignalType
+from signal_type import SignalType
 
 class DatasetSubset:
     """Represents a subset of data sources data is pulled from.
@@ -15,8 +15,13 @@ class DatasetSubset:
     - `self | other`: Composes two `DatasetSubsets` into a larger one.
     """
 
-    def __init__(self, bitstring, filename: str = None, data_type: SignalType = None, data: Set[Tuple[str,SignalType]] = None):
-        """Create a new subset from a ROOT file and a signal type or internal data.
+    def __init__(self,
+        bitstring: int,
+        filename: str = None,
+        data_type: SignalType = None,
+        data: Set[Tuple[str,SignalType]] = None
+        ):
+        """Create a new subset from a ROOT file and a signal type or data.
         
         Subsets should either be created as constants later in this file using
         filenames, unique bitstrings, and signal types; or by combining other
@@ -40,7 +45,7 @@ class DatasetSubset:
         else:
             self.data = data
 
-    def __or__(self, other):
+    def __or__(self, other: Self) -> Self:
         """Combine with another available dataset into a new, larger dataset."""
         bitstring = self.bitstring | other.bitstring
         data = self.data | other.data

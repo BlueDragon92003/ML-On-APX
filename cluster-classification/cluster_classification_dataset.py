@@ -5,7 +5,7 @@ from torch.utils.data import IterableDataset, get_worker_info
 import uproot
 import numpy as np
 
-from cluster import SignalType
+from signal_type import SignalType
 
 class ClusterClassificationDataset(IterableDataset):
     """Implements a PyTorch dataset to train the cluster classifier.
@@ -29,7 +29,8 @@ class ClusterClassificationDataset(IterableDataset):
                 tree = file["l1NtupleProducer/linkTree;1"]
                 self.__data.append( np.fromiter(
                     cluster_generator(
-                        lambda feature, event, card, final: tree[feature].array()[event][card][final],
+                        lambda feature, event, card, final: \
+                            tree[feature].array()[event][card][final],
                         cluster_type,
                         num_events=len(tree['SLR0_cluster_eta'].array())
                         )
@@ -67,13 +68,15 @@ class ClusterClassificationDataset(IterableDataset):
         # https://docs.pytorch.org/docs/2.9/data.html#torch.utils.data.Dataset
 
         worker_info = get_worker_info()
-        if worker_info is None:  # single-process data loading, return the full iterator
+        if worker_info is None:
+            # single-process data loading, return the full iterator
             iter_start = 0
             iter_end = len(self)
         else:  # in a worker process
             max_size = len(self)
             # split workload
-            per_worker = int(math.ceil((self.end - self.start) / float(worker_info.num_workers)))
+            per_worker = int(math.ceil((self.end - self.start) \
+                / float(worker_info.num_workers)))
             worker_id = worker_info.id
             iter_start = worker_id * per_worker
             iter_end = min(iter_start + per_worker, max_size)
@@ -131,7 +134,8 @@ def get_hcal_location(card, i_eta, i_phi):
 
     The formula `(i_phi + 6 * high_link) % 4` perfectly calculates the index (i)
     
-    The formula `(i_phi + 6 * high_link) // 4 % 2 * 2` calculates the link offset (L-5)
+    The formula `(i_phi + 6 * high_link) // 4 % 2 * 2` calculates the link
+        offset (L-5)
     """
 
     tower_index = 4*i_eta + high_link % 4
@@ -156,9 +160,15 @@ def cluster_generator(from_tree, signal_type, num_events):
                 for cluster in range(9):
                     # cluster i_eta and i_phi are in crystal;
                     # everyhting else is in tower
-                    i_eta = from_tree(f'SLR{slr}_cluster_eta', event, card, cluster) // 5
-                    i_phi = from_tree(f'SLR{slr}_cluster_phi', event, card, cluster) // 5
-                    cluster_et = from_tree(f'SLR{slr}_cluster_energy', event, card, cluster)
+                    i_eta = from_tree(
+                        f'SLR{slr}_cluster_eta', event, card, cluster
+                        ) // 5
+                    i_phi = from_tree(
+                        f'SLR{slr}_cluster_phi', event, card, cluster
+                        ) // 5
+                    cluster_et = from_tree(
+                        f'SLR{slr}_cluster_energy', event, card, cluster
+                        )
                     # Energy can be left in its integer format; the specific
                     # values don't matter so much as the scale
 
@@ -174,22 +184,52 @@ def cluster_generator(from_tree, signal_type, num_events):
                     if hcal_info:
                         # HCAL information exists
                         (hcal_tower, link) = hcal_info
-                        hcal_et = from_tree(f'HCAL{link}_tower_et', event, card, hcal_tower)
-                        hcal_fb = from_tree(f'HCAL{link}_tower_fb', event, card, hcal_tower)
+                        hcal_et = from_tree(
+                            f'HCAL{link}_tower_et', event, card, hcal_tower
+                            )
+                        hcal_fb = from_tree(
+                            f'HCAL{link}_tower_fb', event, card, hcal_tower
+                            )
                     
                     yield [
                         cluster_et,
-                        from_tree(f'SLR{slr}_cluster_seed_energy', event, card, cluster),
-                        from_tree(f'SLR{slr}_cluster_et5x5', event, card, cluster),
-                        from_tree(f'SLR{slr}_cluster_et2x5', event, card, cluster),
-                        from_tree(f'SLR{slr}_cluster_timing', event, card, cluster),
-                        0, #from_tree(f'SLR{slr}_cluster_spike', event, card, cluster),
-                        from_tree(f'SLR{slr}_cluster_brems', event, card, cluster),
-                        0, #from_tree(f'SLR{slr}_cluster_satur', event, card, cluster),
-                        from_tree(f'SLR{slr}_cluster_spare', event, card, cluster),
-                        from_tree(f'ECALUnclusteredSLR{slr}_tower_et', event, card, ecal_tower),
-                        from_tree(f'ECALUnclusteredSLR{slr}_tower_timing', event, card, ecal_tower),
-                        from_tree(f'ECALUnclusteredSLR{slr}_tower_spike', event, card, ecal_tower),
+                        from_tree(
+                            f'SLR{slr}_cluster_seed_energy',
+                            event, card, cluster
+                            ),
+                        from_tree(
+                            f'SLR{slr}_cluster_et5x5', event, card, cluster
+                            ),
+                        from_tree(
+                            f'SLR{slr}_cluster_et2x5', event, card, cluster
+                            ),
+                        from_tree(
+                            f'SLR{slr}_cluster_timing', event, card, cluster
+                            ),
+                        0, # from_tree(
+                        #     f'SLR{slr}_cluster_spike', event, card, cluster
+                        #     ),
+                        from_tree(
+                            f'SLR{slr}_cluster_brems', event, card, cluster
+                            ),
+                        0, # from_tree(
+                        #     f'SLR{slr}_cluster_satur', event, card, cluster
+                        #     ),
+                        from_tree(
+                            f'SLR{slr}_cluster_spare', event, card, cluster
+                            ),
+                        from_tree(
+                            f'ECALUnclusteredSLR{slr}_tower_et',
+                            event, card, ecal_tower
+                            ),
+                        from_tree(
+                            f'ECALUnclusteredSLR{slr}_tower_timing',
+                            event, card, ecal_tower
+                            ),
+                        from_tree(
+                            f'ECALUnclusteredSLR{slr}_tower_spike',
+                            event, card, ecal_tower
+                            ),
                         hcal_et,
                         hcal_fb,
                         signal_type

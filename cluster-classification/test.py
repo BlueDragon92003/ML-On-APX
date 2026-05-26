@@ -2,7 +2,12 @@ import logging
 
 import torch
 
-def test_loop(device, dataloader, model, loss_fn):
+def test_loop(
+    device: torch.device,
+    dataloader: torch.utils.data.DataLoader,
+    model: torch.nn.Module,
+    loss_fn: torch.nn._Loss,
+    ) -> (float, str):
     """Evaluates the capabilities of the current model.
 
     Arguments:
@@ -26,8 +31,10 @@ def test_loop(device, dataloader, model, loss_fn):
     num_batches = len(dataloader)
     test_loss, correct = 0, 0
 
-    # Evaluating the model with torch.no_grad() ensures that no gradients are computed during test mode
-    # also serves to reduce unnecessary gradient computations and memory usage for tensors with requires_grad=True
+    # Evaluating the model with torch.no_grad() ensures that no gradients are
+    #       computed during test mode
+    # also serves to reduce unnecessary gradient computations and memory usage
+    #       for tensors with requires_grad=True
     with torch.no_grad():
         for data, label in dataloader:
             data = data.to(device)
@@ -38,4 +45,5 @@ def test_loop(device, dataloader, model, loss_fn):
 
     test_loss /= num_batches
     correct /= size
-    return correct, f"\tAccuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f}"
+    return correct, \
+        f"\tAccuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f}"

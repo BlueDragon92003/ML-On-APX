@@ -38,16 +38,17 @@ def get_data(datasource_type: DatasourceType, batch_size: int,):
             shuffle=True,
             )
 
-def load_data(datasource_type: DatasourceType, datasets: DatasetSubset) -> ClusterClassificationDataset:
+def load_data(datasource_type: DatasourceType, datasets: DatasetSubset
+    ) -> ClusterClassificationDataset:
     """Intellegently loads or creates a `Dataset` given `DatasetSubsets`
     
     Loads the data as a PyTorch Dataset, provided a specific type (training or
     testing) and a set of ROOT data to use as samples.
     
-    First, the function checks if such a Dataset has already been created. If so,
-    it checks if the preserved Dataset needs to be updated (i.e. at least one of
-    the datafiles is newer than the picked Dataset). If the preserved Dataset
-    exists and is not outdated, it is unpicked and returned.
+    First, the function checks if such a Dataset has already been created. If
+    so, it checks if the preserved Dataset needs to be updated (i.e. at least
+    one of the datafiles is newer than the picked Dataset). If the preserved
+    Dataset exists and is not outdated, it is unpicked and returned.
     
     If the preserved dataset is outdated or does not exist, then a new one is
     created from ROOT data.
@@ -62,7 +63,8 @@ def load_data(datasource_type: DatasourceType, datasets: DatasetSubset) -> Clust
     """
     # Extract the filepath where a picked file is/will be stored
     dataset_id = datasets.get_hex()
-    pickle_path = '../data/pickled/classification/' + '/'.join(textwrap.wrap(dataset_id, 4)) + '.pckl'
+    pickle_path = '../data/pickled/classification/' \
+        + '/'.join(textwrap.wrap(dataset_id, 4)) + '.pckl'
     
     create_new = False
 
@@ -71,7 +73,8 @@ def load_data(datasource_type: DatasourceType, datasets: DatasetSubset) -> Clust
         file = os.open(pickle_path)
         # Pickled file exists, check if it's outdated:
         # Check if it's an old version of the class
-        if os.path.getmtime('./cluster_classification_dataset.py') > file.getmtime():
+        if os.path.getmtime('./cluster_classification_dataset.py') \
+            > file.getmtime():
             create_new = True
         # Check if it's outdated compared to its source datasets
         for (component_filename, _) in datasets.get_data():
