@@ -111,7 +111,7 @@ def get_hcal_location(card, i_eta, i_phi):
         return None
     elif i_eta > 7:
         link += 1
-        i_eta += -8 # index 0 of Link 6/8 is i_eta = 7
+        i_eta += -8 # index 0 of Link 6/8 is i_eta = 8
 
     high_link = i_phi + 6 * ( (card % 4 - 1) // 2 % 2 ) 
     # 1(True) if Links 5/6 start with 2, 0(False) otherwise
