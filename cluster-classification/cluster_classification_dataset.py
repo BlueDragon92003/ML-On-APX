@@ -26,7 +26,8 @@ class ClusterClassificationDataset(IterableDataset):
                 tree = file["l1NtupleProducer/linkTree;1"]
                 self.__data.append( np.fromiter(
                     cluster_generator(
-                        tree, cluster_type,
+                        lambda feature, event, card, final: tree[feature].array()[event][card][final],
+                        cluster_type,
                         num_events=len(tree['SLR0_cluster_eta'].array())
                         )
                     (float,15)
@@ -83,12 +84,6 @@ class ClusterClassificationDataset(IterableDataset):
             iter_end = min(iter_start + per_worker, max_size)
         return iter(self.__data[iter_start:iter_end])
 
-def from_tree(tree, feature, event, card, final):
-    """
-    A helper method to quicky grab data from the tree
-    """
-    return tree[feature].array()[event][card][final]
-
 def get_ecal_tower(slr, i_eta, i_phi):
     """
     Calculates the index needed to extract the proper ECALUnclustered data.
@@ -138,7 +133,7 @@ def get_hcal_location(card, i_eta, i_phi):
 
     return tower_index, int(link)
 
-def cluster_generator(tree, cluster_type, num_events):
+def cluster_generator(from_tree, cluster_type, num_events):
     """
     Processes data from a dataset subset into packets that each contain data one
     particular cluster is associated with.
@@ -152,9 +147,9 @@ def cluster_generator(tree, cluster_type, num_events):
                 for cluster in range(9):
                     # cluster i_eta and i_phi are in crystal;
                     # everyhting else is in tower
-                    i_eta = from_tree(tree, f'SLR{slr}_cluster_eta', event, card, cluster) // 5
-                    i_phi = from_tree(tree, f'SLR{slr}_cluster_phi', event, card, cluster) // 5
-                    cluster_et = from_tree(tree, f'SLR{slr}_cluster_energy', event, card, cluster)
+                    i_eta = from_tree(f'SLR{slr}_cluster_eta', event, card, cluster) // 5
+                    i_phi = from_tree(f'SLR{slr}_cluster_phi', event, card, cluster) // 5
+                    cluster_et = from_tree(f'SLR{slr}_cluster_energy', event, card, cluster)
                     # Energy can be left in its integer format; the specific
                     # values don't matter so much as the scale
 
@@ -170,22 +165,22 @@ def cluster_generator(tree, cluster_type, num_events):
                     if hcal_info:
                         # HCAL information exists
                         (hcal_tower, link) = hcal_info
-                        hcal_et = from_tree(tree, f'HCAL{link}_tower_et', event, card, hcal_tower)
-                        hcal_fb = from_tree(tree, f'HCAL{link}_tower_fb', event, card, hcal_tower)
+                        hcal_et = from_tree(f'HCAL{link}_tower_et', event, card, hcal_tower)
+                        hcal_fb = from_tree(f'HCAL{link}_tower_fb', event, card, hcal_tower)
                     
                     yield [
                         cluster_et,
-                        from_tree(tree, f'SLR{slr}_cluster_seed_energy', event, card, cluster),
-                        from_tree(tree, f'SLR{slr}_cluster_et5x5', event, card, cluster),
-                        from_tree(tree, f'SLR{slr}_cluster_et2x5', event, card, cluster),
-                        from_tree(tree, f'SLR{slr}_cluster_timing', event, card, cluster),
-                        0, #from_tree(tree, f'SLR{slr}_cluster_spike', event, card, cluster),
-                        from_tree(tree, f'SLR{slr}_cluster_brems', event, card, cluster),
-                        0, #from_tree(tree, f'SLR{slr}_cluster_satur', event, card, cluster),
-                        from_tree(tree, f'SLR{slr}_cluster_spare', event, card, cluster),
-                        from_tree(tree, f'ECALUnclusteredSLR{slr}_tower_et', event, card, ecal_tower),
-                        from_tree(tree, f'ECALUnclusteredSLR{slr}_tower_timing', event, card, ecal_tower),
-                        from_tree(tree, f'ECALUnclusteredSLR{slr}_tower_spike', event, card, ecal_tower),
+                        from_tree(f'SLR{slr}_cluster_seed_energy', event, card, cluster),
+                        from_tree(f'SLR{slr}_cluster_et5x5', event, card, cluster),
+                        from_tree(f'SLR{slr}_cluster_et2x5', event, card, cluster),
+                        from_tree(f'SLR{slr}_cluster_timing', event, card, cluster),
+                        0, #from_tree(f'SLR{slr}_cluster_spike', event, card, cluster),
+                        from_tree(f'SLR{slr}_cluster_brems', event, card, cluster),
+                        0, #from_tree(f'SLR{slr}_cluster_satur', event, card, cluster),
+                        from_tree(f'SLR{slr}_cluster_spare', event, card, cluster),
+                        from_tree(f'ECALUnclusteredSLR{slr}_tower_et', event, card, ecal_tower),
+                        from_tree(f'ECALUnclusteredSLR{slr}_tower_timing', event, card, ecal_tower),
+                        from_tree(f'ECALUnclusteredSLR{slr}_tower_spike', event, card, ecal_tower),
                         hcal_et,
                         hcal_fb,
                         cluster_type
