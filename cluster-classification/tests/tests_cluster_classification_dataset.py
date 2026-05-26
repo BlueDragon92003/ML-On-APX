@@ -1,4 +1,5 @@
 import cluster_classification_dataset
+from cluster import ClusterType
 
 import unittest
 
@@ -133,10 +134,10 @@ class TestClusterClassificationDataset(unittest.TestCase):
         #   - All i_phi tower values are tested
         #   - i_eta tower values 0, 2, 7, 10, 15, 16 are tested
         #
-        #   - ecal towers 0, 3, 4, 19, 21, 29
-        #   - hcal towers 0, 10, 11, 29, 30, and 'none'
+        #   - ecal towers 0, 1 3, 21, 22, 29
+        #   - hcal towers 0, 10, 11, 28, 31, and 'none'
 
-        """ TEST CLUSTER 0 -- SLR0, Link 5, high link
+        """ TEST CLUSTER 0 -- SLR0, Link 5, high link (counting)
              0: cluster_et              1
              1: cluster_seed            2
              2: cluster_et5x5           3
@@ -158,7 +159,7 @@ class TestClusterClassificationDataset(unittest.TestCase):
             Cluster position: 0
             Link: 5
             hcal_tower: 0
-            ecal_tower: 3
+            ecal_tower: 2
             i_eta: 0 (tower)
             i_phi: 2 (tower)
             """  
@@ -200,13 +201,13 @@ class TestClusterClassificationDataset(unittest.TestCase):
                         return 9
                 
                 case 'ECALUnclusteredSLR0_tower_et':
-                    if final == 3: # ecal tower
+                    if final == 2: # ecal tower
                         return 10
                 case 'ECALUnclusteredSLR0_tower_timing':
-                    if final == 3:
+                    if final == 2:
                         return 11
                 case 'ECALUnclusteredSLR0_tower_spike':
-                    if final == 3:
+                    if final == 2:
                         return 12
 
                 case 'HCAL5_tower_et':
@@ -220,7 +221,7 @@ class TestClusterClassificationDataset(unittest.TestCase):
                     return 0
             return 0
 
-        """ TEST CLUSTER 1 -- SLR1, Link 7, high link
+        """ TEST CLUSTER 1 -- SLR1, Link 7, high link (primes)
              0: cluster_et              2
              1: cluster_seed            3
              2: cluster_et5x5           5
@@ -304,7 +305,7 @@ class TestClusterClassificationDataset(unittest.TestCase):
                     return 0
             return 0
 
-        """ TEST CLUSTER 2 -- SLR2 , Link6, low link
+        """ TEST CLUSTER 2 -- SLR2 , Link6, low link (fibbonaci)
              0: cluster_et              1
              1: cluster_seed            1
              2: cluster_et5x5           2
@@ -377,10 +378,10 @@ class TestClusterClassificationDataset(unittest.TestCase):
                     if final == 21:
                         return 16
 
-                case 'HCAL7_tower_et':
+                case 'HCAL6_tower_et':
                     if final == 11: # hcal tower
                         return -23
-                case 'HCAL7_tower_fb':
+                case 'HCAL6_tower_fb':
                     if final == 11:
                         return -7
 
@@ -388,7 +389,7 @@ class TestClusterClassificationDataset(unittest.TestCase):
                     return 0
             return 0
 
-        """ TEST CLUSTER 3 -- SLR3, Link8, high link
+        """ TEST CLUSTER 3 -- SLR3, Link8, high link (alternating)
              0: cluster_et              1
              1: cluster_seed            8
              2: cluster_et5x5           2
@@ -409,10 +410,10 @@ class TestClusterClassificationDataset(unittest.TestCase):
             SLR: 3
             Cluster position: 5
             Link: 8
-            hcal_tower: 29
-            ecal_tower: 19
+            hcal_tower: 28
+            ecal_tower: 22
             i_eta: 15 (tower)
-            i_phi: 1 (tower)
+            i_phi: 4 (tower)
             """
         if event == 0 and card == 9:
             match feature:
@@ -421,7 +422,7 @@ class TestClusterClassificationDataset(unittest.TestCase):
                         return 76 # trombones
                 case 'SLR3_cluster_phi':
                     if final == 5:
-                        return 8
+                        return 23
                 
                 case 'SLR3_cluster_energy':
                     if final == 5: # cluster position
@@ -452,27 +453,27 @@ class TestClusterClassificationDataset(unittest.TestCase):
                         return 5
                 
                 case 'ECALUnclusteredSLR3_tower_et':
-                    if final == 19: # ecal tower
+                    if final == 22: # ecal tower
                         return 12
                 case 'ECALUnclusteredSLR3_tower_timing':
-                    if final == 19:
+                    if final == 22:
                         return 6
                 case 'ECALUnclusteredSLR3_tower_spike':
-                    if final == 19:
+                    if final == 22:
                         return 13
 
                 case 'HCAL8_tower_et':
-                    if final == 29: # hcal tower
+                    if final == 28: # hcal tower
                         return 7
                 case 'HCAL8_tower_fb':
-                    if final == 29:
+                    if final == 28:
                         return 14
 
                 case _:
                     return 0
             return 0
         
-        """ TEST CLUSTER 4 -- SLR2, Link 5, high link
+        """ TEST CLUSTER 4 -- SLR2, Link 7, high link (reversed)
              0: cluster_et              14
              1: cluster_seed            13
              2: cluster_et5x5           12
@@ -492,11 +493,11 @@ class TestClusterClassificationDataset(unittest.TestCase):
             Card: 12
             SLR: 2
             Cluster position: 6
-            Link: 5
-            hcal_tower: 30
-            ecal_tower: 4
+            Link: 7
+            hcal_tower: 31
+            ecal_tower: 1
             i_eta: 7 (tower)
-            i_phi: 4 (tower)
+            i_phi: 1 (tower)
             """
         if event == 1 and card == 12:
             match feature:
@@ -505,7 +506,7 @@ class TestClusterClassificationDataset(unittest.TestCase):
                         return 37
                 case 'SLR2_cluster_phi':
                     if final == 6:
-                        return 23
+                        return 8
                 
                 case 'SLR2_cluster_energy':
                     if final == 6: # cluster position
@@ -536,27 +537,27 @@ class TestClusterClassificationDataset(unittest.TestCase):
                         return 6
                 
                 case 'ECALUnclusteredSLR2_tower_et':
-                    if final == 4: # ecal tower
+                    if final == 1: # ecal tower
                         return 5
                 case 'ECALUnclusteredSLR2_tower_timing':
-                    if final == 4:
+                    if final == 1:
                         return 4
                 case 'ECALUnclusteredSLR2_tower_spike':
-                    if final == 4:
+                    if final == 1:
                         return 3
 
-                case 'HCAL5_tower_et':
-                    if final == 30: # hcal tower
+                case 'HCAL7_tower_et':
+                    if final == 31: # hcal tower
                         return 2
-                case 'HCAL5_tower_fb':
-                    if final == 30:
+                case 'HCAL7_tower_fb':
+                    if final == 31:
                         return 1
 
                 case _:
                     return 0
             return 0
 
-        """ TEST CLUSTER 5 -- SLR3, no link
+        """ TEST CLUSTER 5 -- SLR3, no link (odd/even)
              0: cluster_et              11
              1: cluster_seed            9
              2: cluster_et5x5           7
@@ -636,6 +637,64 @@ class TestClusterClassificationDataset(unittest.TestCase):
         return 0
 
     def test_data_wrapper__cluster_generator_correctness(self):
-        
+        from_tree = TestClusterClassificationDataset.data_for__test_data_wrapper__cluster_generator_correctness
 
-        pass
+        data = []
+        generator = cluster_classification_dataset.cluster_generator(
+            from_tree,
+            ClusterType.BACKGROUND,
+            2
+        )
+
+        for i in range(6):
+            try:
+                data.append( next(generator) )
+            except StopIteration:
+                self.fail(f"Only {i} clusters extracted; expected 6.")
+        
+        with self.assertRaises(StopIteration):
+            next(generator)
+
+        cluster_0_expected = [ # extra zeros from dead data in provided file
+            1, 2, 3, 4, 5, 0, 7,
+            0, 9, 10, 11, 12, 13, 14,
+            ClusterType.BACKGROUND
+            ]
+        
+        cluster_1_expected = [ # extra zeros from dead data in provided file
+            2, 3, 5, 7, 11, 0, 17,
+            0, 29, 31, 37, 41, 43, 47,
+            ClusterType.BACKGROUND
+            ]
+        
+        cluster_2_expected = [ # extra zeros from dead data in provided file
+            1, 1, 2, 3, 5, 0, 13,
+            0, 34, 55, -39, 16, -23, -7,
+            ClusterType.BACKGROUND
+            ]
+        
+        cluster_3_expected = [ # extra zeros from dead data in provided file
+            1, 8, 2, 9, 3, 0, 4,
+            0, 5, 12, 6, 13, 7, 14,
+            ClusterType.BACKGROUND
+            ]
+        
+        cluster_4_expected = [ # extra zeros from dead data in provided file
+            14, 13, 12, 11, 10, 0, 8,
+            0, 6, 5, 4, 3, 2, 1,
+            ClusterType.BACKGROUND
+            ]
+        
+        cluster_5_expected = [ # extra zeros from dead data in provided file
+            11, 9, 7, 5, 3, 0, 0,
+            0, 4, 6, 8, 10, -1, -1,
+            ClusterType.BACKGROUND
+            ]
+
+        self.assertIn( cluster_0_expected, data )
+        self.assertIn( cluster_1_expected, data )
+        self.assertIn( cluster_2_expected, data )
+        self.assertIn( cluster_3_expected, data )
+        self.assertIn( cluster_4_expected, data )
+        self.assertIn( cluster_5_expected, data )
+

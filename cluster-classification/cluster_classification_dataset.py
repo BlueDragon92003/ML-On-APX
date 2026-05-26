@@ -30,7 +30,7 @@ class ClusterClassificationDataset(IterableDataset):
                         cluster_type,
                         num_events=len(tree['SLR0_cluster_eta'].array())
                         )
-                    (float,15)
+                    (int,15)
                 ) )               
             # # General data structure:
             # # data [ SLR/link + feature ][ event ][ card ]
