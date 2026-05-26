@@ -3,8 +3,6 @@ import math
 
 from torch.utils.data import IterableDataset, get_worker_info
 import uproot
-import jax
-import jax.numpy as jnp
 import numpy as np
 
 from cluster import ClusterType
@@ -96,33 +94,31 @@ def get_ecal_tower(slr, i_eta, i_phi):
     Calculates the index needed to extract the proper ECALUnclustered data.
     """
     tower = 6*i_eta + i_phi 
-    return jax.lax.switch(
-        slr,
-        [
-            lambda tower: tower,
-            lambda tower: tower - 12,   # Index 0 in the SLR2 branch is eta=2,
-                                        #   shifting indices by 12
-            lambda tower: tower - 42,
-            lambda tower: tower - 72,   # i_eta = 16, i_phi = 5 -> index 101
-                                        #   101 - 72 = 29, the last index in
-                                        #   SLR3 :)
-        ],
-        tower
-    )
+    match slr:
+        case 0:
+            pass
+        case 1:
+            tower = tower - 12  # Index 0 in the SLR2 branch is eta=2,
+                                #   shifting indices by 12
+        case 2:
+            tower = tower - 42
+        case 3:
+            tower = tower - 72  # i_eta = 16, i_phi = 5 -> index 101
+                                #   101 - 72 = 29, the last index in SLR3 :)
+    return tower
 
 def get_hcal_location(card, i_eta, i_phi):
     """
     Calculates the index to extract the proper HCAL data.
     """
     link = 5
-    
-    link += i_eta // 8
-    # JAX doesn't like conditionals, therefore we have to stuff like this!
-    i_eta += -8 * i_eta // 8 # index 0 of Link 6/8 is i_eta = 7
+    if i_eta > 15:
+        return None
+    elif i_eta > 7:
+        link += 1
+        i_eta += -8 # index 0 of Link 6/8 is i_eta = 7
 
-    # high_link 1(True) if Links 5/6 start with 2, 0(False) otherwise
-    # i_phi + 6 * high_link
-    ip6hl = i_phi + (card % 4 - 1) // 2 % 2 * 6
+    high_link = (card % 4 - 1) // 2 % 2 # 1(True) if Links 5/6 start with 2, 0(False) otherwise
     
     """
     | high_link | i_phi = 0 |   1   |   2   |   3   |   4   |   5   |
@@ -135,16 +131,10 @@ def get_hcal_location(card, i_eta, i_phi):
     The formula `(i_phi + 6 * high_link) // 4 % 2 * 2` calculates the link offset (L-5)
     """
 
-    # link > 7, at this point, means that i_eta > 15 at the start 
-    return jax.lax.select(
-        link > 7,
-        lambda i_eta, high_link: (-1, -1),
-        lambda i_eta, high_link: (
-            4*i_eta + high_link % 4, # tower_index
-            link + high_link // 4 % 2 * 2 # link
-        ),
-        i_eta, ip6hl
-        )
+    tower_index = 4*i_eta + (i_phi + 6 * high_link) % 4
+    link += (i_phi + 6 * high_link) // 4 % 2 * 2
+
+    return tower_index, int(link)
 
 def cluster_generator(tree, cluster_type, num_events):
     """
@@ -169,12 +159,13 @@ def cluster_generator(tree, cluster_type, num_events):
                         continue
 
                     ecal_tower = get_ecal_tower(slr, i_eta, i_phi)
-                    hcal_tower, link = get_hcal_location(card, i_eta, i_phi)
+                    hcal_info = get_hcal_location(card, i_eta, i_phi)
                     
                     hcal_et = -1
                     hcal_fb = -1
-                    if hcal_tower >= 0:
+                    if hcal_info:
                         # HCAL information exists
+                        (hcal_tower, link) = hcal_info
                         hcal_et = from_tree(tree, f'HCAL{link}_tower_et', event, card, hcal_tower) * 0.5
                         hcal_fb = from_tree(tree, f'HCAL{link}_tower_fb', event, card, hcal_tower)
                     
