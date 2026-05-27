@@ -68,7 +68,7 @@ def load_data(datasource_type: DatasourceType, datasets: DatasetSubset
     """
     # Extract the filepath where a picked file is/will be stored
     dataset_id = datasets.get_hex()
-    pickle_path = '../data/pickled/classification/' \
+    pickle_path = './data/pickled/classification/' \
         + '/'.join(textwrap.wrap(dataset_id, 4)) + '.pckl'
     
     logger.log_debug(f"dataset ID: {dataset_id}")
@@ -86,7 +86,7 @@ def load_data(datasource_type: DatasourceType, datasets: DatasetSubset
             create_new = True
         # Check if it's outdated compared to its source datasets
         for (component_filename, _) in datasets.get_data():
-            component_path = '../data/classification/'+component_filename
+            component_path = './data/classification/'+component_filename
             if os.path.getmtime(component_path) > m_time:
                 logger.log_debug(f'Outdated pickle {component_filename}')
                 create_new = True
@@ -95,20 +95,23 @@ def load_data(datasource_type: DatasourceType, datasets: DatasetSubset
         create_new = True
     
     # Pickled file does not exist or is outdated; create a new one
+    # TODO needs to make the directory to work :/
     if create_new:
         logger.log_info("Creating new CCD pickle...")
         components = set()
         for (component_filename, cluster_type) in datasets.get_data():
             logger.log_debug(f'Dataset includes file {component_filename}')
-            component_path = '../data/classification/'+component_filename
+            component_path = './data/classification/'+component_filename
             components.add( (component_path, cluster_type) )
         ccd = ClusterClassificationDataset(components)
-        with open(pickle_path, mode='wb') as pickled:
+        pickle_fd = os.open(pickle_path, os.O_RDWR | os.O_CREAT ) 
+        with os.fdopen(pickle_fd, mode='wb') as pickled:
             pickle.dump(ccd, pickled)
     # Pickled file exisits and is ready to use; load it
     else:
         logger.log_info("Loading pickled CCD...")
-        with open(pickle_path, mode='rb') as pickled:
+        pickle_fd = os.open(pickle_path, os.O_RDONLY ) 
+        with os.fdopen(pickle_fd, mode='rb') as pickled:
             ccd = pickle.load(pickled)
     
     return ccd
