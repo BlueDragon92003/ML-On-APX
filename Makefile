@@ -43,12 +43,7 @@ _readme:
 install-dependencies:
 	@if python3 --version | grep "3.14" >/dev/null ; then echo "Python 3.14 satisfied." ; else  echo "Python 3.14 is the intended Python version for this project. Please install it and try again.\nYour python3:"; which python3 ; exit 1 ; fi
 	python3 -m ensurepip
-	python3 -m pip install --upgrade pip
-	python3 -m pip install --upgrade torch==2.9.1 torchvision==0.24.1
-	python3 -m pip install --upgrade uproot==5.7.1
-	python3 -m pip install --upgrade numpy==2.3
-	python3 -m pip install --upgrade colour-runner==0.1.1
-	python3 -m pip install --upgrade parameterized==0.9.0
+	python3 -m pip install -r requirements.txt
 
 clean: clean-identify clean-classify
 
