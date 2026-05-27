@@ -41,20 +41,14 @@ _readme:
 	@echo "$$readme"
 
 install-dependencies:
-	@if [ python3 --version | grep "3.14" -neq 0 ]; then \
-		echo "Python 3.14 is the intended Python version for this project. \
-		Please install it and try again."; \
-		exit 1; \
-	fi
+	@if python3 --version | grep "3.14" >/dev/null ; then echo "Python 3.14 satisfied." ; else  echo "Python 3.14 is the intended Python version for this project. Please install it and try again.\nYour python3:"; which python3 ; exit 1 ; fi
 	python3 -m ensurepip
 	python3 -m pip install --upgrade pip
-	python3 -m pip install torch==2.9.1 torchvision==0.24.1
-	python3 -m pip install uproot==5.7.1
-	python3 -m pip install numpy==2.3
-	python3 -m pip install colour-runner==0.1.1
-	python3 -m pip install parameterized==0.9.0
-	python3 -m pip install argparse==1.4
-	python3 -m pip install fast-map==0.3.1
+	python3 -m pip install --upgrade torch==2.9.1 torchvision==0.24.1
+	python3 -m pip install --upgrade uproot==5.7.1
+	python3 -m pip install --upgrade numpy==2.3
+	python3 -m pip install --upgrade colour-runner==0.1.1
+	python3 -m pip install --upgrade parameterized==0.9.0
 
 clean: clean-identify clean-classify
 
