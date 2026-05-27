@@ -41,8 +41,9 @@ _readme:
 	@echo "$$readme"
 
 install-dependencies:
-	@if python3 --version | grep "3.14" >/dev/null ; then echo "Python 3.14 satisfied." ; else  echo "Python 3.14 is the intended Python version for this project. Please install it and try again.\nYour python3:"; which python3 ; exit 1 ; fi
+	@echo -e "import sys\nif not sys.version_info >= (3,11):\n\tprint('Python version 3.11 or greater is required.')\n\texit(1)" | python3 -
 	python3 -m ensurepip
+	python3 -m pip install --upgrade pip
 	python3 -m pip install -r requirements.txt
 
 clean: clean-identify clean-classify
