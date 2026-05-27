@@ -6,8 +6,9 @@ from enum import Enum
 
 from torch.utils.data import DataLoader
 
-from dataset_subset import DatasetSubset
-from cluster_classification_dataset import ClusterClassificationDataset
+from cluster_classification.dataset_subset import DatasetSubset
+from cluster_classification.cluster_classification_dataset \
+    import ClusterClassificationDataset
 
 class DatasourceType(Enum):
     """Marks if the datasource is for training or testing purposes"""
@@ -70,16 +71,15 @@ def load_data(datasource_type: DatasourceType, datasets: DatasetSubset
 
     # Check if the file needs to be created
     if os.path.isfile(pickle_path):
-        file = os.open(pickle_path)
+        m_time = os.path.getmtime(pickle_path)
         # Pickled file exists, check if it's outdated:
         # Check if it's an old version of the class
-        if os.path.getmtime('./cluster_classification_dataset.py') \
-            > file.getmtime():
+        if os.path.getmtime('./cluster_classification_dataset.py') > m_time:
             create_new = True
         # Check if it's outdated compared to its source datasets
         for (component_filename, _) in datasets.get_data():
             component_path = '../data/classification/'+component_filename
-            if os.path.getmtime(component_path) > file.getmtime():
+            if os.path.getmtime(component_path) > m_time:
                 create_new = True
     else:
         create_new = True
@@ -91,11 +91,12 @@ def load_data(datasource_type: DatasourceType, datasets: DatasetSubset
             component_path = '../data/classification/'+component_filename
             components.add( (component_path, cluster_type) )
         classifier = ClusterClassificationDataset(components)
-        with os.open(pickle_path, mode='w') as pickled:
+        with open(pickle_path, mode='wb') as pickled:
             pickle.dump(classifier, pickled)
     # Pickled file exisits and is ready to use; load it
     else:
-        classifier = pickle.load(pickle_path)
+        with open(pickle_path, mode='rb') as pickled:
+            classifier = pickle.load(pickled)
     
     return classifier
 

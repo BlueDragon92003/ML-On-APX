@@ -1,3 +1,4 @@
+from typing import Tuple
 import logging
 
 import torch
@@ -6,8 +7,8 @@ def test_loop(
     device: torch.device,
     dataloader: torch.utils.data.DataLoader,
     model: torch.nn.Module,
-    loss_fn: torch.nn._Loss,
-    ) -> (float, str):
+    loss_fn: torch.nn.Module,
+    ) -> Tuple[float, str]:
     """Evaluates the capabilities of the current model.
 
     Arguments:
@@ -27,9 +28,9 @@ def test_loop(
     model.to(device)
     
     # Set up tracking values to evaluate the success of the model
-    size = len(dataloader.dataset)
+    size = len(dataloader.dataset) # type: ignore[arg-type]
     num_batches = len(dataloader)
-    test_loss, correct = 0, 0
+    test_loss, correct = 0.0, 0.0
 
     # Evaluating the model with torch.no_grad() ensures that no gradients are
     #       computed during test mode

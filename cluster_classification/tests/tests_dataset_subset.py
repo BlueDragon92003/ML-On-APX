@@ -3,8 +3,8 @@ import unittest
 
 from parameterized import parameterized
 
-from dataset_subset import DatasetSubset
-from signal_type import SignalType
+from cluster_classification.dataset_subset import DatasetSubset
+from cluster_classification.signal_type import SignalType
 
 # TODO typing
 class TestDatasetSubset(unittest.TestCase):
@@ -135,8 +135,8 @@ class TestDatasetSubset(unittest.TestCase):
         - `hex2`: Provided bitstring for the second set
         - `expected`: Expected string, combining both bitstrings.
         """
-        sub1 = DatasetSubset(hex1, data={})
-        sub2 = DatasetSubset(hex2, data={})
+        sub1 = DatasetSubset(hex1, data=set())
+        sub2 = DatasetSubset(hex2, data=set())
         sub = sub1 | sub2
         self.assertEqual(expected, sub.get_hex())
 

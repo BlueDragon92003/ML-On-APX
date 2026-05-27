@@ -3,8 +3,8 @@ import unittest
 
 from parameterized import parameterized
 
-import cluster_classification_dataset
-from signal_type import SignalType
+from cluster_classification import cluster_classification_dataset
+from cluster_classification.signal_type import SignalType
 
 # TODO typing
 class TestClusterClassificationDataset(unittest.TestCase):
@@ -156,6 +156,7 @@ class TestClusterClassificationDataset(unittest.TestCase):
             cluster_classification_dataset.get_hcal_location(card, i_eta, i_phi)
         )
 
+    @staticmethod
     def __data_for__test_ccd__cluster_generator__correctness(
         feature: str, event: int, card: int, final: int
         ) -> int:

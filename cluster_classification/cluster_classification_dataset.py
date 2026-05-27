@@ -1,12 +1,12 @@
-from typing import Set, Tuple, List, Union
-from abc import Callable
+from typing import Set, Tuple, List, Union, Iterator
+from collections.abc import Callable
 import math
 
 from torch.utils.data import IterableDataset, get_worker_info
 import uproot
 import numpy as np
 
-from signal_type import SignalType
+from cluster_classification.signal_type import SignalType
 
 # TODO typing
 class ClusterClassificationDataset(IterableDataset):
@@ -23,19 +23,19 @@ class ClusterClassificationDataset(IterableDataset):
                         `.root` files this CCD reads from, and the signal type
                         each root file is associated with.
         """
-        super(ClusterClassificationDataset).__init__()
-        self.__data = []
+        super(ClusterClassificationDataset, self).__init__()
+        data = []
         # Data structure: data [cluster][features]
         for (filepath, cluster_type) in components:
             with uproot.open(filepath) as file:
                 tree = file["l1NtupleProducer/linkTree;1"]
-                self.__data.append( np.fromiter(
+                data.append( np.fromiter(
                     cluster_generator(
                         lambda feature, event, card, final: \
                             tree[feature].array()[event][card][final],
                         cluster_type,
                         num_events=len(tree['SLR0_cluster_eta'].array())
-                        )
+                        ),
                     (int,15)
                 ) )               
             # # General data structure:
@@ -57,7 +57,8 @@ class ClusterClassificationDataset(IterableDataset):
             13: hcal_fb
             14: classification
             """
-        self.__data = self.__data.reshape(-1, self.__data.shape[-1])
+        np_data = np.array(data)
+        self.__data = np_data.reshape(-1, np_data.shape[-1])
 
     def __getitem__(self, index: int):
         return self.__data[index]
@@ -109,7 +110,7 @@ def get_ecal_tower(slr: int, i_eta: int, i_phi: int) -> int:
                                 #   101 - 72 = 29, the last index in SLR3 :)
     return tower
 
-def get_hcal_location(card: int, i_eta: int, i_phi: int) -> Tuple[int, int]:
+def get_hcal_location(card: int, i_eta: int, i_phi: int) -> Union[Tuple[int, int],None]:
     """Calculates the index to extract the proper HCAL data.
 
     Arguments:
@@ -149,7 +150,7 @@ def cluster_generator(
         from_tree: Callable[[str, int, int, int], int],
         signal_type: SignalType,
         num_events: int
-        ) -> List[Union[int,SignalType]]:
+        ) -> Iterator[List[int]]:
     """Generates a tuple of all datapoints corresponding to a cluster.
 
     Arguments:
@@ -238,5 +239,5 @@ def cluster_generator(
                             ),
                         hcal_et,
                         hcal_fb,
-                        signal_type
+                        int(signal_type)
                         ]

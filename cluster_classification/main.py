@@ -4,10 +4,10 @@ import os
 import torch
 from torch import nn
 
-from model import Model
-from test import test_loop
-from train import train_loop
-from data import get_data, DatasourceType
+from cluster_classification.model import Model
+from cluster_classification.test import test_loop
+from cluster_classification.train import train_loop
+from cluster_classification.data import get_data, DatasourceType
 
 # After how many epochs should a checkpoint be made?
 CHECKPOINT_RATE = 10
@@ -29,9 +29,13 @@ logging.basicConfig(
 model = Model()
 
 # Set device
-device = torch.accelerator.current_accelerator().type if \
-    torch.accelerator.is_available() else "cpu"
-logging.info(f"Using {device} device")
+current_device = torch.accelerator.current_accelerator(check_available=True)
+if current_device is not None:
+    device = current_device
+else:
+    device = torch.device('cpu')
+
+logging.info(f"Using {device.type} device")
 
 # Set loss function
 loss_fn = nn.CrossEntropyLoss()
@@ -44,7 +48,7 @@ testing_data  = get_data(DatasourceType.TESTING, BATCH_SIZE)
 # Stochastic Gradient Descent
 optimizer = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE)
 
-last_acc = 0
+last_acc = 0.0
 sentinal = True
 epoch = 0
 # Epoch loop

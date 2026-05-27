@@ -1,8 +1,10 @@
-from typing import Tuple, Set, Self
+from __future__ import annotations
+from typing import Tuple, Set, Self, Union
 
-from signal_type import SignalType
+from cluster_classification.signal_type import SignalType
 
 class DatasetSubset:
+    data: Set[Tuple[str, SignalType]]
     """Represents a subset of data sources data is pulled from.
 
     Public methods:
@@ -17,9 +19,9 @@ class DatasetSubset:
 
     def __init__(self,
         bitstring: int,
-        filename: str = None,
-        data_type: SignalType = None,
-        data: Set[Tuple[str,SignalType]] = None
+        filename: Union[str, None] = None,
+        data_type: Union[SignalType, None] = None,
+        data: Union[Set[Tuple[str, SignalType]], None] = None
         ):
         """Create a new subset from a ROOT file and a signal type or data.
         
@@ -41,11 +43,11 @@ class DatasetSubset:
                 raise ValueError("Must provide a filename")
             if (data_type is None):
                 raise ValueError("Must provide a filename")
-            self.data = { (filename,SignalType) }
+            self.data = { (filename, data_type) }
         else:
             self.data = data
 
-    def __or__(self, other: Self) -> Self:
+    def __or__(self, other: Self) -> DatasetSubset:
         """Combine with another available dataset into a new, larger dataset."""
         bitstring = self.bitstring | other.bitstring
         data = self.data | other.data
@@ -68,7 +70,9 @@ class DatasetSubset:
         """Returns the number of datasets in this DsSs"""
         return len(self.data)
 
-DatasetSubset.DOUBLE_ELECTRON = DatasetSubset(
+    DOUBLE_ELECTRON: DatasetSubset
+
+DOUBLE_ELECTRON = DatasetSubset(
     0b0000_0000_0000_0000_0000_0000_0000_0001,
     "double_electron.root",
     SignalType.BACKGROUND,

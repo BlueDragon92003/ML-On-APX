@@ -6,8 +6,8 @@ from torch import nn
 def train_loop(
     device: torch.device,
     dataloader: torch.utils.data.DataLoader,
-    model: torch.nn.Module,
-    loss_fn: torch.nn._Loss,
+    model: nn.Module,
+    loss_fn: nn.Module,
     optimizer: torch.optim.Optimizer,
     ):
     """Evaluates the capabilities of the current model.
