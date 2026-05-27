@@ -1,7 +1,9 @@
-import logging
-
 import torch
 from torch import nn
+
+from cluster_classification.classification_logger import ClassificationLogger
+
+logger = ClassificationLogger()
 
 def train_loop(
     device: torch.device,
@@ -24,7 +26,7 @@ def train_loop(
     - A formatted string for user display messages.
     """
 
-    logging.debug("Training step")
+    logger.log_trace(f"<train.train_loop device={device}> dataloader={dataloader} model={model} loss_fn={loss_fn} optimizer={optimizer}")
     # size = len(dataloader.dataset)
     # Set the model to training mode - important for batch normalization and
     #       dropout layers
@@ -33,7 +35,7 @@ def train_loop(
 
     # Loop through each batch of data from the dataloader.
     for batch_num, (data, labels) in enumerate(dataloader):
-        logging.debug(f"Batch num {batch_num::>5d}")
+        logger.log_trace(f"<train.train_loop batch_num {batch_num::>5d} />")
         # Move data to GPU
         data = data.to(device)
         labels = labels.to(device)
@@ -45,3 +47,5 @@ def train_loop(
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
+
+    logger.log_trace('</train.train_loop>')

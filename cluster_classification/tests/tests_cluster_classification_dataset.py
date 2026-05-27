@@ -6,7 +6,6 @@ from parameterized import parameterized
 from cluster_classification import cluster_classification_dataset
 from cluster_classification.signal_type import SignalType
 
-# TODO typing
 class TestClusterClassificationDataset(unittest.TestCase):
     """Tests for the class `ClusterClassifcationDataset`
 

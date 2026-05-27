@@ -3,10 +3,12 @@ import unittest
 
 from parameterized import parameterized
 
+from cluster_classification.classification_logger import ClassificationLogger
 from cluster_classification.dataset_subset import DatasetSubset
 from cluster_classification.signal_type import SignalType
 
-# TODO typing
+logger = ClassificationLogger()
+
 class TestDatasetSubset(unittest.TestCase):
     """Tests for the class `DatasetSubset`
 

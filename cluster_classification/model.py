@@ -1,6 +1,9 @@
 import torch
 from torch import nn
 
+from cluster_classification.classification_logger import ClassificationLogger
+
+logger = ClassificationLogger()
 
 class Model(nn.Module):
     """The structure of the classification model.
@@ -22,6 +25,8 @@ class Model(nn.Module):
         )
 
     def forward(self, x):
+        logger.log_trace('<model.Model.forward />')
         certainties = self.stack(x)
         return certainties
 
+logger.log_debug('Loaded model class')

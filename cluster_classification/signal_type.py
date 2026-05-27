@@ -1,5 +1,9 @@
 from enum import IntEnum
 
+from cluster_classification.classification_logger import ClassificationLogger
+
+logger = ClassificationLogger()
+
 class SignalType(IntEnum):
     """Types of signal an individual event may be part of.
     
@@ -12,3 +16,5 @@ class SignalType(IntEnum):
 
     BACKGROUND = 1,
     HADRONIC = 2,
+
+logger.log_debug('Loaded Signal Types')

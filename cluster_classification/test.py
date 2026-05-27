@@ -1,7 +1,10 @@
 from typing import Tuple
-import logging
 
 import torch
+
+from cluster_classification.classification_logger import ClassificationLogger
+
+logger = ClassificationLogger()
 
 def test_loop(
     device: torch.device,
@@ -22,7 +25,7 @@ def test_loop(
     - A formatted string for user display messages.
     """
 
-    logging.debug("Testing step")
+    logger.log_trace(f"<test.test_loop device={device}> dataloader={dataloader}, model={model}, loss_fn={loss_fn}")
     # Set the model to evaluation mode
     model.eval()
     model.to(device)
@@ -46,5 +49,7 @@ def test_loop(
 
     test_loss /= num_batches
     correct /= size
-    return correct, \
-        f"\tAccuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f}"
+    outstring = f"\tAccuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f}"
+    logger.log_trace(f'</test.test_loop ret=({correct}, {outstring})>')
+    return correct, outstring
+        

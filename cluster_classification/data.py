@@ -1,19 +1,23 @@
 import os
 import pickle
 import textwrap
-import logging
 from enum import Enum
 
 from torch.utils.data import DataLoader
 
-from cluster_classification.dataset_subset import DatasetSubset
 from cluster_classification.cluster_classification_dataset \
     import ClusterClassificationDataset
+from cluster_classification.dataset_subset import DatasetSubset
+from cluster_classification.classification_logger import ClassificationLogger
+
+logger = ClassificationLogger()
 
 class DatasourceType(Enum):
     """Marks if the datasource is for training or testing purposes"""
     TRAINING = 1
     TESTING = 2
+
+logger.log_debug('Loaded Datasouce types')
 
 def get_data(datasource_type: DatasourceType, batch_size: int,):
     """Return a PyTorch DataLoader with a specified batch size and datatype.
@@ -25,7 +29,7 @@ def get_data(datasource_type: DatasourceType, batch_size: int,):
     Returns:
     - A PyTorch dataloader that serves cluster classification data. 
     """
-    logging.info("Getting data")
+    logger.log_info("Loading data...")
     data = load_data(datasource_type, DatasetSubset.DOUBLE_ELECTRON)
     return DataLoader(
             # The data to load
@@ -67,36 +71,46 @@ def load_data(datasource_type: DatasourceType, datasets: DatasetSubset
     pickle_path = '../data/pickled/classification/' \
         + '/'.join(textwrap.wrap(dataset_id, 4)) + '.pckl'
     
+    logger.log_debug(f"dataset ID: {dataset_id}")
+    logger.log_debug(f"pickle path: {pickle_path}")
+
     create_new = False
 
     # Check if the file needs to be created
     if os.path.isfile(pickle_path):
-        m_time = os.path.getmtime(pickle_path)
         # Pickled file exists, check if it's outdated:
+        m_time = os.path.getmtime(pickle_path)
         # Check if it's an old version of the class
         if os.path.getmtime('./cluster_classification_dataset.py') > m_time:
+            logger.log_debug('Outdated pickle format')
             create_new = True
         # Check if it's outdated compared to its source datasets
         for (component_filename, _) in datasets.get_data():
             component_path = '../data/classification/'+component_filename
             if os.path.getmtime(component_path) > m_time:
+                logger.log_debug(f'Outdated pickle {component_filename}')
                 create_new = True
     else:
+        logger.log_debug('No pickle')
         create_new = True
     
     # Pickled file does not exist or is outdated; create a new one
     if create_new:
+        logger.log_info("Creating new CCD pickle...")
         components = set()
         for (component_filename, cluster_type) in datasets.get_data():
+            logger.log_debug(f'Dataset includes file {component_filename}')
             component_path = '../data/classification/'+component_filename
             components.add( (component_path, cluster_type) )
-        classifier = ClusterClassificationDataset(components)
+        ccd = ClusterClassificationDataset(components)
         with open(pickle_path, mode='wb') as pickled:
-            pickle.dump(classifier, pickled)
+            pickle.dump(ccd, pickled)
     # Pickled file exisits and is ready to use; load it
     else:
+        logger.log_info("Loading pickled CCD...")
         with open(pickle_path, mode='rb') as pickled:
-            classifier = pickle.load(pickled)
+            ccd = pickle.load(pickled)
     
-    return classifier
+    return ccd
+
 
