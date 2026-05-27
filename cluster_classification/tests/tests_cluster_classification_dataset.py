@@ -1,3 +1,4 @@
+from typing import Tuple
 import unittest
 
 from parameterized import parameterized
@@ -89,7 +90,12 @@ class TestClusterClassificationDataset(unittest.TestCase):
         [3,13,5,11],
         [3,16,0,24],
     ])
-    def test_ccd__get_ecal_tower__correctness(self, slr, i_eta, i_phi, tower):
+    def test_ccd__get_ecal_tower__correctness(self,
+        slr: int,
+        i_eta: int,
+        i_phi: int,
+        tower: int
+        ):
         """Tests `get_ecal_tower` on select slr, i_eta, and i_phi indices.
         
         Parameterized Test:
@@ -127,8 +133,11 @@ class TestClusterClassificationDataset(unittest.TestCase):
         [13,14,4,(0+4*6,8)], # low link/high phi/high eta 1
         [14,15,5,(1+4*7,8)], # low link/high phi/high eta 2
     ])
-    def test_ccd__get_hcal_location__correctness(
-        self, card, i_eta, i_phi, location
+    def test_ccd__get_hcal_location__correctness(self,
+        card: int,
+        i_eta: int,
+        i_phi: int,
+        location: Tuple[int, int]
         ):
         """Tests `get_hcal_location` on select indices
         
@@ -148,8 +157,8 @@ class TestClusterClassificationDataset(unittest.TestCase):
         )
 
     def __data_for__test_ccd__cluster_generator__correctness(
-        feature, event, card, final
-        ):
+        feature: str, event: int, card: int, final: int
+        ) -> int:
         """Provides data for `test_ccd__cluster_generator__correctness`."""
 
         # 6 total clusters will be generaed by this process:

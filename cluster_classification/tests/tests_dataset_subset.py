@@ -1,3 +1,4 @@
+from typing import Set, Tuple
 import unittest
 
 from parameterized import parameterized
@@ -45,7 +46,11 @@ class TestDatasetSubset(unittest.TestCase):
         ["Max", 0xffff_ffff, "ffffffff"],
         ["Arbitrary", 0xDEAD, "0000dead"],
     ])
-    def test_dataset_subset__get_hex(self, name, bitstring, expected):
+    def test_dataset_subset__get_hex(self,
+        name: str,
+        bitstring: int,
+        expected: str
+        ):
         """Test that the `get_hex` method works as expected.
         
         Parameterized Test:
@@ -71,7 +76,10 @@ class TestDatasetSubset(unittest.TestCase):
                     ("five", SignalType.HADRONIC)
                 }],
     ])
-    def test_dataset_subset__get_data(self, name, data):
+    def test_dataset_subset__get_data(self,
+        name: str,
+        data: Set[Tuple[str, SignalType]]
+        ):
         """Test that the `get_data` method works as expected.
         
         Parameterized Test:
@@ -92,7 +100,11 @@ class TestDatasetSubset(unittest.TestCase):
                     ("five", SignalType.HADRONIC)
                 }, 6],
     ])
-    def test_dataset_subset__len(self, name, data, length):
+    def test_dataset_subset__len(self,
+        name: str,
+        data: Set[Tuple[str, SignalType]],
+        length: int
+        ):
         """Test that the `len` method works as expected.
         
         Parameterized Test:
@@ -109,7 +121,12 @@ class TestDatasetSubset(unittest.TestCase):
         ["Same", 0xDEAD, 0xDEAD, "0000dead"],
         ["Arbitrary", 0xABCD, 0x1234, "0000bbfd"],
     ])
-    def test_dataset_subset__combo__get_hex(self, name, hex1, hex2, expected):
+    def test_dataset_subset__combo__get_hex(self,
+        name: str,
+        hex1: int,
+        hex2: int,
+        expected: str
+        ):
         """Test that the `get_hex` method when two sets are combined.
         
         Parameterized Test:
@@ -137,7 +154,11 @@ class TestDatasetSubset(unittest.TestCase):
             {("test2", SignalType.HADRONIC)}
             ],
     ])
-    def test_dataset_subset__combo__get_data(self, name, data1, data2):
+    def test_dataset_subset__combo__get_data(self,
+        name: str,
+        data1: Set[Tuple[str, SignalType]],
+        data2: Set[Tuple[str, SignalType]]
+        ):
         """ Test that the `get_data` method when two sets are combined.
         
         Parameterized Test:
@@ -167,7 +188,12 @@ class TestDatasetSubset(unittest.TestCase):
             2
             ],
     ])
-    def test_dataset_subset__combo__len(self, name, data1, data2, expected):
+    def test_dataset_subset__combo__len(self,
+        name: str,
+        data1: Set[Tuple[str, SignalType]],
+        data2: Set[Tuple[str, SignalType]],
+        expected: int
+        ):
         """ Test that the `len` method when two sets are combined.
 
         Parameterized Test:

@@ -1,4 +1,5 @@
-from typing import Set, Tuple
+from typing import Set, Tuple, List, Union
+from abc import Callable
 import math
 
 from torch.utils.data import IterableDataset, get_worker_info
@@ -58,7 +59,7 @@ class ClusterClassificationDataset(IterableDataset):
             """
         self.__data = self.__data.reshape(-1, self.__data.shape[-1])
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int):
         return self.__data[index]
 
     def __len__(self):
@@ -83,7 +84,7 @@ class ClusterClassificationDataset(IterableDataset):
             iter_end = min(iter_start + per_worker, max_size)
         return iter(self.__data[iter_start:iter_end])
 
-def get_ecal_tower(slr, i_eta, i_phi):
+def get_ecal_tower(slr: int, i_eta: int, i_phi: int) -> int:
     """Calculates the index needed to extract the proper ECALUnclustered data.
 
     Arguments:
@@ -108,7 +109,7 @@ def get_ecal_tower(slr, i_eta, i_phi):
                                 #   101 - 72 = 29, the last index in SLR3 :)
     return tower
 
-def get_hcal_location(card, i_eta, i_phi):
+def get_hcal_location(card: int, i_eta: int, i_phi: int) -> Tuple[int, int]:
     """Calculates the index to extract the proper HCAL data.
 
     Arguments:
@@ -144,7 +145,11 @@ def get_hcal_location(card, i_eta, i_phi):
 
     return tower_index, int(link)
 
-def cluster_generator(from_tree, signal_type, num_events):
+def cluster_generator(
+        from_tree: Callable[[str, int, int, int], int],
+        signal_type: SignalType,
+        num_events: int
+        ) -> List[Union[int,SignalType]]:
     """Generates a tuple of all datapoints corresponding to a cluster.
 
     Arguments:
