@@ -34,7 +34,7 @@ def test_loop(
     model.to(device)
 
     # Set up tracking values to evaluate the success of the model
-    size = len(dataloader.dataset)  # type: ignore[arg-type]
+    size = len(dataloader.dataset)  # ty: ignore[invalid-argument-type]
     num_batches = len(dataloader)
     test_loss, correct = 0.0, 0.0
 

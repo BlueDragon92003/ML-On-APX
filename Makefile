@@ -48,8 +48,7 @@ install-dependencies:
 clean: clean-identify clean-classify
 
 run-tests:
-	./bash/test-identification.sh
-	./bash/test-classification.sh	
+	python3 run_tests.py
 
 clean-identify:
 	./bash/clean-identification.sh

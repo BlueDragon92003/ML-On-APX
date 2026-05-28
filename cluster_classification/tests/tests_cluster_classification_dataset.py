@@ -56,7 +56,7 @@ class TestClusterClassificationDataset(unittest.TestCase):
                         card, i_eta, i_phi
                     )
                     self.assertIsNotNone(info)
-                    tower, link = info
+                    tower, link = info # ty: ignore[not-iterable]
                     self.assertIs(type(tower), int)
                     self.assertIs(type(link), int)
                     self.assertLess(tower, 32)
@@ -69,7 +69,7 @@ class TestClusterClassificationDataset(unittest.TestCase):
                         card, i_eta, i_phi
                     )
                     self.assertIsNotNone(info)
-                    tower, link = info
+                    tower, link = info # ty: ignore[not-iterable]
                     self.assertIs(type(tower), int)
                     self.assertIs(type(link), int)
                     self.assertLess(tower, 32)
