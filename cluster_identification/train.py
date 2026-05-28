@@ -1,16 +1,14 @@
-'''
+"""
 train.py
 
 This file contains the code used to train the model.
-'''
+
 
 import logging
 
-import torch
-from torch import nn
 
 def train_loop(dataloader, model, loss_fn, optimizer):
-    logging.debug(f"Training step")
+    logging.debug("Training step")
     size = len(dataloader.dataset)
     # Set the model to training mode - important for batch normalization and dropout layers
     model.train()
@@ -26,7 +24,8 @@ def train_loop(dataloader, model, loss_fn, optimizer):
         pred = model(data)
         loss = loss_fn(pred, labels)
 
-        # Run backprop and the optimizer to train the model for the next run 
+        # Run backprop and the optimizer to train the model for the next run
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
+"""

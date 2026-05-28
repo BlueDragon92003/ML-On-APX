@@ -11,6 +11,7 @@ from cluster_classification.signal_type import SignalType
 
 logger = ClassificationLogger()
 
+
 class ClusterClassificationDataset(IterableDataset):
     """Implements a PyTorch dataset to train the cluster classifier.
 
@@ -26,23 +27,32 @@ class ClusterClassificationDataset(IterableDataset):
                         each root file is associated with.
         """
         super(ClusterClassificationDataset, self).__init__()
-        logger.log_trace('<cluster_classification_dataset.ClusterClassificationDataset.__init__>')
+        logger.log_trace(
+            "<cluster_classification_dataset.ClusterClassificationDataset.__init__>"
+        )
         data = []
         # Data structure: data [cluster][features]
-        for (filepath, cluster_type) in components:
-            logger.log_trace(f'<cluster_classification_dataset.ClusterClassificationDataset.__init__ component={filepath}>')
+        for filepath, cluster_type in components:
+            logger.log_trace(
+                f"<cluster_classification_dataset.ClusterClassificationDataset.__init__ component={filepath}>"
+            )
             with uproot.open(filepath) as file:
                 tree = file["l1NtupleProducer/linkTree;1"]
-                data.append( np.fromiter(
-                    cluster_generator(
-                        lambda feature, event, card, final: \
-                            tree[feature].array()[event][card][final],
-                        cluster_type,
-                        num_events=len(tree['SLR0_cluster_eta'].array())
+                data.append(
+                    np.fromiter(
+                        cluster_generator(
+                            lambda feature, event, card, final: tree[feature].array()[
+                                event
+                            ][card][final],
+                            cluster_type,
+                            num_events=len(tree["SLR0_cluster_eta"].array()),
                         ),
-                    (int,15)
-                ) )     
-            logger.log_trace('</cluster_classification_dataset.ClusterClassificationDataset.__init__>')          
+                        (int, 15),
+                    )
+                )
+            logger.log_trace(
+                "</cluster_classification_dataset.ClusterClassificationDataset.__init__>"
+            )
             # # General data structure:
             # # data [ SLR/link + feature ][ event ][ card ]
             """
@@ -64,38 +74,54 @@ class ClusterClassificationDataset(IterableDataset):
             """
         np_data = np.array(data)
         self.__data = np_data.reshape(-1, np_data.shape[-1])
-        logger.log_trace('</cluster_classification_dataset.ClusterClassificationDataset.__init__>')
+        logger.log_trace(
+            "</cluster_classification_dataset.ClusterClassificationDataset.__init__>"
+        )
 
     def __getitem__(self, index: int):
-        logger.log_trace(f'<cluster_classification_dataset.ClusterClassificationDataset.__getitem__ index={index} ret={self.__data[index]} />')
+        logger.log_trace(
+            f"<cluster_classification_dataset.ClusterClassificationDataset.__getitem__ index={index} ret={self.__data[index]} />"
+        )
         return self.__data[index]
 
     def __len__(self):
-        logger.log_trace(f'<cluster_classification_dataset.ClusterClassificationDataset.__getitem__ ret={len(self.__data)} />')
+        logger.log_trace(
+            f"<cluster_classification_dataset.ClusterClassificationDataset.__getitem__ ret={len(self.__data)} />"
+        )
         return len(self.__data)
 
     def __iter__(self):
         # Very much yoinked and adapted from the torch docs:
         # https://docs.pytorch.org/docs/2.9/data.html#torch.utils.data.Dataset
 
-        logger.log_trace('<cluster_classification_dataset.ClusterClassificationDataset.__iter__>')
+        logger.log_trace(
+            "<cluster_classification_dataset.ClusterClassificationDataset.__iter__>"
+        )
         worker_info = get_worker_info()
         if worker_info is None:
             # single-process data loading, return the full iterator
-            logger.log_trace('<cluster_classification_dataset.ClusterClassificationDataset.__iter__ single_process />')
+            logger.log_trace(
+                "<cluster_classification_dataset.ClusterClassificationDataset.__iter__ single_process />"
+            )
             iter_start = 0
             iter_end = len(self)
         else:  # in a worker process
             max_size = len(self)
             # split workload
-            per_worker = int(math.ceil((self.end - self.start) \
-                / float(worker_info.num_workers)))
+            per_worker = int(
+                math.ceil((self.end - self.start) / float(worker_info.num_workers))
+            )
             worker_id = worker_info.id
             iter_start = worker_id * per_worker
             iter_end = min(iter_start + per_worker, max_size)
-            logger.log_trace(f'<cluster_classification_dataset.ClusterClassificationDataset.__iter__ multi_process start={iter_start} end={iter_end} />')
-        logger.log_trace('</cluster_classification_dataset.ClusterClassificationDataset.__iter__>')
+            logger.log_trace(
+                f"<cluster_classification_dataset.ClusterClassificationDataset.__iter__ multi_process start={iter_start} end={iter_end} />"
+            )
+        logger.log_trace(
+            "</cluster_classification_dataset.ClusterClassificationDataset.__iter__>"
+        )
         return iter(self.__data[iter_start:iter_end])
+
 
 def get_ecal_tower(slr: int, i_eta: int, i_phi: int) -> int:
     """Calculates the index needed to extract the proper ECALUnclustered data.
@@ -108,23 +134,28 @@ def get_ecal_tower(slr: int, i_eta: int, i_phi: int) -> int:
     `i_eta` is correlated with slr and all inputs must respect these brackets.
     This will be changed in the future.
     """
-    logger.log_trace(f'<cluster_classification_dataset.get_hcal_location slr={slr} i_eta={i_eta} i_phi={i_phi}>')
-    tower = 6*i_eta + i_phi 
+    logger.log_trace(
+        f"<cluster_classification_dataset.get_hcal_location slr={slr} i_eta={i_eta} i_phi={i_phi}>"
+    )
+    tower = 6 * i_eta + i_phi
     match slr:
         case 0:
             pass
         case 1:
             tower = tower - 12  # Index 0 in the SLR2 branch is eta=2,
-                                #   shifting indices by 12
+            #   shifting indices by 12
         case 2:
             tower = tower - 42  # 12+30
         case 3:
             tower = tower - 72  # i_eta = 16, i_phi = 5 -> index 101
-                                #   101 - 72 = 29, the last index in SLR3 :)
-    logger.log_trace(f'</cluster_classification_dataset.get_hcal_location ret={tower}>')
+            #   101 - 72 = 29, the last index in SLR3 :)
+    logger.log_trace(f"</cluster_classification_dataset.get_hcal_location ret={tower}>")
     return tower
 
-def get_hcal_location(card: int, i_eta: int, i_phi: int) -> Union[Tuple[int, int],None]:
+
+def get_hcal_location(
+    card: int, i_eta: int, i_phi: int
+) -> Union[Tuple[int, int], None]:
     """Calculates the index to extract the proper HCAL data.
 
     Arguments:
@@ -132,19 +163,21 @@ def get_hcal_location(card: int, i_eta: int, i_phi: int) -> Union[Tuple[int, int
     - `i_eta`: The rotational position accessed, in towers, in RCT coordinates.
     - `i_phi`: The horizontal position accessed, in towers, in RCT coordinates.
     """
-    logger.log_trace(f'<cluster_classification_dataset.get_hcal_location card={card} i_eta={i_eta} i_phi={i_phi}>')
+    logger.log_trace(
+        f"<cluster_classification_dataset.get_hcal_location card={card} i_eta={i_eta} i_phi={i_phi}>"
+    )
     link = 5
     if i_eta > 15:
-        logger.log_trace('</cluster_classification_dataset.get_hcal_location ret=None>')
+        logger.log_trace("</cluster_classification_dataset.get_hcal_location ret=None>")
         return None
     elif i_eta > 7:
         link += 1
-        i_eta += -8 # index 0 of Link 6/8 is i_eta = 8
+        i_eta += -8  # index 0 of Link 6/8 is i_eta = 8
 
-    high_link = i_phi + 6 * ( (card % 4 - 1) // 2 % 2 ) 
+    high_link = i_phi + 6 * ((card % 4 - 1) // 2 % 2)
     # 1(True) if Links 5/6 start with 2, 0(False) otherwise
     # it's only ever actually used times 6 plus i_phi, so may as well do it here
-    
+
     """
     | high_link | i_phi = 0 |   1   |   2   |   3   |   4   |   5   |
     | --------- | --------- | ----- | ----- | ----- | ----- | ----- |
@@ -157,119 +190,137 @@ def get_hcal_location(card: int, i_eta: int, i_phi: int) -> Union[Tuple[int, int
         offset (L-5)
     """
 
-    tower_index = 4*i_eta + high_link % 4
+    tower_index = 4 * i_eta + high_link % 4
     link += high_link // 4 % 2 * 2
 
-    logger.log_trace(f'</cluster_classification_dataset.get_hcal_location ret=({tower_index}, {int(link)})>')
+    logger.log_trace(
+        f"</cluster_classification_dataset.get_hcal_location ret=({tower_index}, {int(link)})>"
+    )
     return tower_index, int(link)
 
+
 def cluster_generator(
-        from_tree: Callable[[str, int, int, int], int],
-        signal_type: SignalType,
-        num_events: int
-        ) -> Iterator[List[int]]:
+    from_tree: Callable[[str, int, int, int], int],
+    signal_type: SignalType,
+    num_events: int,
+) -> Iterator[List[int]]:
     """Generates a tuple of all datapoints corresponding to a cluster.
 
     Arguments:
     - `from_tree`: A function that accepts a feature, event number, card number,
-                    and "final" number and pulls data from an attached source. 
+                    and "final" number and pulls data from an attached source.
     - `signal_type`: The signal type of this dataset.
     - `num_events`: The number of events to pull from. Typically the number of
                     events in the dataset.
     """
-    
-    logger.log_trace(f'<cluster_classification_dataset.cluster_generator from_tree={from_tree} signal_type={signal_type} num_events={num_events}>')
+
+    logger.log_trace(
+        f"<cluster_classification_dataset.cluster_generator from_tree={from_tree} signal_type={signal_type} num_events={num_events}>"
+    )
 
     for event in range(num_events):
-        logger.log_trace(f'<cluster_classification_dataset.cluster_generator event_level event={event}>')
+        logger.log_trace(
+            f"<cluster_classification_dataset.cluster_generator event_level event={event}>"
+        )
         for card in range(24):
-            logger.log_trace(f'<cluster_classification_dataset.cluster_generator card_level card={card}>')
+            logger.log_trace(
+                f"<cluster_classification_dataset.cluster_generator card_level card={card}>"
+            )
             for slr in range(4):
-                logger.log_trace(f'<cluster_classification_dataset.cluster_generator slr_level slr={slr}>')
+                logger.log_trace(
+                    f"<cluster_classification_dataset.cluster_generator slr_level slr={slr}>"
+                )
                 for cluster in range(9):
-                    logger.log_trace(f'<cluster_classification_dataset.cluster_generator cluster_level cluster={cluster}>')
+                    logger.log_trace(
+                        f"<cluster_classification_dataset.cluster_generator cluster_level cluster={cluster}>"
+                    )
                     # cluster i_eta and i_phi are in crystal;
                     # everyhting else is in tower
-                    i_eta = from_tree(
-                        f'SLR{slr}_cluster_eta', event, card, cluster
-                        ) // 5
-                    i_phi = from_tree(
-                        f'SLR{slr}_cluster_phi', event, card, cluster
-                        ) // 5
+                    i_eta = (
+                        from_tree(f"SLR{slr}_cluster_eta", event, card, cluster) // 5
+                    )
+                    i_phi = (
+                        from_tree(f"SLR{slr}_cluster_phi", event, card, cluster) // 5
+                    )
                     cluster_et = from_tree(
-                        f'SLR{slr}_cluster_energy', event, card, cluster
-                        )
+                        f"SLR{slr}_cluster_energy", event, card, cluster
+                    )
                     # Energy can be left in its integer format; the specific
                     # values don't matter so much as the scale
 
                     if cluster_et == 0:
                         # Not a cluster
-                        logger.log_trace('</cluster_classification_dataset.cluster_generator cluster_level no_cluster>')
+                        logger.log_trace(
+                            "</cluster_classification_dataset.cluster_generator cluster_level no_cluster>"
+                        )
                         continue
 
                     ecal_tower = get_ecal_tower(slr, i_eta, i_phi)
                     hcal_info = get_hcal_location(card, i_eta, i_phi)
-                    
+
                     hcal_et = -1
                     hcal_fb = -1
                     if hcal_info:
                         # HCAL information exists
-                        logger.log_trace('</cluster_classification_dataset.cluster_generator hcal_exists>')
+                        logger.log_trace(
+                            "</cluster_classification_dataset.cluster_generator hcal_exists>"
+                        )
                         (hcal_tower, link) = hcal_info
                         hcal_et = from_tree(
-                            f'HCAL{link}_tower_et', event, card, hcal_tower
-                            )
+                            f"HCAL{link}_tower_et", event, card, hcal_tower
+                        )
                         hcal_fb = from_tree(
-                            f'HCAL{link}_tower_fb', event, card, hcal_tower
-                            )
+                            f"HCAL{link}_tower_fb", event, card, hcal_tower
+                        )
 
-                    logger.log_trace('</cluster_classification_dataset.cluster_generator cluster_level cluster>')
+                    logger.log_trace(
+                        "</cluster_classification_dataset.cluster_generator cluster_level cluster>"
+                    )
                     yield [
                         cluster_et,
                         from_tree(
-                            f'SLR{slr}_cluster_seed_energy',
-                            event, card, cluster
-                            ),
-                        from_tree(
-                            f'SLR{slr}_cluster_et5x5', event, card, cluster
-                            ),
-                        from_tree(
-                            f'SLR{slr}_cluster_et2x5', event, card, cluster
-                            ),
-                        from_tree(
-                            f'SLR{slr}_cluster_timing', event, card, cluster
-                            ),
-                        0, # from_tree(
+                            f"SLR{slr}_cluster_seed_energy", event, card, cluster
+                        ),
+                        from_tree(f"SLR{slr}_cluster_et5x5", event, card, cluster),
+                        from_tree(f"SLR{slr}_cluster_et2x5", event, card, cluster),
+                        from_tree(f"SLR{slr}_cluster_timing", event, card, cluster),
+                        0,  # from_tree(
                         #     f'SLR{slr}_cluster_spike', event, card, cluster
                         #     ),
-                        from_tree(
-                            f'SLR{slr}_cluster_brems', event, card, cluster
-                            ),
-                        0, # from_tree(
+                        from_tree(f"SLR{slr}_cluster_brems", event, card, cluster),
+                        0,  # from_tree(
                         #     f'SLR{slr}_cluster_satur', event, card, cluster
                         #     ),
+                        from_tree(f"SLR{slr}_cluster_spare", event, card, cluster),
                         from_tree(
-                            f'SLR{slr}_cluster_spare', event, card, cluster
-                            ),
+                            f"ECALUnclusteredSLR{slr}_tower_et", event, card, ecal_tower
+                        ),
                         from_tree(
-                            f'ECALUnclusteredSLR{slr}_tower_et',
-                            event, card, ecal_tower
-                            ),
+                            f"ECALUnclusteredSLR{slr}_tower_timing",
+                            event,
+                            card,
+                            ecal_tower,
+                        ),
                         from_tree(
-                            f'ECALUnclusteredSLR{slr}_tower_timing',
-                            event, card, ecal_tower
-                            ),
-                        from_tree(
-                            f'ECALUnclusteredSLR{slr}_tower_spike',
-                            event, card, ecal_tower
-                            ),
+                            f"ECALUnclusteredSLR{slr}_tower_spike",
+                            event,
+                            card,
+                            ecal_tower,
+                        ),
                         hcal_et,
                         hcal_fb,
-                        int(signal_type)
-                        ]
-                logger.log_trace('</cluster_classification_dataset.cluster_generator slr_level>')
-            logger.log_trace('</cluster_classification_dataset.cluster_generator card_level>')
-        logger.log_trace('</cluster_classification_dataset.cluster_generator event_level>')
-    logger.log_trace('</cluster_classification_dataset.cluster_generator>')
+                        int(signal_type),
+                    ]
+                logger.log_trace(
+                    "</cluster_classification_dataset.cluster_generator slr_level>"
+                )
+            logger.log_trace(
+                "</cluster_classification_dataset.cluster_generator card_level>"
+            )
+        logger.log_trace(
+            "</cluster_classification_dataset.cluster_generator event_level>"
+        )
+    logger.log_trace("</cluster_classification_dataset.cluster_generator>")
 
-logger.log_debug('Loaded CCD')
+
+logger.log_debug("Loaded CCD")

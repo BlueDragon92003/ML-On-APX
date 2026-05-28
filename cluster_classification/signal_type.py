@@ -4,9 +4,10 @@ from cluster_classification.classification_logger import ClassificationLogger
 
 logger = ClassificationLogger()
 
+
 class SignalType(IntEnum):
     """Types of signal an individual event may be part of.
-    
+
     Extends: `enum.IntEnum`
 
     Values:
@@ -14,7 +15,8 @@ class SignalType(IntEnum):
     - `HADRONIC` for hadronic events.
     """
 
-    BACKGROUND = 1,
-    HADRONIC = 2,
+    BACKGROUND = (1,)
+    HADRONIC = (2,)
 
-logger.log_debug('Loaded Signal Types')
+
+logger.log_debug("Loaded Signal Types")

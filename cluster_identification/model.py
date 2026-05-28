@@ -1,11 +1,11 @@
-'''
+"""
 model.py
 
 This file contains the definition for the model used in training.
-'''
+"""
 
-import torch
 from torch import nn
+
 
 class Model(nn.Module):
     def __init__(self):
@@ -16,6 +16,6 @@ class Model(nn.Module):
         )
 
     def forward(self, x):
-        #x = self.flatten(x)
+        # x = self.flatten(x)
         logits = self.linear_relu_stack(x)
         return logits

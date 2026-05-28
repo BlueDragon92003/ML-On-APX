@@ -1,11 +1,9 @@
 import logging
 
-logging.basicConfig(
-    filename='./logs/classification-latest.log',
-    level=logging.INFO
-    )
+logging.basicConfig(filename="./logs/classification-latest.log", level=logging.INFO)
 
-class ClassificationLogger():
+
+class ClassificationLogger:
     """A basic extention to the default python logger."""
 
     def __init__(self):

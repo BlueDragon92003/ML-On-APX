@@ -6,56 +6,66 @@ from enum import Enum
 
 from torch.utils.data import DataLoader
 
-from cluster_classification.cluster_classification_dataset \
-    import ClusterClassificationDataset
+from cluster_classification.cluster_classification_dataset import (
+    ClusterClassificationDataset,
+)
 from cluster_classification.dataset_subset import DatasetSubset
 from cluster_classification.classification_logger import ClassificationLogger
 
 logger = ClassificationLogger()
 
+
 class DatasourceType(Enum):
     """Marks if the datasource is for training or testing purposes"""
+
     TRAINING = 1
     TESTING = 2
 
-logger.log_debug('Loaded Datasouce types')
 
-def get_data(datasource_type: DatasourceType, batch_size: int,):
+logger.log_debug("Loaded Datasouce types")
+
+
+def get_data(
+    datasource_type: DatasourceType,
+    batch_size: int,
+):
     """Return a PyTorch DataLoader with a specified batch size and datatype.
-    
+
     Arguments:
     - `datasource_type`: If the data is for testing or training purposes.
     - `batch_size`: the size of batches the dataloader provides.
 
     Returns:
-    - A PyTorch dataloader that serves cluster classification data. 
+    - A PyTorch dataloader that serves cluster classification data.
     """
     logger.log_info("Loading data...")
     data = load_data(datasource_type, DatasetSubset.DOUBLE_ELECTRON)
     return DataLoader(
-            # The data to load
-            data,
-            # Set the batch size
-            batch_size=batch_size,
-            # Provide the data in a random order. This improves training by
-            #   giving the optimizer a more hollistic overview of the data,
-            #   instead of unintentionally training & optimizing the model on
-            #   one class, then the next class, then the next one, etc.  
-            shuffle=True,
-            )
+        # The data to load
+        data,
+        # Set the batch size
+        batch_size=batch_size,
+        # Provide the data in a random order. This improves training by
+        #   giving the optimizer a more hollistic overview of the data,
+        #   instead of unintentionally training & optimizing the model on
+        #   one class, then the next class, then the next one, etc.
+        shuffle=True,
+    )
 
-def load_data(datasource_type: DatasourceType, datasets: DatasetSubset
-    ) -> ClusterClassificationDataset:
+
+def load_data(
+    datasource_type: DatasourceType, datasets: DatasetSubset
+) -> ClusterClassificationDataset:
     """Intellegently loads or creates a `Dataset` given `DatasetSubsets`
-    
+
     Loads the data as a PyTorch Dataset, provided a specific type (training or
     testing) and a set of ROOT data to use as samples.
-    
+
     First, the function checks if such a Dataset has already been created. If
     so, it checks if the preserved Dataset needs to be updated (i.e. at least
     one of the datafiles is newer than the picked Dataset). If the preserved
     Dataset exists and is not outdated, it is unpicked and returned.
-    
+
     If the preserved dataset is outdated or does not exist, then a new one is
     created from ROOT data.
 
@@ -96,12 +106,12 @@ def load_data(datasource_type: DatasourceType, datasets: DatasetSubset
         for (component_filename, _) in datasets.get_data():
             component_path = root_data_path / component_filename
             if os.path.getmtime(component_path) > m_time:
-                logger.log_debug(f'Outdated pickle {component_filename}')
+                logger.log_debug(f"Outdated pickle {component_filename}")
                 create_new = True
     else:
-        logger.log_debug('No pickle')
+        logger.log_debug("No pickle")
         create_new = True
-    
+
     # Pickled file does not exist or is outdated; create a new one
     if create_new:
         logger.log_info("Creating new CCD pickle...")
@@ -118,10 +128,8 @@ def load_data(datasource_type: DatasourceType, datasets: DatasetSubset
     # Pickled file exisits and is ready to use; load it
     else:
         logger.log_info("Loading pickled CCD...")
-        pickle_fd = os.open(pickle_path, os.O_RDONLY ) 
-        with os.fdopen(pickle_fd, mode='rb') as pickled:
+        pickle_fd = os.open(pickle_path, os.O_RDONLY)
+        with os.fdopen(pickle_fd, mode="rb") as pickled:
             ccd = pickle.load(pickled)
-    
+
     return ccd
-
-

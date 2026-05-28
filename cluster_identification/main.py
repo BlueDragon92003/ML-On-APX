@@ -1,8 +1,8 @@
-'''
+"""
 main.py
 
-This python script is executed to train and test the 
-'''
+This python script is executed to train and test the
+
 
 import logging
 import os
@@ -10,13 +10,7 @@ import os
 import torch
 from torch import nn
 
-from model import NeuralNetwork
-from constants import *
 
-from model import Model
-from test import test_loop
-from train import train_loop
-from data import get_data, DatasourceType
 
 # After how many epochs should a checkpoint be made?
 CHECKPOINT_RATE = 10
@@ -29,10 +23,14 @@ LEARNING_RATE = 1e-4
 # How many data points to analyze in a batch.
 BATCH_SIZE = 1
 
-logging.basicConfig(filename='./logs/identification-latest.log', level=logging.INFO)
+logging.basicConfig(filename="./logs/identification-latest.log", level=logging.INFO)
 
 # Set device
-device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
+device = (
+    torch.accelerator.current_accelerator().type
+    if torch.accelerator.is_available()
+    else "cpu"
+)
 logging.info(f"Using {device} device")
 
 # Set loss function
@@ -47,11 +45,14 @@ optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 
 
 # Epoch loop
-while(sentinal):
+while sentinal:
     # Unsupervised learning aproach may be best, so I'm leaving this empty for
-    # the moment. We shall see what works best. 
+    # the moment. We shall see what works best.
     pass
 
 # Softlink the last checkpoint
-os.symlink( f"checkpoint-{(epoch // CHECKPOINT_RATE):>05d}-identification.pth", "current-identification.pth" )
-
+os.symlink(
+    f"checkpoint-{(epoch // CHECKPOINT_RATE):>05d}-identification.pth",
+    "current-identification.pth",
+)
+"""
