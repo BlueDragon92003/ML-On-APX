@@ -75,7 +75,7 @@ def load_data(datasource_type: DatasourceType, datasets: DatasetSubset
     data_path = project_path / 'data'
     root_data_path = data_path / 'classification'
     
-    pickle_path = data_path / 'pickled/classification' / \
+    pickle_path = data_path / 'pickled' / 'classification' / \
         ('/'.join(textwrap.wrap(dataset_id, 4)) + '.pckl')
     
     logger.log_debug(f"dataset ID: {dataset_id}")
