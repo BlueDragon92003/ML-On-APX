@@ -1,4 +1,5 @@
 import os
+import pathlib
 import pickle
 import textwrap
 from enum import Enum
@@ -68,8 +69,14 @@ def load_data(datasource_type: DatasourceType, datasets: DatasetSubset
     """
     # Extract the filepath where a picked file is/will be stored
     dataset_id = datasets.get_hex()
-    pickle_path = './data/pickled/classification/' \
-        + '/'.join(textwrap.wrap(dataset_id, 4)) + '.pckl'
+    
+    module_path = pathlib.Path(__file__).parent
+    project_path = module_path.parent
+    data_path = project_path / 'data'
+    root_data_path = data_path / 'classification'
+    
+    pickle_path = data_path / 'pickled/classification' / \
+        ('/'.join(textwrap.wrap(dataset_id, 4)) + '.pckl')
     
     logger.log_debug(f"dataset ID: {dataset_id}")
     logger.log_debug(f"pickle path: {pickle_path}")
@@ -80,13 +87,14 @@ def load_data(datasource_type: DatasourceType, datasets: DatasetSubset
     if os.path.isfile(pickle_path):
         # Pickled file exists, check if it's outdated:
         m_time = os.path.getmtime(pickle_path)
+        ccd_path = module_path / 'cluster_classification_dataset.py'
         # Check if it's an old version of the class
-        if os.path.getmtime('./cluster_classification_dataset.py') > m_time:
+        if os.path.getmtime(ccd_path) > m_time:
             logger.log_debug('Outdated pickle format')
             create_new = True
         # Check if it's outdated compared to its source datasets
         for (component_filename, _) in datasets.get_data():
-            component_path = './data/classification/'+component_filename
+            component_path = root_data_path / component_filename
             if os.path.getmtime(component_path) > m_time:
                 logger.log_debug(f'Outdated pickle {component_filename}')
                 create_new = True
@@ -95,15 +103,15 @@ def load_data(datasource_type: DatasourceType, datasets: DatasetSubset
         create_new = True
     
     # Pickled file does not exist or is outdated; create a new one
-    # TODO needs to make the directory to work :/
     if create_new:
         logger.log_info("Creating new CCD pickle...")
         components = set()
         for (component_filename, cluster_type) in datasets.get_data():
             logger.log_debug(f'Dataset includes file {component_filename}')
-            component_path = './data/classification/'+component_filename
+            component_path = root_data_path / component_filename
             components.add( (component_path, cluster_type) )
         ccd = ClusterClassificationDataset(components)
+        os.makedirs(pickle_path.parent) # ensure all directories are made
         pickle_fd = os.open(pickle_path, os.O_RDWR | os.O_CREAT ) 
         with os.fdopen(pickle_fd, mode='wb') as pickled:
             pickle.dump(ccd, pickled)
