@@ -6,5 +6,5 @@ if __name__ == "__main__":
     loader = unittest.TestLoader()
     start_dir = pathlib.Path(__file__).parent
     suite = loader.discover(str(start_dir))
-    runner = ColourTextTestRunner()
+    runner = ColourTextTestRunner(verbosity=2)
     runner.run(suite)
