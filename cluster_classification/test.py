@@ -6,12 +6,13 @@ from cluster_classification.classification_logger import ClassificationLogger
 
 logger = ClassificationLogger()
 
+
 def test_loop(
     device: torch.device,
     dataloader: torch.utils.data.DataLoader,
     model: torch.nn.Module,
     loss_fn: torch.nn.Module,
-    ) -> Tuple[float, str]:
+) -> Tuple[float, str]:
     """Evaluates the capabilities of the current model.
 
     Arguments:
@@ -25,13 +26,15 @@ def test_loop(
     - A formatted string for user display messages.
     """
 
-    logger.log_trace(f"<test.test_loop device={device}> dataloader={dataloader}, model={model}, loss_fn={loss_fn}")
+    logger.log_trace(
+        f"<test.test_loop device={device}> dataloader={dataloader}, model={model}, loss_fn={loss_fn}"
+    )
     # Set the model to evaluation mode
     model.eval()
     model.to(device)
-    
+
     # Set up tracking values to evaluate the success of the model
-    size = len(dataloader.dataset) # type: ignore[arg-type]
+    size = len(dataloader.dataset)  # type: ignore[arg-type]
     num_batches = len(dataloader)
     test_loss, correct = 0.0, 0.0
 
@@ -49,7 +52,6 @@ def test_loop(
 
     test_loss /= num_batches
     correct /= size
-    outstring = f"\tAccuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f}"
-    logger.log_trace(f'</test.test_loop ret=({correct}, {outstring})>')
+    outstring = f"\tAccuracy: {(100 * correct):>0.1f}%, Avg loss: {test_loss:>8f}"
+    logger.log_trace(f"</test.test_loop ret=({correct}, {outstring})>")
     return correct, outstring
-        

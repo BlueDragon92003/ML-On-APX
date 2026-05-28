@@ -5,13 +5,14 @@ from cluster_classification.classification_logger import ClassificationLogger
 
 logger = ClassificationLogger()
 
+
 def train_loop(
     device: torch.device,
     dataloader: torch.utils.data.DataLoader,
     model: nn.Module,
     loss_fn: nn.Module,
     optimizer: torch.optim.Optimizer,
-    ):
+):
     """Evaluates the capabilities of the current model.
 
     Arguments:
@@ -26,7 +27,9 @@ def train_loop(
     - A formatted string for user display messages.
     """
 
-    logger.log_trace(f"<train.train_loop device={device}> dataloader={dataloader} model={model} loss_fn={loss_fn} optimizer={optimizer}")
+    logger.log_trace(
+        f"<train.train_loop device={device}> dataloader={dataloader} model={model} loss_fn={loss_fn} optimizer={optimizer}"
+    )
     # size = len(dataloader.dataset)
     # Set the model to training mode - important for batch normalization and
     #       dropout layers
@@ -43,9 +46,9 @@ def train_loop(
         pred = model(data)
         loss = loss_fn(pred, labels)
 
-        # Run backprop and the optimizer to train the model for the next run 
+        # Run backprop and the optimizer to train the model for the next run
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
 
-    logger.log_trace('</train.train_loop>')
+    logger.log_trace("</train.train_loop>")
