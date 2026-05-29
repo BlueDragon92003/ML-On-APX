@@ -1,8 +1,8 @@
 from torch import nn
 
-from cluster_classification.classification_logger import ClassificationLogger
+from cluster_classification.classification_logger import CleverLogger
 
-logger = ClassificationLogger('model.py')
+logger = CleverLogger(__name__)
 
 
 class Model(nn.Module):
@@ -26,7 +26,7 @@ class Model(nn.Module):
         )
 
     def forward(self, x):
-        logger.log_trace("<model.Model.forward />")
+        logger.log_open_control_flow("<model.Model.forward />")
         certainties = self.stack(x)
         return certainties
 

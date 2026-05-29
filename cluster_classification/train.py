@@ -1,9 +1,9 @@
 import torch
 from torch import nn
 
-from cluster_classification.classification_logger import ClassificationLogger
+from cluster_classification.classification_logger import CleverLogger
 
-logger = ClassificationLogger('train.py')
+logger = CleverLogger(__name__)
 
 
 def train_loop(
@@ -27,7 +27,7 @@ def train_loop(
     - A formatted string for user display messages.
     """
 
-    logger.log_trace(
+    logger.log_open_control_flow(
         f"<train.train_loop device={device}> dataloader={dataloader} model={model} loss_fn={loss_fn} optimizer={optimizer}"
     )
     # size = len(dataloader.dataset)
@@ -38,7 +38,7 @@ def train_loop(
 
     # Loop through each batch of data from the dataloader.
     for batch_num, (data, labels) in enumerate(dataloader):
-        logger.log_trace(f"<train.train_loop batch_num {batch_num::>5d} />")
+        logger.log_open_control_flow(f"<train.train_loop batch_num {batch_num::>5d} />")
         # Move data to GPU
         data = data.to(device)
         labels = labels.to(device)
@@ -51,4 +51,4 @@ def train_loop(
         optimizer.step()
         optimizer.zero_grad()
 
-    logger.log_trace("</train.train_loop>")
+    logger.log_open_control_flow("</train.train_loop>")

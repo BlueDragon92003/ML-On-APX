@@ -9,12 +9,12 @@ from pyfakefs import fake_filesystem as fakefs
 from pyfakefs.fake_filesystem_unittest import TestCaseMixin
 import numpy as np
 
-from cluster_classification.classification_logger import ClassificationLogger
+from cluster_classification.classification_logger import CleverLogger
 from cluster_classification.data import load_data, DatasourceType
 from cluster_classification.dataset_subset import DatasetSubset
 from cluster_classification.signal_type import SignalType
 
-logger = ClassificationLogger('tests_load_data.py')
+logger = CleverLogger(__name__)
 
 def logging_wrapper_generator(generator: Iterable):
     for next in generator:

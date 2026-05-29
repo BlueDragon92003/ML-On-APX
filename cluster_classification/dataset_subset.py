@@ -2,9 +2,9 @@ from __future__ import annotations
 from typing import Tuple, Set, Self, Union
 
 from cluster_classification.signal_type import SignalType
-from cluster_classification.classification_logger import ClassificationLogger
+from cluster_classification.classification_logger import CleverLogger
 
-logger = ClassificationLogger('dataset_subset.py')
+logger = CleverLogger(__name__)
 
 
 class DatasetSubset:
@@ -42,7 +42,7 @@ class DatasetSubset:
                     contain.
         ONLY `data` OR (`filename` AND `data_type`) should be used.
         """
-        logger.log_trace(
+        logger.log_open_control_flow(
             f"<dataset_subset.DatasetSubset.__init__ bitstring={bitstring} filename={filename} data_type={data_type} data={data}>"
         )
         self.bitstring = bitstring
@@ -54,11 +54,11 @@ class DatasetSubset:
             self.data = {(filename, data_type)}
         else:
             self.data = data
-        logger.log_trace("</dataset_subset.DatasetSubset.__init__>")
+        logger.log_open_control_flow("</dataset_subset.DatasetSubset.__init__>")
 
     def __or__(self, other: Self) -> DatasetSubset:
         """Combine with another available dataset into a new, larger dataset."""
-        logger.log_trace("<dateset_subset.DatasetSubset.__or__ />")
+        logger.log_open_control_flow("<dateset_subset.DatasetSubset.__or__ />")
         bitstring = self.bitstring | other.bitstring
         data = self.data | other.data
         return DatasetSubset(bitstring, data=data)
@@ -70,17 +70,17 @@ class DatasetSubset:
         for _ in range(8):
             string = hex(bitstring & 0b1111)[2:] + string
             bitstring = bitstring >> 4
-        logger.log_trace(f"<dateset_subset.DatasetSubset.get_hex ret={string} />")
+        logger.log_open_control_flow(f"<dateset_subset.DatasetSubset.get_hex ret={string} />")
         return string
 
     def get_data(self) -> Set[Tuple[str, SignalType]]:
         """Return all filenames and corresponding signal types in this DsSs."""
-        logger.log_trace("<dateset_subset.DatasetSubset.get_data />")
+        logger.log_open_control_flow("<dateset_subset.DatasetSubset.get_data />")
         return self.data
 
     def __len__(self) -> int:
         """Returns the number of datasets in this DsSs"""
-        logger.log_trace("<dateset_subset.DatasetSubset.__len__ />")
+        logger.log_open_control_flow("<dateset_subset.DatasetSubset.__len__ />")
         return len(self.data)
 
     DOUBLE_ELECTRON: DatasetSubset

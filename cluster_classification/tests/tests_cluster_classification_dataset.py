@@ -4,8 +4,11 @@ import unittest
 from parameterized import parameterized
 
 from cluster_classification import cluster_classification_dataset
+from cluster_classification.classification_logger import CleverLogger
 from cluster_classification.signal_type import SignalType
 
+
+logger = CleverLogger(__name__)
 
 class TestClusterClassificationDataset(unittest.TestCase):
     """Tests for the class `ClusterClassifcationDataset`
@@ -25,6 +28,7 @@ class TestClusterClassificationDataset(unittest.TestCase):
         for i_phi in range(6):
             # {0,1}
             for i_eta in range(2):
+                logger.trace('') # ty: ignore[unresolved-attribute]
                 slr0 = cluster_classification_dataset.get_ecal_tower(0, i_eta, i_phi)
                 self.assertIs(type(slr0), int)
                 self.assertLess(slr0, 12)  # SLR0 has only 12 towers
@@ -79,17 +83,17 @@ class TestClusterClassificationDataset(unittest.TestCase):
     @parameterized.expand(
         [
             # TODO make the test coverage as good as hcal_location
-            [0, 1, 0, 6],
-            [1, 3, 1, 7],
-            [1, 6, 2, 26],
-            [2, 10, 3, 21],
-            [2, 9, 4, 16],
-            [3, 13, 5, 11],
-            [3, 16, 0, 24],
+            ['SLR0', 0, 1, 0, 6],
+            ['SLR1a', 1, 3, 1, 7],
+            ['SLR1b', 1, 6, 2, 26],
+            ['SLR2a', 2, 10, 3, 21],
+            ['SLR2b', 2, 9, 4, 16],
+            ['SLR3a', 3, 13, 5, 11],
+            ['SLR3b', 3, 16, 0, 24],
         ]
     )
     def test_ccd__get_ecal_tower__correctness(
-        self, slr: int, i_eta: int, i_phi: int, tower: int
+        self, name: str, slr: int, i_eta: int, i_phi: int, tower: int
     ):
         """Tests `get_ecal_tower` on select slr, i_eta, and i_phi indices.
 
@@ -111,26 +115,26 @@ class TestClusterClassificationDataset(unittest.TestCase):
         [
             # Covers all i_eta, all i_phi, and all control flow points
             # Nicely done, two tests per condition!
-            [0, 0, 0, (2 + 4 * 0, 7)],  # high link/low phi/low eta 1
-            [3, 1, 1, (3 + 4 * 1, 7)],  # high link/low phi/low eta 2
-            [4, 8, 0, (2 + 4 * 0, 8)],  # high link/low phi/high eta 1
-            [7, 9, 1, (3 + 4 * 1, 8)],  # high link/low phi/high eta 2
-            [8, 2, 2, (0 + 4 * 2, 5)],  # high link/high phi/low eta 1
-            [11, 3, 3, (1 + 4 * 3, 5)],  # high link/high phi/low eta 2
-            [12, 10, 4, (2 + 4 * 2, 6)],  # high link/high phi/high eta 1
-            [15, 11, 5, (3 + 4 * 3, 6)],  # high link/high phi/high eta 2
-            [1, 4, 0, (0 + 4 * 4, 5)],  # low link/low phi/low eta 1
-            [2, 5, 1, (1 + 4 * 5, 5)],  # low link/low phi/low eta 2
-            [5, 12, 2, (2 + 4 * 4, 6)],  # low link/low phi/high eta 1
-            [6, 13, 3, (3 + 4 * 5, 6)],  # low link/low phi/high eta 2
-            [9, 6, 4, (0 + 4 * 6, 7)],  # low link/high phi/low eta 1
-            [10, 7, 5, (1 + 4 * 7, 7)],  # low link/high phi/low eta 2
-            [13, 14, 4, (0 + 4 * 6, 8)],  # low link/high phi/high eta 1
-            [14, 15, 5, (1 + 4 * 7, 8)],  # low link/high phi/high eta 2
+            ['high link/low phi/low eta 1', 0, 0, 0, (2 + 4 * 0, 7)],
+            ['high link/low phi/low eta 2', 3, 1, 1, (3 + 4 * 1, 7)],
+            ['high link/low phi/high eta 1', 4, 8, 0, (2 + 4 * 0, 8)],
+            ['high link/low phi/high eta 2', 7, 9, 1, (3 + 4 * 1, 8)],
+            ['high link/high phi/low eta 1', 8, 2, 2, (0 + 4 * 2, 5)],
+            ['high link/high phi/low eta 2', 11, 3, 3, (1 + 4 * 3, 5)],
+            ['high link/high phi/high eta 1', 12, 10, 4, (2 + 4 * 2, 6)],
+            ['high link/high phi/high eta 2', 15, 11, 5, (3 + 4 * 3, 6)],
+            ['low link/low phi/low eta 1', 1, 4, 0, (0 + 4 * 4, 5)],
+            ['low link/low phi/low eta 2', 2, 5, 1, (1 + 4 * 5, 5)],
+            ['low link/low phi/high eta 1', 5, 12, 2, (2 + 4 * 4, 6)],
+            ['low link/low phi/high eta 2', 6, 13, 3, (3 + 4 * 5, 6)],
+            ['low link/high phi/low eta 1', 9, 6, 4, (0 + 4 * 6, 7)],
+            ['low link/high phi/low eta 2', 10, 7, 5, (1 + 4 * 7, 7)],
+            ['low link/high phi/high eta 1', 13, 14, 4, (0 + 4 * 6, 8)],
+            ['low link/high phi/high eta 2', 14, 15, 5, (1 + 4 * 7, 8)],
         ]
     )
     def test_ccd__get_hcal_location__correctness(
-        self, card: int, i_eta: int, i_phi: int, location: Tuple[int, int]
+        self, name:str, card: int, i_eta: int, i_phi: int, location: Tuple[int, int]
     ):
         """Tests `get_hcal_location` on select indices
 

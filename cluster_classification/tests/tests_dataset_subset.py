@@ -3,11 +3,11 @@ import unittest
 
 from parameterized import parameterized
 
-from cluster_classification.classification_logger import ClassificationLogger
+from cluster_classification.classification_logger import CleverLogger
 from cluster_classification.dataset_subset import DatasetSubset
 from cluster_classification.signal_type import SignalType
 
-logger = ClassificationLogger('tests_dataset_subset.py')
+logger = CleverLogger(__name__)
 
 
 class TestDatasetSubset(unittest.TestCase):

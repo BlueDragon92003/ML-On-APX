@@ -10,9 +10,9 @@ from cluster_classification.cluster_classification_dataset import (
     ClusterClassificationDataset,
 )
 from cluster_classification.dataset_subset import DatasetSubset
-from cluster_classification.classification_logger import ClassificationLogger
+from cluster_classification.classification_logger import CleverLogger
 
-logger = ClassificationLogger('data.py')
+logger = CleverLogger(__name__)
 
 
 class DatasourceType(Enum):
@@ -128,7 +128,7 @@ def load_data(
         pickle_fd = os.open(pickle_path, os.O_RDWR | os.O_CREAT ) 
         with os.fdopen(pickle_fd, mode='wb') as pickled:
             pickle.dump(ccd, pickled)
-            logger.log_debug("Created new CCD pickle")
+            logger.log_info("Created new CCD pickle")
     # Pickled file exisits and is ready to use; load it
     else:
         logger.log_info("Loading pickled CCD...")

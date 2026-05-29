@@ -1,8 +1,8 @@
 from enum import IntEnum
 
-from cluster_classification.classification_logger import ClassificationLogger
+from cluster_classification.classification_logger import CleverLogger
 
-logger = ClassificationLogger('signal_type.py')
+logger = CleverLogger(__name__)
 
 
 class SignalType(IntEnum):

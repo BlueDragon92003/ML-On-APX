@@ -7,9 +7,9 @@ from cluster_classification.model import Model
 from cluster_classification.test import test_loop
 from cluster_classification.train import train_loop
 from cluster_classification.data import get_data, DatasourceType
-from cluster_classification.classification_logger import ClassificationLogger
+from cluster_classification.classification_logger import CleverLogger
 
-logger = ClassificationLogger('main.py')
+logger = CleverLogger(__name__)
 
 # After how many epochs should a checkpoint be made?
 CHECKPOINT_RATE = 10
