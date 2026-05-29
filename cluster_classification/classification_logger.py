@@ -147,7 +147,7 @@ class ConsoleFormatter(logging.Formatter):
 
         out = f"{level} at {location}: {title}"
         if len(args) > 0:
-            out += "Additional info:"
+            out += "Information:"
         for (key, value) in args.values():
             out += f"\n\t{key}: {value}"
         return out + "\n"        
@@ -196,14 +196,14 @@ class CleverLogger:
         """Trace entrance into control flow constructs for deep debugging."""
         self.logger.log(self.TRACE, control_flow_element, kwargs, extra={
             'type': RecordShape.OPEN,
-            'title': 'Entering {name}.'
+            'title': 'Entering `{name}`.'
         })
 
     def log_close_control_flow(self, control_flow_element: str,):
         """Trace exit from control flow constructs for deep debugging."""
         self.logger.log(self.TRACE, control_flow_element, extra={
             'type': RecordShape.CLOSE,
-            'title': 'Leaving {name}.'
+            'title': 'Leaving `{name}`.'
         }) 
 
     def log_control_element(self, control_flow_element: str, **kwargs: Any):
@@ -217,14 +217,14 @@ class CleverLogger:
         """Trace entrance into functions for deep debugging."""
         self.logger.log(self.TRACE, function_name, kwargs, extra={
             'type': RecordShape.OPEN,
-            'title': '{name} called.'
+            'title': '`{name}` called.'
         })
 
     def log_exit_function(self, function_name: str):
         """Trace exit from functions for deep debugging."""
         self.logger.log(self.TRACE, function_name, extra={
             'type': RecordShape.CLOSE,
-            'title': '{name} exited.'
+            'title': '`{name}` exited.'
         }) 
 
     def log_function_exit_type(self, exit_type: str, **kwargs: Any):
@@ -235,39 +235,39 @@ class CleverLogger:
         })
 
     # DEBUG
-    def log_start_load_module(self, module_name: str, **kwargs: Any):
+    def log_start_load_module(self, **kwargs: Any):
         """Log module loads."""
-        self.logger.log(self.DEBUG, module_name, kwargs, extra={
+        self.logger.log(self.DEBUG, None, kwargs, extra={
             'type': RecordShape.OPEN,
-            'title': 'Loading module {name}...'
+            'title': 'Loading this module...'
         })
 
-    def log_end_load_module(self, module_name: str,):
+    def log_end_load_module(self,):
         """Log module loads."""
-        self.logger.log(self.DEBUG, module_name, extra={
+        self.logger.log(self.DEBUG, None, extra={
             'type': RecordShape.CLOSE,
-            'title': 'Loaded module {name}.'
+            'title': 'Loaded this module.'
         })
 
     def log_start_minor_process(self, minor_process_name: str, **kwargs: Any):
         """Log processes started by major processes."""
         self.logger.log(self.DEBUG, minor_process_name, kwargs, extra={
             'type': RecordShape.OPEN,
-            'title': 'Starting {name}...'
+            'title': 'Starting `{name}`...'
         })
 
     def log_end_minor_process(self, minor_process: str,):
         """Log processes started by major processes."""
         self.logger.log(self.DEBUG, minor_process, extra={
             'type': RecordShape.CLOSE,
-            'title': 'Finished {name}.'
+            'title': 'Finished `{name}`.'
         })
 
-    def log_variable(self, variable_name: str, **kwargs: Any):
+    def log_variables(self, **kwargs: Any):
         """Log debug information for variables in key places."""
-        self.logger.log(self.DEBUG, variable_name, kwargs, extra={
+        self.logger.log(self.DEBUG, None, kwargs, extra={
             'type': RecordShape.SINGLE,
-            'title': 'Debug information for {name}.'
+            'title': 'Debug Variables.'
         })
 
     # INFO
@@ -282,14 +282,14 @@ class CleverLogger:
         """Log processes started by the main function."""
         self.logger.log(self.INFO, major_process, kwargs, extra={
             'type': RecordShape.OPEN,
-            'title': 'Starting {name}...'
+            'title': 'Starting `{name}`...'
         })
 
     def log_end_major_process(self, major_process: str):
         """Log processes started by the main function."""
         self.logger.log(self.INFO, major_process, extra={
             'type': RecordShape.CLOSE,
-            'title': 'Finished {name}.'
+            'title': 'Finished `{name}`.'
         })
 
     # WARN
@@ -305,7 +305,7 @@ class CleverLogger:
         """Log unexpected situations that cause a minor process to fail."""
         self.logger.log(self.ERROR, minor_process, kwargs, extra={
             'type': RecordShape.SINGLE,
-            'title': 'Process {name} encountered an error: ' + error
+            'title': 'Process `{name}` encountered an error: ' + error
         })
 
     # CRITICAL
@@ -313,7 +313,7 @@ class CleverLogger:
         """Log unexpected situations that cause a major process to fail."""
         self.logger.log(self.ERROR, major_process, kwargs, extra={
             'type': RecordShape.SINGLE,
-            'title': 'Process {name} encountered an error: ' + error,
+            'title': 'Process `{name}` encountered an error: ' + error,
         })
 
     # FATAL

@@ -6,6 +6,7 @@ from cluster_classification.classification_logger import CleverLogger
 
 logger = CleverLogger(__name__)
 
+logger.log_start_load_module()
 
 class DatasetSubset:
     data: Set[Tuple[str, SignalType]]
@@ -92,4 +93,4 @@ DOUBLE_ELECTRON = DatasetSubset(
     SignalType.BACKGROUND,
 )
 
-logger.log_debug("Loaded Dataset Subsets")
+logger.log_end_load_module()

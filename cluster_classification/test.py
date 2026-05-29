@@ -6,6 +6,7 @@ from cluster_classification.classification_logger import CleverLogger
 
 logger = CleverLogger(__name__)
 
+logger.log_start_load_module()
 
 def test_loop(
     device: torch.device,
@@ -63,6 +64,8 @@ def test_loop(
     test_loss /= num_batches
     correct /= size
     outstring = f"\tAccuracy: {(100 * correct):>0.1f}%, Avg loss: {test_loss:>8f}"
-    logger.log_function_exit_type('return', correct=correct, outstring=outstring)
+    logger.log_function_exit_type('return', retval=[correct, outstring])
     logger.log_exit_function('test_loop_fn')
     return correct, outstring
+
+logger.log_end_load_module()

@@ -11,6 +11,7 @@ from cluster_classification.signal_type import SignalType
 
 logger = CleverLogger(__name__)
 
+logger.log_start_load_module()
 
 class ClusterClassificationDataset(IterableDataset):
     """Implements a PyTorch dataset to train the cluster classifier.
@@ -323,4 +324,4 @@ def cluster_generator(
     logger.log_trace("</cluster_classification_dataset.cluster_generator>")
 
 
-logger.log_debug("Loaded CCD")
+logger.log_end_load_module()

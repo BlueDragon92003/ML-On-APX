@@ -4,6 +4,7 @@ from cluster_classification.classification_logger import CleverLogger
 
 logger = CleverLogger(__name__)
 
+logger.log_start_load_module()
 
 class SignalType(IntEnum):
     """Types of signal an individual event may be part of.
@@ -19,4 +20,4 @@ class SignalType(IntEnum):
     HADRONIC = (2,)
 
 
-logger.log_debug("Loaded Signal Types")
+logger.log_end_load_module()

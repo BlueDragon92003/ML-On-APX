@@ -5,6 +5,7 @@ from cluster_classification.classification_logger import CleverLogger
 
 logger = CleverLogger(__name__)
 
+logger.log_start_load_module()
 
 def train_loop(
     device: torch.device,
@@ -58,3 +59,5 @@ def train_loop(
         optimizer.zero_grad()
     logger.log_close_control_flow("training_for_loop")
     logger.log_exit_function('train_loop_fn')
+
+logger.log_end_load_module()
