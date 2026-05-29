@@ -31,3 +31,4 @@ class Model(nn.Module):
         return certainties
 
 
+logger.log_debug("Loaded model class")
