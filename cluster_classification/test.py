@@ -26,7 +26,7 @@ def test_loop(
     - A formatted string for user display messages.
     """
 
-    logger.log_open_control_flow(
+    logger.log_trace(
         f"<test.test_loop device={device}> dataloader={dataloader}, model={model}, loss_fn={loss_fn}"
     )
     # Set the model to evaluation mode
@@ -53,5 +53,5 @@ def test_loop(
     test_loss /= num_batches
     correct /= size
     outstring = f"\tAccuracy: {(100 * correct):>0.1f}%, Avg loss: {test_loss:>8f}"
-    logger.log_open_control_flow(f"</test.test_loop ret=({correct}, {outstring})>")
+    logger.log_trace(f"</test.test_loop ret=({correct}, {outstring})>")
     return correct, outstring

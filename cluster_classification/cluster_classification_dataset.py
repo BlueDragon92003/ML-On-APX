@@ -27,13 +27,13 @@ class ClusterClassificationDataset(IterableDataset):
                         each root file is associated with.
         """
         super(ClusterClassificationDataset, self).__init__()
-        logger.log_open_control_flow(
+        logger.log_trace(
             "<cluster_classification_dataset.ClusterClassificationDataset.__init__>"
         )
         data = []
         # Data structure: data [cluster][features]
         for filepath, cluster_type in components:
-            logger.log_open_control_flow(
+            logger.log_trace(
                 f"<cluster_classification_dataset.ClusterClassificationDataset.__init__ component={filepath}>"
             )
             with uproot.open(filepath) as file:
@@ -50,7 +50,7 @@ class ClusterClassificationDataset(IterableDataset):
                         (int, 15),
                     )
                 )
-            logger.log_open_control_flow(
+            logger.log_trace(
                 "</cluster_classification_dataset.ClusterClassificationDataset.__init__>"
             )
             # # General data structure:
@@ -74,18 +74,18 @@ class ClusterClassificationDataset(IterableDataset):
             """
         np_data = np.array(data)
         self.__data = np_data.reshape(-1, np_data.shape[-1])
-        logger.log_open_control_flow(
+        logger.log_trace(
             "</cluster_classification_dataset.ClusterClassificationDataset.__init__>"
         )
 
     def __getitem__(self, index: int):
-        logger.log_open_control_flow(
+        logger.log_trace(
             f"<cluster_classification_dataset.ClusterClassificationDataset.__getitem__ index={index} ret={self.__data[index]} />"
         )
         return self.__data[index]
 
     def __len__(self):
-        logger.log_open_control_flow(
+        logger.log_trace(
             f"<cluster_classification_dataset.ClusterClassificationDataset.__getitem__ ret={len(self.__data)} />"
         )
         return len(self.__data)
@@ -94,13 +94,13 @@ class ClusterClassificationDataset(IterableDataset):
         # Very much yoinked and adapted from the torch docs:
         # https://docs.pytorch.org/docs/2.9/data.html#torch.utils.data.Dataset
 
-        logger.log_open_control_flow(
+        logger.log_trace(
             "<cluster_classification_dataset.ClusterClassificationDataset.__iter__>"
         )
         worker_info = get_worker_info()
         if worker_info is None:
             # single-process data loading, return the full iterator
-            logger.log_open_control_flow(
+            logger.log_trace(
                 "<cluster_classification_dataset.ClusterClassificationDataset.__iter__ single_process />"
             )
             iter_start = 0
@@ -114,10 +114,10 @@ class ClusterClassificationDataset(IterableDataset):
             worker_id = worker_info.id
             iter_start = worker_id * per_worker
             iter_end = min(iter_start + per_worker, max_size)
-            logger.log_open_control_flow(
+            logger.log_trace(
                 f"<cluster_classification_dataset.ClusterClassificationDataset.__iter__ multi_process start={iter_start} end={iter_end} />"
             )
-        logger.log_open_control_flow(
+        logger.log_trace(
             "</cluster_classification_dataset.ClusterClassificationDataset.__iter__>"
         )
         return iter(self.__data[iter_start:iter_end])
@@ -134,7 +134,7 @@ def get_ecal_tower(slr: int, i_eta: int, i_phi: int) -> int:
     `i_eta` is correlated with slr and all inputs must respect these brackets.
     This will be changed in the future.
     """
-    logger.log_open_control_flow(
+    logger.log_trace(
         f"<cluster_classification_dataset.get_hcal_location slr={slr} i_eta={i_eta} i_phi={i_phi}>"
     )
     tower = 6 * i_eta + i_phi
@@ -149,7 +149,7 @@ def get_ecal_tower(slr: int, i_eta: int, i_phi: int) -> int:
         case 3:
             tower = tower - 72  # i_eta = 16, i_phi = 5 -> index 101
             #   101 - 72 = 29, the last index in SLR3 :)
-    logger.log_open_control_flow(f"</cluster_classification_dataset.get_hcal_location ret={tower}>")
+    logger.log_trace(f"</cluster_classification_dataset.get_hcal_location ret={tower}>")
     return tower
 
 
@@ -163,12 +163,12 @@ def get_hcal_location(
     - `i_eta`: The rotational position accessed, in towers, in RCT coordinates.
     - `i_phi`: The horizontal position accessed, in towers, in RCT coordinates.
     """
-    logger.log_open_control_flow(
+    logger.log_trace(
         f"<cluster_classification_dataset.get_hcal_location card={card} i_eta={i_eta} i_phi={i_phi}>"
     )
     link = 5
     if i_eta > 15:
-        logger.log_open_control_flow("</cluster_classification_dataset.get_hcal_location ret=None>")
+        logger.log_trace("</cluster_classification_dataset.get_hcal_location ret=None>")
         return None
     elif i_eta > 7:
         link += 1
@@ -193,7 +193,7 @@ def get_hcal_location(
     tower_index = 4 * i_eta + high_link % 4
     link += high_link // 4 % 2 * 2
 
-    logger.log_open_control_flow(
+    logger.log_trace(
         f"</cluster_classification_dataset.get_hcal_location ret=({tower_index}, {int(link)})>"
     )
     return tower_index, int(link)
@@ -214,24 +214,24 @@ def cluster_generator(
                     events in the dataset.
     """
 
-    logger.log_open_control_flow(
+    logger.log_trace(
         f"<cluster_classification_dataset.cluster_generator from_tree={from_tree} signal_type={signal_type} num_events={num_events}>"
     )
 
     for event in range(num_events):
-        logger.log_open_control_flow(
+        logger.log_trace(
             f"<cluster_classification_dataset.cluster_generator event_level event={event}>"
         )
         for card in range(24):
-            logger.log_open_control_flow(
+            logger.log_trace(
                 f"<cluster_classification_dataset.cluster_generator card_level card={card}>"
             )
             for slr in range(4):
-                logger.log_open_control_flow(
+                logger.log_trace(
                     f"<cluster_classification_dataset.cluster_generator slr_level slr={slr}>"
                 )
                 for cluster in range(9):
-                    logger.log_open_control_flow(
+                    logger.log_trace(
                         f"<cluster_classification_dataset.cluster_generator cluster_level cluster={cluster}>"
                     )
                     # cluster i_eta and i_phi are in crystal;
@@ -250,7 +250,7 @@ def cluster_generator(
 
                     if cluster_et == 0:
                         # Not a cluster
-                        logger.log_open_control_flow(
+                        logger.log_trace(
                             "</cluster_classification_dataset.cluster_generator cluster_level no_cluster>"
                         )
                         continue
@@ -262,7 +262,7 @@ def cluster_generator(
                     hcal_fb = -1
                     if hcal_info:
                         # HCAL information exists
-                        logger.log_open_control_flow(
+                        logger.log_trace(
                             "</cluster_classification_dataset.cluster_generator hcal_exists>"
                         )
                         (hcal_tower, link) = hcal_info
@@ -273,7 +273,7 @@ def cluster_generator(
                             f"HCAL{link}_tower_fb", event, card, hcal_tower
                         )
 
-                    logger.log_open_control_flow(
+                    logger.log_trace(
                         "</cluster_classification_dataset.cluster_generator cluster_level cluster>"
                     )
                     yield [
@@ -311,16 +311,16 @@ def cluster_generator(
                         hcal_fb,
                         int(signal_type),
                     ]
-                logger.log_open_control_flow(
+                logger.log_trace(
                     "</cluster_classification_dataset.cluster_generator slr_level>"
                 )
-            logger.log_open_control_flow(
+            logger.log_trace(
                 "</cluster_classification_dataset.cluster_generator card_level>"
             )
-        logger.log_open_control_flow(
+        logger.log_trace(
             "</cluster_classification_dataset.cluster_generator event_level>"
         )
-    logger.log_open_control_flow("</cluster_classification_dataset.cluster_generator>")
+    logger.log_trace("</cluster_classification_dataset.cluster_generator>")
 
 
 logger.log_debug("Loaded CCD")
