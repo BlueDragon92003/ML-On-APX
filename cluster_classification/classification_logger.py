@@ -63,23 +63,7 @@ class RecordShape(Enum):
     CLOSE = 1
     """'Closes' an 'opened' record."""
     SINGLE = 2
-    """Standalone Record"""
-
-class ProcessDepth(Enum):
-    """Gives additional information to the ConsoleFormatter"""
-    PROGRAM = 0
-    """General usage; denotes no special significance"""
-    MAJOR = 50 # "Processes" that the application initiates
-    """Starting or ending a major process, which the application initiates."""
-    MINOR = 40 # "Processes" that major processes initiate
-    """Starting or ending a minor process, which a major process initiates."""
-    MODULE = 30 # Loading python files
-    """Starting or finishing loading a module."""
-    FUNCTION = 20 # Calls to functions
-    """Calls to and exits from a function"""
-    CONTROL_FLOW = 10 # if, elif, else, while, for, continue, break, match, case, etc.
-    """Entering and exiting control flow constructs"""
-    
+    """Standalone Record"""    
 
 class XMLFormatter(logging.Formatter):
     """Formats the log record for printing to the log file.
@@ -91,7 +75,7 @@ class XMLFormatter(logging.Formatter):
         super(XMLFormatter, self).__init__()
 
     @override
-    def format(self, record: logging.LogRecord):
+    def format(self, record: logging.LogRecord) -> str:
         time: str = record.asctime
         name: str | None = record.msg
         location: str = record.name
@@ -101,7 +85,7 @@ class XMLFormatter(logging.Formatter):
         # Additional arguments, will always be a dict via control over the actual log function.
         args: Mapping[str, Any] = record.args # ty: ignore[invalid-assignment] 
         shape: RecordShape = record.type # ty: ignore[unresolved-attribute] Added via extra
-        message: str | None = record.explanation # ty: ignore[unresolved-attribute] Added via extra
+        title: str | None = record.title # ty: ignore[unresolved-attribute] Added via extra
         
         element = f'{level}:{location}'
 
@@ -116,8 +100,8 @@ class XMLFormatter(logging.Formatter):
                 element += ':' + str(thread)
 
         additional = ''
-        if message is not None:
-            additional += ' :message="' + message + '"'
+        if title is not None:
+            additional += ' :title="' + title.format(name=str(name)) + '"'
         for (key, value) in args.items():
             additional += ' ' + key + '="' + str(value) + '"'
         
@@ -142,8 +126,7 @@ class ConsoleFormatter(logging.Formatter):
         super(ConsoleFormatter, self).__init__()
 
     @override
-    def format(self, record: logging.LogRecord):
-        time: str = record.asctime
+    def format(self, record: logging.LogRecord) -> str:
         name: str | None = record.msg
         location: str = record.name
         level: str = record.levelname
@@ -151,25 +134,23 @@ class ConsoleFormatter(logging.Formatter):
         thread: int | None = record.thread
         # Additional arguments, will always be a dict via control over the actual log function.
         args: Mapping[str, Any] = record.args # ty: ignore[invalid-assignment] 
-        shape: RecordShape = record.type # ty: ignore[unresolved-attribute] Added via extra
-        depth: ProcessDepth = record.depth # ty: ignore[unresolved-attribute] Added via extra
-        explanation: str | None = record.explanation # ty: ignore[unresolved-attribute] Added via extra
+        title: str | None = record.title # ty: ignore[unresolved-attribute] Added via extra
 
-        match depth:
-            case ProcessDepth.PROGRAM:
-                pass
-            case ProcessDepth.MAJOR:
-                pass
-            case ProcessDepth.MINOR:
-                pass
-            case ProcessDepth.MODULE:
-                pass
-            case ProcessDepth.FUNCTION:
-                pass
-            case ProcessDepth.CONTROL_FLOW:
-                pass
-    
-    
+        if thread is not None or process is not None:
+            location += ':'
+            if process is not None:
+                location += str(process)
+            if thread is not None:
+                location += ':' + str(thread)
+
+        title = str(title).format( name= str(name) )
+
+        out = f"{level} at {location}: {title}"
+        if len(args) > 0:
+            out += "Additional info:"
+        for (key, value) in args.values():
+            out += f"\n\t{key}: {value}"
+        return out + "\n"        
 
 class CleverLogger:
     """A less-basic extention to the default python logger."""
@@ -180,6 +161,9 @@ class CleverLogger:
     ERROR = logging.ERROR # 40
     CRITICAL = logging.FATAL - 5 # 45
     FATAL = logging.FATAL # 50
+
+    major_process: str
+    minor_process: str
 
     def __init__(self, name):
         self.logger = logging.getLogger(name)
@@ -201,123 +185,123 @@ class CleverLogger:
 
         console_handler = logging.StreamHandler()
         console_handler.setLevel( stream_log_level )
+        console_handler.setFormatter( ConsoleFormatter() )
+
+        self.logger.addHandler(file_handler)
+        self.logger.addHandler(console_handler)
+
 
     # TRACE
     def log_open_control_flow(self, control_flow_element: str, **kwargs: Dict[str, Any]):
         self.logger.log(self.TRACE, control_flow_element, kwargs, extra={
             'type': RecordShape.OPEN,
-            'depth': ProcessDepth.CONTROL_FLOW
+            'title': 'Entering {name}.'
         })
 
     def log_close_control_flow(self, control_flow_element: str,):
         self.logger.log(self.TRACE, control_flow_element, extra={
             'type': RecordShape.CLOSE,
-            'depth': ProcessDepth.CONTROL_FLOW
+            'title': 'Leaving {name}.'
         }) 
 
     def log_control_element(self, control_flow_element: str, **kwargs: Dict[str, Any]):
         self.logger.log(self.TRACE, control_flow_element, kwargs, extra={
             'type': RecordShape.SINGLE,
-            'depth': ProcessDepth.CONTROL_FLOW
+            'title': '{name}.'
         })
 
     def log_enter_function(self, function_name: str, **kwargs: Dict[str, Any]):
         self.logger.log(self.TRACE, function_name, kwargs, extra={
             'type': RecordShape.OPEN,
-            'depth': ProcessDepth.FUNCTION
+            'title': '{name} called.'
         })
 
     def log_exit_function(self, function_name: str):
         self.logger.log(self.TRACE, function_name, extra={
             'type': RecordShape.CLOSE,
-            'depth': ProcessDepth.FUNCTION
+            'title': '{name} exited.'
         }) 
 
     def log_function_exit_type(self, exit_type: str, **kwargs: Dict[str, Any]):
         self.logger.log(self.TRACE, exit_type, kwargs, extra={
             'type': RecordShape.SINGLE,
-            'depth': ProcessDepth.FUNCTION
+            'title': 'Exited via {name}.'
         })
 
     # DEBUG
     def log_start_load_module(self, module_name: str, **kwargs: Dict[str, Any]):
         self.logger.log(self.DEBUG, module_name, kwargs, extra={
             'type': RecordShape.OPEN,
-            'depth': ProcessDepth.MODULE
+            'title': 'Loading module {name}...'
         })
 
     def log_end_load_module(self, module_name: str,):
         self.logger.log(self.DEBUG, module_name, extra={
             'type': RecordShape.CLOSE,
-            'depth': ProcessDepth.MODULE
+            'title': 'Loaded module {name}.'
         })
 
     def log_start_minor_process(self, minor_process_name: str, **kwargs: Dict[str,Any]):
         self.logger.log(self.DEBUG, minor_process_name, kwargs, extra={
             'type': RecordShape.OPEN,
-            'depth': ProcessDepth.MINOR
+            'title': 'Starting {name}...'
         })
 
     def log_end_minor_process(self, minor_process: str,):
         self.logger.log(self.DEBUG, minor_process, extra={
             'type': RecordShape.CLOSE,
-            'depth': ProcessDepth.MINOR
+            'title': 'Finished {name}.'
         })
 
     def log_variable(self, variable_name: str, **kwargs: Dict[str, Any]):
         self.logger.log(self.DEBUG, variable_name, kwargs, extra={
             'type': RecordShape.SINGLE,
-            'depth': ProcessDepth.PROGRAM
+            'title': 'Debug information for {name}.'
         })
 
     # INFO
     def log_notice(self, notice: str, **kwargs: Dict[str, Any]):
         self.logger.log(self.INFO, None, kwargs, extra={
             'type': RecordShape.SINGLE,
-            'depth': ProcessDepth.PROGRAM,
-            'explanation': notice
+            'title': notice
             })
 
     def log_start_major_process(self, major_process: str, **kwargs: Dict[str, Any]):
         self.logger.log(self.INFO, major_process, kwargs, extra={
             'type': RecordShape.OPEN,
-            'depth': ProcessDepth.MAJOR
+            'title': 'Starting {name}...'
         })
 
     def log_end_major_process(self, major_process: str):
         self.logger.log(self.INFO, major_process, extra={
             'type': RecordShape.CLOSE,
-            'depth': ProcessDepth.MAJOR
+            'title': 'Finished {name}.'
         })
 
     # WARN
     def log_warning(self, warning: str, **kwargs: Dict[str, Any]):
         self.logger.log(self.WARN, None, kwargs, extra={
             'type': RecordShape.SINGLE,
-            'depth': ProcessDepth.PROGRAM,
-            'explanation': warning
+            'title': warning
         })
 
     # ERROR
     def log_error(self, minor_process: str, error: str, **kwargs: Dict[str, Any]):
         self.logger.log(self.ERROR, minor_process, kwargs, extra={
             'type': RecordShape.SINGLE,
-            'depth': ProcessDepth.MINOR,
-            'explanation': error,
+            'title': 'Process {name} encountered an error: ' + error
         })
 
     # CRITICAL
     def log_critical(self, major_process: str, error: str, **kwargs: Dict[str, Any]):
         self.logger.log(self.ERROR, major_process, kwargs, extra={
             'type': RecordShape.SINGLE,
-            'depth': ProcessDepth.MAJOR,
-            'explanation': error,
+            'title': 'Process {name} encountered an error: ' + error,
         })
 
     # FATAL
     def log_fatal(self, deathrattle: str, **kwargs: Dict[str, Any]):
         self.logger.log(self.ERROR, None, kwargs, extra={
             'type': RecordShape.SINGLE,
-            'depth': ProcessDepth.PROGRAM,
-            'explanation': deathrattle,
+            'title': deathrattle,
         })
