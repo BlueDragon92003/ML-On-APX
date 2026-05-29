@@ -26,8 +26,12 @@ def test_loop(
     - A formatted string for user display messages.
     """
 
-    logger.log_trace(
-        f"<test.test_loop device={device}> dataloader={dataloader}, model={model}, loss_fn={loss_fn}"
+    logger.log_enter_function(
+        'test_loop_fn',
+        device=device,
+        dataloader=dataloader,
+        model=model,
+        loss_fn=loss_fn
     )
     # Set the model to evaluation mode
     model.eval()
@@ -42,16 +46,23 @@ def test_loop(
     #       computed during test mode
     # also serves to reduce unnecessary gradient computations and memory usage
     #       for tensors with requires_grad=True
+
+    logger.log_open_control_flow('with_torch_no_grad')
     with torch.no_grad():
+        logger.log_open_control_flow('testing_for_loop')
         for data, label in dataloader:
+            logger.log_control_element('Iteration')
             data = data.to(device)
             label = label.to(device)
             pred = model(data)
             test_loss += loss_fn(pred, label).item()
             correct += (pred.argmax(1) == label).type(torch.float).sum().item()
+        logger.log_close_control_flow('testing_for_loop')
+    logger.log_close_control_flow('with_torch_no_grad')
 
     test_loss /= num_batches
     correct /= size
     outstring = f"\tAccuracy: {(100 * correct):>0.1f}%, Avg loss: {test_loss:>8f}"
-    logger.log_trace(f"</test.test_loop ret=({correct}, {outstring})>")
+    logger.log_function_exit_type('return', correct=correct, outstring=outstring)
+    logger.log_exit_function('test_loop_fn')
     return correct, outstring

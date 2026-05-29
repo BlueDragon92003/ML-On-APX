@@ -27,8 +27,13 @@ def train_loop(
     - A formatted string for user display messages.
     """
 
-    logger.log_trace(
-        f"<train.train_loop device={device}> dataloader={dataloader} model={model} loss_fn={loss_fn} optimizer={optimizer}"
+    logger.log_enter_function(
+        'train_loop_fn',
+        device=device,
+        dataloader=dataloader,
+        model=model,
+        loss_fn=loss_fn,
+        optimizer=optimizer
     )
     # size = len(dataloader.dataset)
     # Set the model to training mode - important for batch normalization and
@@ -37,8 +42,9 @@ def train_loop(
     model.to(device)
 
     # Loop through each batch of data from the dataloader.
+    logger.log_open_control_flow('training_for_loop')
     for batch_num, (data, labels) in enumerate(dataloader):
-        logger.log_trace(f"<train.train_loop batch_num {batch_num::>5d} />")
+        logger.log_control_element('iteration', batch_num=batch_num)
         # Move data to GPU
         data = data.to(device)
         labels = labels.to(device)
@@ -50,5 +56,5 @@ def train_loop(
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
-
-    logger.log_trace("</train.train_loop>")
+    logger.log_close_control_flow("training_for_loop")
+    logger.log_exit_function('train_loop_fn')
