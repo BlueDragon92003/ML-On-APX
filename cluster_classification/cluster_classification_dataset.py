@@ -9,7 +9,7 @@ from torch.utils.data import IterableDataset, get_worker_info
 from cluster_classification.classification_logger import ClassificationLogger
 from cluster_classification.signal_type import SignalType
 
-logger = ClassificationLogger()
+logger = ClassificationLogger('cluster_classification_dataset.py')
 
 
 class ClusterClassificationDataset(IterableDataset):

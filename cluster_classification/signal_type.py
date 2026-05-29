@@ -2,7 +2,7 @@ from enum import IntEnum
 
 from cluster_classification.classification_logger import ClassificationLogger
 
-logger = ClassificationLogger()
+logger = ClassificationLogger('signal_type.py')
 
 
 class SignalType(IntEnum):

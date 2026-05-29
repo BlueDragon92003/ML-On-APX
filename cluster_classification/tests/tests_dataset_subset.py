@@ -7,7 +7,7 @@ from cluster_classification.classification_logger import ClassificationLogger
 from cluster_classification.dataset_subset import DatasetSubset
 from cluster_classification.signal_type import SignalType
 
-logger = ClassificationLogger()
+logger = ClassificationLogger('tests_dataset_subset.py')
 
 
 class TestDatasetSubset(unittest.TestCase):

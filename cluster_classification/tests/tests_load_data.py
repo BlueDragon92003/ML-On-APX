@@ -1,11 +1,12 @@
 import os
 import pickle
-from typing import Set, Tuple
+from typing import Set, Tuple, Iterable, Iterator
 from unittest.mock import patch
 import pathlib
 import unittest
 
 from pyfakefs import fake_filesystem as fakefs
+from pyfakefs.fake_filesystem_unittest import TestCaseMixin
 import numpy as np
 
 from cluster_classification.classification_logger import ClassificationLogger
@@ -13,23 +14,34 @@ from cluster_classification.data import load_data, DatasourceType
 from cluster_classification.dataset_subset import DatasetSubset
 from cluster_classification.signal_type import SignalType
 
-logger = ClassificationLogger()
+logger = ClassificationLogger('tests_load_data.py')
+
+def logging_wrapper_generator(generator: Iterable):
+    for next in generator:
+        logger.log_debug(f'Logging from wrapped {generator}:\t{next}')
+        yield next
+
+def mock_cluster_generator(components: Iterable) -> Iterator[int]:
+    return map(lambda a: sum([ byte for byte in str(a[0]).encode() ]),
+        components
+        )
 
 class Mock_ClusterClassificationDataset():
     def __init__(self, components: Set[Tuple[str, SignalType]]):
         self.__data = np.fromiter(
-            map(
-                lambda a: sum(bytes(a[0], 'utf-8')),
-                components
-            ),
+            logging_wrapper_generator(mock_cluster_generator(components)),
             (int,2)
         )
-        self.__msg = "Oh, wow! Look at all of that testing data!"
+        self.msg = "Oh, wow! Look at all of that testing data!"
+    def __getitem__(self, key):
+        return self.__data[key]
+    def __repr__(self):
+        return f"MockCCD: {self.__data}"
 
 @patch( 'cluster_classification.data.ClusterClassificationDataset',
     new=Mock_ClusterClassificationDataset,
     )
-class TestLoadData(unittest.TestCase):
+class TestLoadData(unittest.TestCase, TestCaseMixin):
     """Tests for the `load_data` method in `data.py`.
 
     Extends: `unittest.TestCase`
@@ -40,16 +52,19 @@ class TestLoadData(unittest.TestCase):
     - test_load_data__create_pickle
     - test_load_data__old_pickle_data
     - test_load_data__old_pickle_format
-    - tearDownClass @classmethod
 
     """
     ffs: fakefs.FakeFilesystem
 
+    def __init__(self, methodName='runTest'):
+        super(TestLoadData, self).__init__(methodName=methodName)
+
     @classmethod
     def setUpClass(cls):
         logger.log_info('Setting up fake filesystem...')
-        
-        cls.ffs = fakefs.FakeFilesystem()
+        cls.setUpClassPyfakefs()
+
+        cls.ffs = cls.fake_fs()
         cls.paths = {}
         cls.dirs = {}
         cls.datasets = {}
@@ -58,9 +73,9 @@ class TestLoadData(unittest.TestCase):
         #                                            tests  clsify
         cls.paths['module'] = pathlib.Path(__file__).parent.parent
         cls.paths['project'] = cls.paths['module'].parent
-        cls.paths['data'] = cls.paths['data'] / 'data'
+        cls.paths['data'] = cls.paths['project'] / 'data'
         cls.paths['root'] = cls.paths['data'] / 'classification'
-        cls.paths['pickle'] = cls.paths['data'] / 'pickled' / 'classification' / '0000'
+        cls.paths['pickle'] = cls.paths['data'] / 'pickled' / 'classification'
 
         cls.dirs['project'] = cls.ffs.create_dir(cls.paths['project'])
         cls.dirs['module'] = cls.ffs.create_dir(cls.paths['module'])
@@ -86,7 +101,7 @@ class TestLoadData(unittest.TestCase):
         
         # Age 1
         cls.files['old_fmt_pckl'] = cls.ffs.create_file(
-            cls.paths['pickle'] / '0005.pckl',
+            cls.paths['pickle'] / '0000' / '0005.pckl',
         )
         #   Increment age
         cls.files['data_1'].set_contents('')
@@ -103,10 +118,10 @@ class TestLoadData(unittest.TestCase):
         
         # Age 3
         cls.files['old_data_pckl'] = cls.ffs.create_file(
-            cls.paths['pickle'] / '000a.pckl'
+            cls.paths['pickle'] / '0000' / '0009.pckl'
         )
         cls.files['valid_pckl'] = cls.ffs.create_file(
-            cls.paths['pickle'] / '0003.pckl'
+            cls.paths['pickle'] / '0000' / '0003.pckl'
         )
         #   Increment age
         cls.files['data_1'].set_contents('')
@@ -148,97 +163,87 @@ class TestLoadData(unittest.TestCase):
                 ])
             ))
         )
-        logger.log_info('Set up fake filesystem.')
 
+        logger.log_info('Set up fake filesystem.')
+    # ========================================================================
     # with pickle
+    # ------------------------------------------------------------------------
     def test_load_data__pickle_exists(self):
-        old_time = os.path.getmtime( self.paths['pickle'] / '0003.pckl' )
+        """Test that the system reads a present, in-date pickle"""
+        old_time = os.path.getmtime( self.paths['pickle'] / '0000' / '0003.pckl' )
         out = load_data(
             DatasourceType.TESTING,
             self.datasets['data_1'] | self.datasets['data_2']
         )
+        expected = np.fromiter( mock_cluster_generator([
+                (str(self.paths['root'] / 'data_1.root'), SignalType.BACKGROUND),
+                (str(self.paths['root'] / 'data_2.root'), SignalType.BACKGROUND),
+            ]), (int,2) )
+        new_time = os.path.getmtime( self.paths['pickle'] / '0000' / '0003.pckl' )
         # that the pickle has the right data
-        self.assertEqual(out.__data, np.fromiter(
-            map(
-                lambda a: sum(bytes(a[0], 'utf-8')),
-                [
-                    self.paths['root'] / 'data_1.root',
-                    self.paths['root'] / 'data_2.root',
-                ]
-            ),
-            (int,2)
-        ))
-        new_time = os.path.getmtime( self.paths['pickle'] / '0005.pckl' )
+        self.assertIn( out[0], expected )
+        self.assertIn( out[1], expected )
         # that the pickle wasn't recreated
         self.assertEqual( new_time , old_time )
 
+    # ========================================================================
     # without pickle
+    # ------------------------------------------------------------------------
     def test_load_data__create_pickle(self):
+        """Test that the system creates a new pickle when needed"""
         out = load_data(
             DatasourceType.TESTING,
             self.datasets['data_2'] | self.datasets['data_n']
         )
+        expected = np.fromiter( mock_cluster_generator([
+                (str(self.paths['root'] / 'data_2.root'), SignalType.BACKGROUND),
+                (str(self.paths['root'] / 'data_n.root'), SignalType.BACKGROUND),
+            ]), (int,2) )
         # that the pickle has the right data
-        self.assertEqual(out.__data, np.fromiter(
-            map(
-                lambda a: sum(bytes(a[0], 'utf-8')),
-                [
-                    self.paths['root'] / 'data_2.root',
-                    self.paths['root'] / 'data_n.root',
-                ]
-            ),
-            (int,2)
-        ))
+        self.assertIn( out[0], expected )
+        self.assertIn( out[1], expected )
         # that the pickle was created
-        self.assertTrue( os.path.isfile( self.paths['pickle'] / '000A.pckl' ) )
+        self.assertTrue( os.path.isfile( self.paths['pickle'] / '0000' / '000a.pckl' ) )
 
+    # ========================================================================
     # with outdated pickle
+    # ------------------------------------------------------------------------
     def test_load_data__old_pickle_data(self):
-        old_time = os.path.getmtime( self.paths['pickle'] / '0009.pckl' )
+        """Test that the system updates a pickle when the root dataset is changed"""
+        old_time = os.path.getmtime( self.paths['pickle'] / '0000' / '0009.pckl' )
         out = load_data(
             DatasourceType.TESTING,
             self.datasets['data_1'] | self.datasets['data_n']
         )
+        expected = np.fromiter( mock_cluster_generator([
+                (str(self.paths['root'] / 'data_1.root'), SignalType.BACKGROUND),
+                (str(self.paths['root'] / 'data_n.root'), SignalType.BACKGROUND),
+            ]), (int,2) )
+        new_time = os.path.getmtime( self.paths['pickle'] / '0000' / '0009.pckl' )
         # that the pickle has the right data
-        self.assertEqual(out.__data, np.fromiter(
-            map(
-                lambda a: sum(bytes(a[0], 'utf-8')),
-                [
-                    self.paths['root'] / 'data_1.root',
-                    self.paths['root'] / 'data_n.root',
-                ]
-            ),
-            (int,2)
-        ))
-        new_time = os.path.getmtime( self.paths['pickle'] / '0009.pckl' )
+        self.assertIn( out[0], expected )
+        self.assertIn( out[1], expected )
         # that the pickle was recreated
         self.assertGreater( new_time , old_time )
 
+    # ========================================================================
     # with old pickle
+    # ------------------------------------------------------------------------
     def test_load_data__old_pickle_format(self):
-        old_time = os.path.getmtime( self.paths['pickle'] / '0005.pckl' )
+        """Test that the system updates a pickle when the underlying representation is updated"""
+        old_time = os.path.getmtime( self.paths['pickle'] / '0000' / '0005.pckl' )
         out = load_data(
             DatasourceType.TESTING,
             self.datasets['data_1'] | self.datasets['data_3']
         )
+        expected = np.fromiter( mock_cluster_generator([
+                (str(self.paths['root'] / 'data_1.root'), SignalType.BACKGROUND),
+                (str(self.paths['root'] / 'data_3.root'), SignalType.BACKGROUND),
+            ]), (int,2) )
+        new_time = os.path.getmtime( self.paths['pickle'] / '0000' / '0005.pckl' )
         # that the pickle has the right data
-        self.assertEqual(out.__data, np.fromiter(
-            map(
-                lambda a: sum(bytes(a[0], 'utf-8')),
-                [
-                    self.paths['root'] / 'data_1.root',
-                    self.paths['root'] / 'data_3.root',
-                ]
-            ),
-            (int,2)
-        ))
-        new_time = os.path.getmtime( self.paths['pickle'] / '0005.pckl' )
+        self.assertIn( out[0], expected )
+        self.assertIn( out[1], expected )
         # That the pickle was recreated
         self.assertGreater( new_time , old_time )
 
-    # @classmethod
-    # def tearDownClass(cls):
-    #     cls.ffs.pause()
-
-if __name__ == '__main__':
-    unittest.main()

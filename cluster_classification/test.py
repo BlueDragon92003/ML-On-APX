@@ -4,7 +4,7 @@ import torch
 
 from cluster_classification.classification_logger import ClassificationLogger
 
-logger = ClassificationLogger()
+logger = ClassificationLogger('test.py')
 
 
 def test_loop(

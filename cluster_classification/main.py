@@ -9,7 +9,7 @@ from cluster_classification.train import train_loop
 from cluster_classification.data import get_data, DatasourceType
 from cluster_classification.classification_logger import ClassificationLogger
 
-logger = ClassificationLogger()
+logger = ClassificationLogger('main.py')
 
 # After how many epochs should a checkpoint be made?
 CHECKPOINT_RATE = 10

@@ -12,7 +12,7 @@ from cluster_classification.cluster_classification_dataset import (
 from cluster_classification.dataset_subset import DatasetSubset
 from cluster_classification.classification_logger import ClassificationLogger
 
-logger = ClassificationLogger()
+logger = ClassificationLogger('data.py')
 
 
 class DatasourceType(Enum):
@@ -120,16 +120,21 @@ def load_data(
             logger.log_debug(f'Dataset includes file {component_filename}')
             component_path = root_data_path / component_filename
             components.add( (component_path, cluster_type) )
+        logger.log_debug(f"ccd components: {components}")
         ccd = ClusterClassificationDataset(components)
-        os.makedirs(pickle_path.parent) # ensure all directories are made
+        logger.log_debug(f"ccd: {ccd}")
+        # ensure all directories are made
+        os.makedirs(pickle_path.parent, exist_ok=True)
         pickle_fd = os.open(pickle_path, os.O_RDWR | os.O_CREAT ) 
         with os.fdopen(pickle_fd, mode='wb') as pickled:
             pickle.dump(ccd, pickled)
+            logger.log_debug("Created new CCD pickle")
     # Pickled file exisits and is ready to use; load it
     else:
         logger.log_info("Loading pickled CCD...")
         pickle_fd = os.open(pickle_path, os.O_RDONLY)
         with os.fdopen(pickle_fd, mode="rb") as pickled:
             ccd = pickle.load(pickled)
+            logger.log_info('Loaded pickled CCD')
 
     return ccd

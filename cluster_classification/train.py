@@ -3,7 +3,7 @@ from torch import nn
 
 from cluster_classification.classification_logger import ClassificationLogger
 
-logger = ClassificationLogger()
+logger = ClassificationLogger('train.py')
 
 
 def train_loop(

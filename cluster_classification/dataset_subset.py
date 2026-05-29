@@ -4,7 +4,7 @@ from typing import Tuple, Set, Self, Union
 from cluster_classification.signal_type import SignalType
 from cluster_classification.classification_logger import ClassificationLogger
 
-logger = ClassificationLogger()
+logger = ClassificationLogger('dataset_subset.py')
 
 
 class DatasetSubset:
