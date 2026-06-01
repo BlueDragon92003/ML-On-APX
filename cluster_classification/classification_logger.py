@@ -213,6 +213,13 @@ class CleverLogger:
             'title': '{name}.'
         })
 
+    def log_micro_function(self, function_name: str, exit_type: str, **kwargs: Any):
+        """Trace travel through very simple functions for deep debugging."""
+        self.logger.log(self.TRACE, function_name, kwargs, extra={
+            'type': RecordShape.SINGLE,
+            'title': '`{name}` executed (' + exit_type + ').'
+        })
+
     def log_enter_function(self, function_name: str, **kwargs: Any):
         """Trace entrance into functions for deep debugging."""
         self.logger.log(self.TRACE, function_name, kwargs, extra={

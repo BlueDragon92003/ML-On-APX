@@ -28,15 +28,13 @@ class ClusterClassificationDataset(IterableDataset):
                         each root file is associated with.
         """
         super(ClusterClassificationDataset, self).__init__()
-        logger.log_trace(
-            "<cluster_classification_dataset.ClusterClassificationDataset.__init__>"
-        )
+        logger.log_enter_function('ccd_init', components = components)
         data = []
         # Data structure: data [cluster][features]
+        logger.log_open_control_flow('init_for_loop')
         for filepath, cluster_type in components:
-            logger.log_trace(
-                f"<cluster_classification_dataset.ClusterClassificationDataset.__init__ component={filepath}>"
-            )
+            logger.log_control_element('Iteration', filepath=filepath, cluster_type=cluster_type)
+            logger.log_open_control_flow('open_uproot_with')
             with uproot.open(filepath) as file:
                 tree = file["l1NtupleProducer/linkTree;1"]
                 data.append(
@@ -51,77 +49,68 @@ class ClusterClassificationDataset(IterableDataset):
                         (int, 15),
                     )
                 )
-            logger.log_trace(
-                "</cluster_classification_dataset.ClusterClassificationDataset.__init__>"
-            )
-            # # General data structure:
-            # # data [ SLR/link + feature ][ event ][ card ]
-            """
-             0: cluster_et
-             1: cluster_seed
-             2: cluster_et5x5
-             3: cluster_et2x5
-             4: cluster_timing
-             5: cluster_spike
-             6: cluster_brems
-             7: cluster_satur
-             8: cluster_spare
-             9: ecal_tower_et
-            10: ecal_tower_timing
-            11: ecal_tower_spike
-            12: hcal_et
-            13: hcal_fb
-            14: classification
-            """
+            logger.log_close_control_flow('open_uproot_with')
+        logger.log_close_control_flow('init_for_loop')
+        # # General data structure:
+        # # data [ SLR/link + feature ][ event ][ card ]
+        """
+            0: cluster_et
+            1: cluster_seed
+            2: cluster_et5x5
+            3: cluster_et2x5
+            4: cluster_timing
+            5: cluster_spike
+            6: cluster_brems
+            7: cluster_satur
+            8: cluster_spare
+            9: ecal_tower_et
+        10: ecal_tower_timing
+        11: ecal_tower_spike
+        12: hcal_et
+        13: hcal_fb
+        14: classification
+        """
         np_data = np.array(data)
         self.__data = np_data.reshape(-1, np_data.shape[-1])
-        logger.log_trace(
-            "</cluster_classification_dataset.ClusterClassificationDataset.__init__>"
-        )
+        logger.log_exit_function('ccd_init')
 
     def __getitem__(self, index: int):
-        logger.log_trace(
-            f"<cluster_classification_dataset.ClusterClassificationDataset.__getitem__ index={index} ret={self.__data[index]} />"
-        )
-        return self.__data[index]
+        out = self.__data[index]
+        logger.log_micro_function('ccd_get_item', 'return', retval=out)
+        return out
 
     def __len__(self):
-        logger.log_trace(
-            f"<cluster_classification_dataset.ClusterClassificationDataset.__getitem__ ret={len(self.__data)} />"
-        )
-        return len(self.__data)
+        out = len(self.__data)
+        logger.log_micro_function('ccd_len', 'return', retval=out)
+        return out
 
     def __iter__(self):
         # Very much yoinked and adapted from the torch docs:
         # https://docs.pytorch.org/docs/2.9/data.html#torch.utils.data.Dataset
 
-        logger.log_trace(
-            "<cluster_classification_dataset.ClusterClassificationDataset.__iter__>"
-        )
+        logger.log_enter_function('ccd_iterator')
         worker_info = get_worker_info()
+        logger.log_open_control_flow('worker_info_if_statement')
         if worker_info is None:
+            logger.log_control_element('ThenBranch')
             # single-process data loading, return the full iterator
-            logger.log_trace(
-                "<cluster_classification_dataset.ClusterClassificationDataset.__iter__ single_process />"
-            )
             iter_start = 0
             iter_end = len(self)
         else:  # in a worker process
+            logger.log_control_element('ElseBranch')
             max_size = len(self)
             # split workload
             per_worker = int(
-                math.ceil((self.end - self.start) / float(worker_info.num_workers))
+                math.ceil(len(self) / float(worker_info.num_workers))
             )
             worker_id = worker_info.id
             iter_start = worker_id * per_worker
             iter_end = min(iter_start + per_worker, max_size)
-            logger.log_trace(
-                f"<cluster_classification_dataset.ClusterClassificationDataset.__iter__ multi_process start={iter_start} end={iter_end} />"
-            )
-        logger.log_trace(
-            "</cluster_classification_dataset.ClusterClassificationDataset.__iter__>"
-        )
-        return iter(self.__data[iter_start:iter_end])
+            logger.log_variables(iter_start=iter_start, iter_end=iter_end)
+        retval=iter(self.__data[iter_start:iter_end])
+        logger.log_function_exit_type('return', retval=retval)
+        logger.log_exit_function('ccd_iterator')
+        return retval
 
 
 def get_ecal_tower(slr: int, i_eta: int, i_phi: int) -> int:
@@ -135,9 +124,7 @@ def get_ecal_tower(slr: int, i_eta: int, i_phi: int) -> int:
     `i_eta` is correlated with slr and all inputs must respect these brackets.
     This will be changed in the future.
     """
-    logger.log_trace(
-        f"<cluster_classification_dataset.get_hcal_location slr={slr} i_eta={i_eta} i_phi={i_phi}>"
-    )
+    logger.log_enter_function('get_ecal_tower', slr=slr, i_eta=i_eta, i_phi=i_phi)
     tower = 6 * i_eta + i_phi
     match slr:
         case 0:
@@ -150,7 +137,9 @@ def get_ecal_tower(slr: int, i_eta: int, i_phi: int) -> int:
         case 3:
             tower = tower - 72  # i_eta = 16, i_phi = 5 -> index 101
             #   101 - 72 = 29, the last index in SLR3 :)
-    logger.log_trace(f"</cluster_classification_dataset.get_hcal_location ret={tower}>")
+    
+    logger.log_function_exit_type('return', retval=tower)
+    logger.log_exit_function('get_ecal_tower')
     return tower
 
 
@@ -164,16 +153,20 @@ def get_hcal_location(
     - `i_eta`: The rotational position accessed, in towers, in RCT coordinates.
     - `i_phi`: The horizontal position accessed, in towers, in RCT coordinates.
     """
-    logger.log_trace(
-        f"<cluster_classification_dataset.get_hcal_location card={card} i_eta={i_eta} i_phi={i_phi}>"
-    )
+    logger.log_enter_function('get_hcal_location', card=card, i_eta=i_eta, i_phi=i_phi)
     link = 5
+    logger.log_open_control_flow('hcal_link_if_ladder')
     if i_eta > 15:
-        logger.log_trace("</cluster_classification_dataset.get_hcal_location ret=None>")
+        logger.log_control_element('i_eta > 15', i_eta=i_eta)
+        logger.log_close_control_flow('hcal_link_if_ladder')
+        logger.log_function_exit_type('return', retval=None)
+        logger.log_exit_function('get_hcal_location')
         return None
     elif i_eta > 7:
+        logger.log_control_element('i_eta > 7', i_eta=i_eta)
         link += 1
         i_eta += -8  # index 0 of Link 6/8 is i_eta = 8
+    logger.log_close_control_flow('hcal_link_if_ladder')
 
     high_link = i_phi + 6 * ((card % 4 - 1) // 2 % 2)
     # 1(True) if Links 5/6 start with 2, 0(False) otherwise
@@ -194,10 +187,9 @@ def get_hcal_location(
     tower_index = 4 * i_eta + high_link % 4
     link += high_link // 4 % 2 * 2
 
-    logger.log_trace(
-        f"</cluster_classification_dataset.get_hcal_location ret=({tower_index}, {int(link)})>"
-    )
-    return tower_index, int(link)
+    logger.log_function_exit_type('return', retval=(tower_index, link))
+    logger.log_exit_function('get_hcal_location')
+    return tower_index, link
 
 
 def cluster_generator(
@@ -215,26 +207,13 @@ def cluster_generator(
                     events in the dataset.
     """
 
-    logger.log_trace(
-        f"<cluster_classification_dataset.cluster_generator from_tree={from_tree} signal_type={signal_type} num_events={num_events}>"
-    )
-
+    logger.log_enter_function('cluster_generator', from_tree=from_tree, signal_type=signal_type, num_events=num_events)
+    logger.log_open_control_flow('cluster_for_loops')
     for event in range(num_events):
-        logger.log_trace(
-            f"<cluster_classification_dataset.cluster_generator event_level event={event}>"
-        )
         for card in range(24):
-            logger.log_trace(
-                f"<cluster_classification_dataset.cluster_generator card_level card={card}>"
-            )
             for slr in range(4):
-                logger.log_trace(
-                    f"<cluster_classification_dataset.cluster_generator slr_level slr={slr}>"
-                )
                 for cluster in range(9):
-                    logger.log_trace(
-                        f"<cluster_classification_dataset.cluster_generator cluster_level cluster={cluster}>"
-                    )
+                    logger.log_control_element('Iteration', event=event, card=card, slr=slr, cluster=cluster)
                     # cluster i_eta and i_phi are in crystal;
                     # everyhting else is in tower
                     i_eta = (
@@ -249,23 +228,25 @@ def cluster_generator(
                     # Energy can be left in its integer format; the specific
                     # values don't matter so much as the scale
 
+                    logger.log_open_control_flow('is_cluster_if_statement')
                     if cluster_et == 0:
+                        logger.log_control_element('ThenBranch')
                         # Not a cluster
-                        logger.log_trace(
-                            "</cluster_classification_dataset.cluster_generator cluster_level no_cluster>"
-                        )
+                        logger.log_close_control_flow('is_cluster_if_statement')
+                        logger.log_control_element('Continue')
                         continue
+                    logger.log_close_control_flow('is_cluster_if_statement')
 
                     ecal_tower = get_ecal_tower(slr, i_eta, i_phi)
                     hcal_info = get_hcal_location(card, i_eta, i_phi)
+                    logger.log_variables(ecal_tower=ecal_tower, hcal_info=hcal_info)
 
                     hcal_et = -1
                     hcal_fb = -1
+                    logger.log_open_control_flow('hcal_info_exists_if_statement')
                     if hcal_info:
                         # HCAL information exists
-                        logger.log_trace(
-                            "</cluster_classification_dataset.cluster_generator hcal_exists>"
-                        )
+                        logger.log_control_element('ThenBracnh')
                         (hcal_tower, link) = hcal_info
                         hcal_et = from_tree(
                             f"HCAL{link}_tower_et", event, card, hcal_tower
@@ -273,10 +254,10 @@ def cluster_generator(
                         hcal_fb = from_tree(
                             f"HCAL{link}_tower_fb", event, card, hcal_tower
                         )
-
-                    logger.log_trace(
-                        "</cluster_classification_dataset.cluster_generator cluster_level cluster>"
-                    )
+                    logger.log_close_control_flow('hcal_info_exists_if_statement')
+                    
+                    logger.log_function_exit_type('yield')
+                    logger.log_exit_function('cluster_generator')
                     yield [
                         cluster_et,
                         from_tree(
@@ -312,16 +293,9 @@ def cluster_generator(
                         hcal_fb,
                         int(signal_type),
                     ]
-                logger.log_trace(
-                    "</cluster_classification_dataset.cluster_generator slr_level>"
-                )
-            logger.log_trace(
-                "</cluster_classification_dataset.cluster_generator card_level>"
-            )
-        logger.log_trace(
-            "</cluster_classification_dataset.cluster_generator event_level>"
-        )
-    logger.log_trace("</cluster_classification_dataset.cluster_generator>")
+                    logger.log_enter_function('cluster_generator')
+    logger.log_close_control_flow('cluster_for_loops')
+    logger.log_exit_function('cluster_generator')
 
 
 logger.log_end_load_module()

@@ -16,12 +16,10 @@ from cluster_classification.signal_type import SignalType
 
 logger = CleverLogger(__name__)
 
-def logging_wrapper_generator(generator: Iterable):
-    for next in generator:
-        logger.log_debug(f'Logging from wrapped {generator}:\t{next}')
-        yield next
+logger.log_start_load_module()
 
 def mock_cluster_generator(components: Iterable) -> Iterator[int]:
+    
     return map(lambda a: sum([ byte for byte in str(a[0]).encode() ]),
         components
         )
@@ -29,7 +27,7 @@ def mock_cluster_generator(components: Iterable) -> Iterator[int]:
 class Mock_ClusterClassificationDataset():
     def __init__(self, components: Set[Tuple[str, SignalType]]):
         self.__data = np.fromiter(
-            logging_wrapper_generator(mock_cluster_generator(components)),
+            mock_cluster_generator(components),
             (int,2)
         )
         self.msg = "Oh, wow! Look at all of that testing data!"
@@ -61,7 +59,7 @@ class TestLoadData(unittest.TestCase, TestCaseMixin):
 
     @classmethod
     def setUpClass(cls):
-        logger.log_info('Setting up fake filesystem...')
+        logger.log_start_minor_process('Setting up fake filesystem...')
         cls.setUpClassPyfakefs()
 
         cls.ffs = cls.fake_fs()
@@ -163,8 +161,8 @@ class TestLoadData(unittest.TestCase, TestCaseMixin):
                 ])
             ))
         )
-
-        logger.log_info('Set up fake filesystem.')
+        logger.log_end_minor_process('Setting up fake filesystem...')
+        
     # ========================================================================
     # with pickle
     # ------------------------------------------------------------------------
@@ -247,3 +245,4 @@ class TestLoadData(unittest.TestCase, TestCaseMixin):
         # That the pickle was recreated
         self.assertGreater( new_time , old_time )
 
+logger.log_end_load_module()
