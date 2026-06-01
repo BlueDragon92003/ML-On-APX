@@ -7,6 +7,7 @@ logger = CleverLogger(__name__)
 
 logger.log_start_load_module()
 
+
 def train_loop(
     device: torch.device,
     dataloader: torch.utils.data.DataLoader,
@@ -29,12 +30,12 @@ def train_loop(
     """
 
     logger.log_enter_function(
-        'train_loop_fn',
+        "train_loop_fn",
         device=device,
         dataloader=dataloader,
         model=model,
         loss_fn=loss_fn,
-        optimizer=optimizer
+        optimizer=optimizer,
     )
     # size = len(dataloader.dataset)
     # Set the model to training mode - important for batch normalization and
@@ -43,9 +44,9 @@ def train_loop(
     model.to(device)
 
     # Loop through each batch of data from the dataloader.
-    logger.log_open_control_flow('training_for_loop')
+    logger.log_open_control_flow("training_for_loop")
     for batch_num, (data, labels) in enumerate(dataloader):
-        logger.log_control_element('iteration', batch_num=batch_num)
+        logger.log_open_control_flow("iteration", batch_num=batch_num)
         # Move data to GPU
         data = data.to(device)
         labels = labels.to(device)
@@ -57,7 +58,9 @@ def train_loop(
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
+        logger.log_close_control_flow("Iteration")
     logger.log_close_control_flow("training_for_loop")
-    logger.log_exit_function('train_loop_fn')
+    logger.log_exit_function("train_loop_fn")
+
 
 logger.log_end_load_module()
