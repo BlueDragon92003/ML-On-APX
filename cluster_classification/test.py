@@ -2,7 +2,7 @@ from typing import Tuple
 
 import torch
 
-from cluster_classification.classification_logger import CleverLogger
+from cleverlogger import CleverLogger
 
 logger = CleverLogger(__name__)
 

@@ -6,7 +6,7 @@ import numpy as np
 import uproot
 from torch.utils.data import IterableDataset, get_worker_info
 
-from cluster_classification.classification_logger import CleverLogger
+from cleverlogger import CleverLogger
 from cluster_classification.signal_type import SignalType
 
 logger = CleverLogger(__name__)

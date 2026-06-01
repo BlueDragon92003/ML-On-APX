@@ -3,11 +3,11 @@ import os
 import torch
 from torch import nn
 
+from cleverlogger import CleverLogger
 from cluster_classification.model import Model
 from cluster_classification.test import test_loop
 from cluster_classification.train import train_loop
 from cluster_classification.data import get_data, DatasourceType
-from cluster_classification.classification_logger import CleverLogger
 
 logger = CleverLogger(__name__)
 

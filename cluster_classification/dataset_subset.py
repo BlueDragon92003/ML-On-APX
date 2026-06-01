@@ -1,8 +1,8 @@
 from __future__ import annotations
 from typing import Tuple, Set, Self, Union
 
+from cleverlogger import CleverLogger
 from cluster_classification.signal_type import SignalType
-from cluster_classification.classification_logger import CleverLogger
 
 logger = CleverLogger(__name__)
 
