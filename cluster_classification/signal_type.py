@@ -6,6 +6,7 @@ logger = CleverLogger(__name__)
 
 logger.log_start_load_module()
 
+
 class SignalType(IntEnum):
     """Types of signal an individual event may be part of.
 
