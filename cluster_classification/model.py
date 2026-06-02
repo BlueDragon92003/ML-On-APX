@@ -19,8 +19,8 @@ class Model(nn.Module):
         # Other layers to try: Dropout and batch normalization,
         # if they make any sense. It's a small model though, so likely not
         self.stack = nn.Sequential(
-            # Eta, Phi, HCAL energies, HCAL deposition, Cluster Energy
-            nn.Linear(2 + 9 + 9 + 1, 16),
+            # Output based on what was provided by the CCD
+            nn.Linear(14, 16),
             nn.ReLU(),
             nn.Linear(16, 8),
             nn.ReLU(),

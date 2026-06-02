@@ -105,7 +105,7 @@ class DatasetSubset:
     DOUBLE_ELECTRON: DatasetSubset
 
 
-DOUBLE_ELECTRON = DatasetSubset(
+DatasetSubset.DOUBLE_ELECTRON = DatasetSubset(
     0b0000_0000_0000_0000_0000_0000_0000_0001,
     "double_electron.root",
     SignalType.BACKGROUND,

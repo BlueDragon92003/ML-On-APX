@@ -1,10 +1,9 @@
-import math
 from collections.abc import Callable
 from typing import Set, Tuple, List, Union, Iterator
 
 import numpy as np
 import uproot
-from torch.utils.data import IterableDataset, get_worker_info
+from torch.utils.data import Dataset
 
 from cleverlogger import CleverLogger
 from cluster_classification.signal_type import SignalType
@@ -14,7 +13,7 @@ logger = CleverLogger(__name__)
 logger.log_start_load_module()
 
 
-class ClusterClassificationDataset(IterableDataset):
+class ClusterClassificationDataset(Dataset):
     """Implements a PyTorch dataset to train the cluster classifier.
 
     Extends: `torch.utils.data.IterableDataset`
@@ -87,32 +86,6 @@ class ClusterClassificationDataset(IterableDataset):
         out = len(self.__data)
         logger.log_micro_function("ccd_len", "return", retval=out)
         return out
-
-    def __iter__(self):
-        # Very much yoinked and adapted from the torch docs:
-        # https://docs.pytorch.org/docs/2.9/data.html#torch.utils.data.Dataset
-
-        logger.log_enter_function("ccd_iterator")
-        worker_info = get_worker_info()
-        logger.log_open_control_flow("worker_info_if_statement")
-        if worker_info is None:
-            logger.log_control_element("ThenBranch")
-            # single-process data loading, return the full iterator
-            iter_start = 0
-            iter_end = len(self)
-        else:  # in a worker process
-            logger.log_control_element("ElseBranch")
-            max_size = len(self)
-            # split workload
-            per_worker = int(math.ceil(len(self) / float(worker_info.num_workers)))
-            worker_id = worker_info.id
-            iter_start = worker_id * per_worker
-            iter_end = min(iter_start + per_worker, max_size)
-            logger.log_variables(iter_start=iter_start, iter_end=iter_end)
-        retval = iter(self.__data[iter_start:iter_end])
-        logger.log_function_exit_type("return", retval=retval)
-        logger.log_exit_function("ccd_iterator")
-        return retval
 
 
 def get_ecal_tower(slr: int, i_eta: int, i_phi: int) -> int:
