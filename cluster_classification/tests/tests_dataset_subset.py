@@ -3,7 +3,7 @@ import unittest
 
 from parameterized import parameterized
 
-from cluster_classification.classification_logger import CleverLogger
+from cleverlogger import CleverLogger
 from cluster_classification.dataset_subset import DatasetSubset
 from cluster_classification.signal_type import SignalType
 

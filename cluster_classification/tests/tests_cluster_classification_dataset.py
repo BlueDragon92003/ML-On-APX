@@ -3,8 +3,8 @@ import unittest
 
 from parameterized import parameterized
 
+from cleverlogger import CleverLogger
 from cluster_classification import cluster_classification_dataset
-from cluster_classification.classification_logger import CleverLogger
 from cluster_classification.signal_type import SignalType
 
 
@@ -36,7 +36,6 @@ class TestClusterClassificationDataset(unittest.TestCase):
             logger.log_open_control_flow("i_eta_for_loop")
             for i_eta in range(2):
                 logger.log_control_element("Iteration", i_eta=i_eta)
-                logger.trace("")  # ty: ignore[unresolved-attribute]
                 slr0 = cluster_classification_dataset.get_ecal_tower(0, i_eta, i_phi)
                 self.assertIs(type(slr0), int)
                 self.assertLess(slr0, 12)  # SLR0 has only 12 towers

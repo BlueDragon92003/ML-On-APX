@@ -1,62 +1,13 @@
+import pathlib
+from datetime import datetime, date
 from enum import Enum
 from typing import Any, Mapping
 import logging
 import os
 
-
-# Yoinked from stackoverflow.com/questions/2183233/how-to-add-a-custom-loglevel-to-pythons-logging-facility/35804945#35804945
-def addLoggingLevel(levelName, levelNum, methodName=None):
-    """Comprehensively adds a new logging level to the `logging` module and the
-    currently configured logging class.
-
-    `levelName` becomes an attribute of the `logging` module with the value
-    `levelNum`. `methodName` becomes a convenience method for both `logging`
-    itself and the class returned by `logging.getLoggerClass()` (usually just
-    `logging.Logger`). If `methodName` is not specified, `levelName.lower()` is
-    used.
-
-    To avoid accidental clobberings of existing attributes, this method will
-    raise an `AttributeError` if the level name is already an attribute of the
-    `logging` module or if the method name is already present
-
-    Example
-    -------
-    >>> addLoggingLevel('TRACE', logging.DEBUG - 5)
-    >>> logging.getLogger(__name__).setLevel("TRACE")
-    >>> logging.getLogger(__name__).trace('that worked')
-    >>> logging.trace('so did this')
-    >>> logging.TRACE
-    5
-
-    """
-    if not methodName:
-        methodName = levelName.lower()
-
-    if hasattr(logging, levelName):
-        raise AttributeError("{} already defined in logging module".format(levelName))
-    if hasattr(logging, methodName):
-        raise AttributeError("{} already defined in logging module".format(methodName))
-    if hasattr(logging.getLoggerClass(), methodName):
-        raise AttributeError("{} already defined in logger class".format(methodName))
-
-    # This method was inspired by the answers to Stack Overflow post
-    # http://stackoverflow.com/q/2183233/2988730, especially
-    # http://stackoverflow.com/a/13638084/2988730
-    def logForLevel(self, message, *args, **kwargs):
-        if self.isEnabledFor(levelNum):
-            self._log(levelNum, message, args, **kwargs)
-
-    def logToRoot(message, *args, **kwargs):
-        logging.log(levelNum, message, *args, **kwargs)
-
-    logging.addLevelName(levelNum, levelName)
-    setattr(logging, levelName, levelNum)
-    setattr(logging.getLoggerClass(), methodName, logForLevel)
-    setattr(logging, methodName, logToRoot)
-
-
-addLoggingLevel("TRACE", logging.DEBUG - 5)
-addLoggingLevel("CRITICAL", logging.FATAL - 5)
+logging.addLevelName(2, "HYPERTRACE")
+logging.addLevelName(5, "TRACE")
+logging.addLevelName(45, "CRITICAL")
 
 
 class RecordShape(Enum):
@@ -81,14 +32,14 @@ class XMLFormatter(logging.Formatter):
 
     # @override
     def format(self, record: logging.LogRecord) -> str:
-        time: str = record.asctime
+        time: float = record.created
         name: str | None = record.msg
         location: str = record.name
         level: str = record.levelname
         process: int | None = record.process
         thread: int | None = record.thread
         # Additional arguments, will always be a dict via control over the actual log function.
-        args: Mapping[str, Any] = record.args  # ty: ignore[invalid-assignment]
+        args: Mapping[str, Any] | None = record.arguments  # ty: ignore[unresolved-attribute] Added via extra
         shape: RecordShape = record.type  # ty: ignore[unresolved-attribute] Added via extra
         title: str | None = record.title  # ty: ignore[unresolved-attribute] Added via extra
 
@@ -100,18 +51,19 @@ class XMLFormatter(logging.Formatter):
         if thread is not None or process is not None:
             element += "--"
             if process is not None:
-                element += str(process)
+                element += to_base64(process)
             if thread is not None:
-                element += ":" + str(thread)
+                element += ":" + to_base64(thread)
 
         additional = ""
         if title is not None:
             additional += ' :title="' + title.format(name=str(name)) + '"'
-        for key, value in args.items():
-            additional += " " + key + '="' + str(value) + '"'
+        if args is not None:
+            for key, value in args.items():
+                additional += " " + key + '="' + str(value) + '"'
 
         start_tag = "<"
-        body = f'{element} :timestamp="{time}"{additional}'
+        body = f'{element} :timestamp="{datetime.fromtimestamp(time).isoformat()}"{additional}'
         end_tag = ">"
 
         if shape is RecordShape.CLOSE:
@@ -119,7 +71,7 @@ class XMLFormatter(logging.Formatter):
         if shape is RecordShape.SINGLE:
             end_tag = "/" + end_tag
 
-        return f"{start_tag}{body}{end_tag}\n"
+        return f"{start_tag}{body}{end_tag}"
 
 
 class ConsoleFormatter(logging.Formatter):
@@ -139,7 +91,7 @@ class ConsoleFormatter(logging.Formatter):
         process: int | None = record.process
         thread: int | None = record.thread
         # Additional arguments, will always be a dict via control over the actual log function.
-        args: Mapping[str, Any] = record.args  # ty: ignore[invalid-assignment]
+        args: Mapping[str, Any] | None = record.arguments  # ty: ignore[unresolved-attribute] Added via extra
         title: str | None = record.title  # ty: ignore[unresolved-attribute] Added via extra
 
         if thread is not None or process is not None:
@@ -152,16 +104,17 @@ class ConsoleFormatter(logging.Formatter):
         title = str(title).format(name=str(name))
 
         out = f"{level} at {location}: {title}"
-        if len(args) > 0:
+        if args is not None and len(args) > 0:
             out += "Information:"
-        for key, value in args.values():
-            out += f"\n\t{key}: {value}"
+            for key, value in args.items():
+                out += f"\n\t{key}: {value}"
         return out + "\n"
 
 
 class CleverLogger:
     """A less-basic extention to the default python logger."""
 
+    HYPERTRACE = logging.DEBUG - 8  # 2
     TRACE = logging.DEBUG - 5  # 5
     DEBUG = logging.DEBUG  # 10
     INFO = logging.INFO  # 20
@@ -172,6 +125,8 @@ class CleverLogger:
 
     major_process: str
     minor_process: str
+
+    log_file: pathlib.Path | None = None
 
     def __init__(self, name):
         self.logger = logging.getLogger(name)
@@ -185,7 +140,16 @@ class CleverLogger:
             "CONSOLE_LOG_LEVEL", os.environ.get("LOG_LEVEL", "ERROR")
         ).upper()
 
-        file_handler = logging.FileHandler("./logs/latest.log.xml")
+        if CleverLogger.log_file is None:
+            filestring = str(date.today())
+            log_number = 0
+            file = pathlib.Path(f"./logs/{filestring}.log.xml")
+            while os.path.isfile(file):
+                log_number += 1
+                file = pathlib.Path(f"./logs/{filestring}-{log_number}.log.xml")
+            CleverLogger.log_file = file
+        file_handler = logging.FileHandler(CleverLogger.log_file)
+        # os.symlink(file, './logs/latest.log.xml')
         file_handler.setLevel(file_log_level)
         file_handler.setFormatter(XMLFormatter())
 
@@ -200,10 +164,13 @@ class CleverLogger:
     def log_open_control_flow(self, control_flow_element: str, **kwargs: Any):
         """Trace entrance into control flow constructs for deep debugging."""
         self.logger.log(
-            self.TRACE,
+            self.HYPERTRACE,
             control_flow_element,
-            kwargs,
-            extra={"type": RecordShape.OPEN, "title": "Entering `{name}`."},
+            extra={
+                "type": RecordShape.OPEN,
+                "title": "Entering `{name}`.",
+                "arguments": kwargs,
+            },
         )
 
     def log_close_control_flow(
@@ -212,18 +179,21 @@ class CleverLogger:
     ):
         """Trace exit from control flow constructs for deep debugging."""
         self.logger.log(
-            self.TRACE,
+            self.HYPERTRACE,
             control_flow_element,
-            extra={"type": RecordShape.CLOSE, "title": "Leaving `{name}`."},
+            extra={
+                "type": RecordShape.CLOSE,
+                "title": "Leaving `{name}`.",
+                "arguments": None,
+            },
         )
 
     def log_control_element(self, control_flow_element: str, **kwargs: Any):
         """Trace control flow modifiers (case, break, etc.) for deep debugging."""
         self.logger.log(
-            self.TRACE,
+            self.HYPERTRACE,
             control_flow_element,
-            kwargs,
-            extra={"type": RecordShape.SINGLE, "title": "{name}."},
+            extra={"type": RecordShape.SINGLE, "title": "{name}.", "arguments": kwargs},
         )
 
     def log_micro_function(
@@ -237,6 +207,7 @@ class CleverLogger:
             extra={
                 "type": RecordShape.SINGLE,
                 "title": "`{name}` executed (" + str(exit_type) + ").",
+                "arguments": None,
             },
         )
 
@@ -245,8 +216,11 @@ class CleverLogger:
         self.logger.log(
             self.TRACE,
             function_name,
-            kwargs,
-            extra={"type": RecordShape.OPEN, "title": "`{name}` called."},
+            extra={
+                "type": RecordShape.OPEN,
+                "title": "`{name}` called.",
+                "arguments": kwargs,
+            },
         )
 
     def log_exit_function(self, function_name: str):
@@ -254,7 +228,11 @@ class CleverLogger:
         self.logger.log(
             self.TRACE,
             function_name,
-            extra={"type": RecordShape.CLOSE, "title": "`{name}` exited."},
+            extra={
+                "type": RecordShape.CLOSE,
+                "title": "`{name}` exited.",
+                "arguments": None,
+            },
         )
 
     def log_function_exit_type(self, exit_type: str, **kwargs: Any):
@@ -262,8 +240,11 @@ class CleverLogger:
         self.logger.log(
             self.TRACE,
             exit_type,
-            kwargs,
-            extra={"type": RecordShape.SINGLE, "title": "Exited via {name}."},
+            extra={
+                "type": RecordShape.SINGLE,
+                "title": "Exited via {name}.",
+                "arguments": kwargs,
+            },
         )
 
     # DEBUG
@@ -272,8 +253,11 @@ class CleverLogger:
         self.logger.log(
             self.DEBUG,
             None,
-            kwargs,
-            extra={"type": RecordShape.OPEN, "title": "Loading this module..."},
+            extra={
+                "type": RecordShape.OPEN,
+                "title": "Loading this module...",
+                "arguments": kwargs,
+            },
         )
 
     def log_end_load_module(
@@ -283,7 +267,11 @@ class CleverLogger:
         self.logger.log(
             self.DEBUG,
             None,
-            extra={"type": RecordShape.CLOSE, "title": "Loaded this module."},
+            extra={
+                "type": RecordShape.CLOSE,
+                "title": "Loaded this module.",
+                "arguments": None,
+            },
         )
 
     def log_start_minor_process(self, minor_process_name: str, **kwargs: Any):
@@ -291,8 +279,11 @@ class CleverLogger:
         self.logger.log(
             self.DEBUG,
             minor_process_name,
-            kwargs,
-            extra={"type": RecordShape.OPEN, "title": "Starting `{name}`..."},
+            extra={
+                "type": RecordShape.OPEN,
+                "title": "Starting `{name}`...",
+                "arguments": kwargs,
+            },
         )
 
     def log_end_minor_process(
@@ -303,7 +294,11 @@ class CleverLogger:
         self.logger.log(
             self.DEBUG,
             minor_process,
-            extra={"type": RecordShape.CLOSE, "title": "Finished `{name}`."},
+            extra={
+                "type": RecordShape.CLOSE,
+                "title": "Finished `{name}`.",
+                "arguments": None,
+            },
         )
 
     def log_variables(self, **kwargs: Any):
@@ -311,15 +306,20 @@ class CleverLogger:
         self.logger.log(
             self.DEBUG,
             None,
-            kwargs,
-            extra={"type": RecordShape.SINGLE, "title": "Debug Variables."},
+            extra={
+                "type": RecordShape.SINGLE,
+                "title": "Debug Variables.",
+                "arguments": kwargs,
+            },
         )
 
     # INFO
     def log_notice(self, notice: str, **kwargs: Any):
         """Log general information pertinant to the execution of the program."""
         self.logger.log(
-            self.INFO, None, kwargs, extra={"type": RecordShape.SINGLE, "title": notice}
+            self.INFO,
+            None,
+            extra={"type": RecordShape.SINGLE, "title": notice, "arguments": kwargs},
         )
 
     def log_start_major_process(self, major_process: str, **kwargs: Any):
@@ -327,8 +327,11 @@ class CleverLogger:
         self.logger.log(
             self.INFO,
             major_process,
-            kwargs,
-            extra={"type": RecordShape.OPEN, "title": "Starting `{name}`..."},
+            extra={
+                "type": RecordShape.OPEN,
+                "title": "Starting `{name}`...",
+                "arguments": kwargs,
+            },
         )
 
     def log_end_major_process(self, major_process: str):
@@ -336,7 +339,11 @@ class CleverLogger:
         self.logger.log(
             self.INFO,
             major_process,
-            extra={"type": RecordShape.CLOSE, "title": "Finished `{name}`."},
+            extra={
+                "type": RecordShape.CLOSE,
+                "title": "Finished `{name}`.",
+                "arguments": None,
+            },
         )
 
     # WARN
@@ -345,8 +352,7 @@ class CleverLogger:
         self.logger.log(
             self.WARN,
             None,
-            kwargs,
-            extra={"type": RecordShape.SINGLE, "title": warning},
+            extra={"type": RecordShape.SINGLE, "title": warning, "arguments": kwargs},
         )
 
     # ERROR
@@ -355,10 +361,10 @@ class CleverLogger:
         self.logger.log(
             self.ERROR,
             minor_process,
-            kwargs,
             extra={
                 "type": RecordShape.SINGLE,
                 "title": "Process `{name}` encountered an error: " + error,
+                "arguments": kwargs,
             },
         )
 
@@ -368,10 +374,10 @@ class CleverLogger:
         self.logger.log(
             self.ERROR,
             major_process,
-            kwargs,
             extra={
                 "type": RecordShape.SINGLE,
                 "title": "Process `{name}` encountered an error: " + error,
+                "arguments": kwargs,
             },
         )
 
@@ -381,9 +387,19 @@ class CleverLogger:
         self.logger.log(
             self.ERROR,
             None,
-            kwargs,
             extra={
                 "type": RecordShape.SINGLE,
                 "title": deathrattle,
+                "arguments": kwargs,
             },
         )
+
+
+def to_base64(n):
+    """Converts an integer to base 64 because thread IDs were too long"""
+    digits = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_"
+    nk = ""
+    while n:
+        nk += digits[n % 64]
+        n //= 64
+    return nk[::-1]

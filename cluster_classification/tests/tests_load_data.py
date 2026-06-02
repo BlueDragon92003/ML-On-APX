@@ -9,7 +9,7 @@ from pyfakefs import fake_filesystem as fakefs
 from pyfakefs.fake_filesystem_unittest import TestCaseMixin
 import numpy as np
 
-from cluster_classification.classification_logger import CleverLogger
+from cleverlogger import CleverLogger
 from cluster_classification.data import load_data, DatasourceType
 from cluster_classification.dataset_subset import DatasetSubset
 from cluster_classification.signal_type import SignalType

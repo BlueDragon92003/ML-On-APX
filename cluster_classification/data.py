@@ -9,8 +9,8 @@ from torch.utils.data import DataLoader
 from cluster_classification.cluster_classification_dataset import (
     ClusterClassificationDataset,
 )
+from cleverlogger import CleverLogger
 from cluster_classification.dataset_subset import DatasetSubset
-from cluster_classification.classification_logger import CleverLogger
 
 logger = CleverLogger(__name__)
 
