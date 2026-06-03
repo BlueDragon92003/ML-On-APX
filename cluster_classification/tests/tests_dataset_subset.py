@@ -44,18 +44,12 @@ class TestDatasetSubset(unittest.TestCase):
     def test_dataset_subset__instantiation_breaks(self):
         """Tests if an error is raised if a subset is created improperly."""
         logger.log_enter_function("instantiation_breaks")
-        logger.log_open_control_flow("just_bitstring_with")
         with self.assertRaises(ValueError):
             DatasetSubset(0x0)
-        logger.log_close_control_flow("just_bitstring_with")
-        logger.log_open_control_flow("no_signal_type_with")
         with self.assertRaises(ValueError):
             DatasetSubset(0x0, filename="test")
-        logger.log_close_control_flow("just_bitstring_with")
-        logger.log_open_control_flow("no_filename_with")
         with self.assertRaises(ValueError):
             DatasetSubset(0x0, data_type=SignalType.BACKGROUND)
-        logger.log_close_control_flow("no_filename_with")
         logger.log_enter_function("instantiation_breaks")
 
     @parameterized.expand(

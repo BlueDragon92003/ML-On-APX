@@ -52,16 +52,13 @@ class DatasetSubset:
             data=data,
         )
         self.bitstring = bitstring
-        logger.log_open_control_flow("creation_type_if_statement")
         if data is None:
-            logger.log_control_element("ThenBranch")
             if filename is None:
                 raise ValueError("Must provide a filename")
             if data_type is None:
                 raise ValueError("Must provide a filename")
             self.data = {(filename, data_type)}
         else:
-            logger.log_control_element("ElseBranch")
             self.data = data
         logger.log_exit_function("ds_init")
 
@@ -80,13 +77,13 @@ class DatasetSubset:
         logger.log_enter_function("get_hex")
         bitstring = self.bitstring
         string = ""
-        logger.log_open_control_flow("hex_for_loop")
+        logger.log_preloop("hex_for_loop")
         for _ in range(8):
-            logger.log_open_control_flow("Iteration")
+            logger.log_iteration_head()
             string = hex(bitstring & 0b1111)[2:] + string
             bitstring = bitstring >> 4
-            logger.log_close_control_flow("Iteration")
-        logger.log_close_control_flow("hex_for_loop")
+            logger.log_iteration_tail()
+        logger.log_postloop("hex_for_loop")
         logger.log_function_exit_type("return", retval=string)
         logger.log_exit_function("get_hex")
         return string

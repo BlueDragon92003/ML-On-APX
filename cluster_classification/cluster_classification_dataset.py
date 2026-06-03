@@ -35,26 +35,20 @@ class ClusterClassificationDataset(Dataset):
 
         labels: Dict[SignalType, int] = dict()
         next_label = 0
-        logger.log_open_control_flow("labeling_for_loop")
+        logger.log_preloop("labeling_for_loop")
         for _, signal_type in components:
-            logger.log_open_control_flow("Iteration", signal_type=signal_type)
-            logger.log_open_control_flow("signal_in_labels_if_statement")
+            logger.log_iteration_head(signal_type=signal_type)
             if signal_type not in labels.keys():
-                logger.log_control_element("ThenBranch")
                 labels[signal_type] = next_label
                 self.labels[next_label] = (signal_type, 0)
                 next_label += 1
-            logger.log_close_control_flow("signal_in_labels_if_statement")
-            logger.log_close_control_flow("Iteration")
-        logger.log_close_control_flow("labeling_for_loop")
+            logger.log_iteration_tail()
+        logger.log_postloop("labeling_for_loop")
 
         # Data structure: data [cluster][features]
-        logger.log_open_control_flow("init_for_loop")
+        logger.log_preloop("init_for_loop")
         for filepath, cluster_type in components:
-            logger.log_open_control_flow(
-                "Iteration", filepath=filepath, cluster_type=cluster_type
-            )
-            logger.log_open_control_flow("open_uproot_with")
+            logger.log_iteration_head(filepath=filepath, cluster_type=cluster_type)
             with uproot.open(filepath) as file:
                 tree = file["l1NtupleProducer/linkTree;1"]
                 localdata = np.fromiter(
@@ -74,9 +68,8 @@ class ClusterClassificationDataset(Dataset):
                     curr_len + len(localdata),
                 )
                 data.append(localdata)
-            logger.log_close_control_flow("open_uproot_with")
-            logger.log_close_control_flow("Iteration")
-        logger.log_close_control_flow("init_for_loop")
+            logger.log_iteration_tail()
+        logger.log_postloop("init_for_loop")
         # # General data structure:
         # # data [ SLR/link + feature ][ event ][ card ]
         """
@@ -153,18 +146,13 @@ def get_hcal_location(
     """
     logger.log_enter_function("get_hcal_location", card=card, i_eta=i_eta, i_phi=i_phi)
     link = 5
-    logger.log_open_control_flow("hcal_link_if_ladder")
     if i_eta > 15:
-        logger.log_control_element("i_eta > 15", i_eta=i_eta)
-        logger.log_close_control_flow("hcal_link_if_ladder")
         logger.log_function_exit_type("return", retval=None)
         logger.log_exit_function("get_hcal_location")
         return None
     elif i_eta > 7:
-        logger.log_control_element("i_eta > 7", i_eta=i_eta)
         link += 1
         i_eta += -8  # index 0 of Link 6/8 is i_eta = 8
-    logger.log_close_control_flow("hcal_link_if_ladder")
 
     high_link = i_phi + 6 * ((card % 4 - 1) // 2 % 2)
     # 1(True) if Links 5/6 start with 2, 0(False) otherwise
@@ -211,13 +199,13 @@ def cluster_generator(
         label=label,
         num_events=num_events,
     )
-    logger.log_open_control_flow("cluster_for_loops")
+    logger.log_preloop("cluster_for_loops")
     for event in range(num_events):
         for card in range(24):
             for slr in range(4):
                 for cluster in range(9):
-                    logger.log_open_control_flow(
-                        "Iteration", event=event, card=card, slr=slr, cluster=cluster
+                    logger.log_iteration_head(
+                        event=event, card=card, slr=slr, cluster=cluster
                     )
                     # cluster i_eta and i_phi are in crystal;
                     # everyhting else is in tower
@@ -233,14 +221,11 @@ def cluster_generator(
                     # Energy can be left in its integer format; the specific
                     # values don't matter so much as the scale
 
-                    logger.log_open_control_flow("is_cluster_if_statement")
                     if cluster_et == 0:
-                        logger.log_control_element("ThenBranch")
                         # Not a cluster
-                        logger.log_close_control_flow("is_cluster_if_statement")
-                        logger.log_control_element("Continue")
+                        logger.log_iteration_exit("continue")
+                        logger.log_iteration_tail()
                         continue
-                    logger.log_close_control_flow("is_cluster_if_statement")
 
                     ecal_tower = get_ecal_tower(slr, i_eta, i_phi)
                     hcal_info = get_hcal_location(card, i_eta, i_phi)
@@ -248,10 +233,8 @@ def cluster_generator(
 
                     hcal_et = -1
                     hcal_fb = -1
-                    logger.log_open_control_flow("hcal_info_exists_if_statement")
                     if hcal_info:
                         # HCAL information exists
-                        logger.log_control_element("ThenBracnh")
                         (hcal_tower, link) = hcal_info
                         hcal_et = from_tree(
                             f"HCAL{link}_tower_et", event, card, hcal_tower
@@ -259,9 +242,10 @@ def cluster_generator(
                         hcal_fb = from_tree(
                             f"HCAL{link}_tower_fb", event, card, hcal_tower
                         )
-                    logger.log_close_control_flow("hcal_info_exists_if_statement")
 
-                    logger.log_close_control_flow("Iteration")
+                    logger.log_iteration_exit("yield")
+                    logger.log_iteration_tail()
+                    logger.log_postloop("cluster_for_loops")
                     logger.log_function_exit_type("yield")
                     logger.log_exit_function("cluster_generator")
                     yield [
@@ -300,7 +284,8 @@ def cluster_generator(
                         int(label),
                     ]
                     logger.log_enter_function("cluster_generator")
-    logger.log_close_control_flow("cluster_for_loops")
+                    logger.log_preloop("cluster_for_loops")
+    logger.log_postloop("cluster_for_loops")
     logger.log_exit_function("cluster_generator")
 
 

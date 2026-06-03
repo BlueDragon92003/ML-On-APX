@@ -29,51 +29,53 @@ class TestClusterClassificationDataset(unittest.TestCase):
     def test_ccd__get_ecal_tower__in_bounds(self):
         """Tests if `get_ecal_tower` produces valid indices on valid input."""
         logger.log_enter_function("get_ecal_tower_in_bounds")
-        logger.log_open_control_flow("i_phi_for_loop")
+        logger.log_preloop("i_phi_for_loop")
         for i_phi in range(6):
-            logger.log_control_element("Iteration", i_phi=i_phi)
+            logger.log_iteration_head(i_phi=i_phi)
             # {0,1}
-            logger.log_open_control_flow("i_eta_for_loop")
+            logger.log_preloop("i_eta_for_loop")
             for i_eta in range(2):
-                logger.log_control_element("Iteration", i_eta=i_eta)
+                logger.log_iteration_head(i_eta=i_eta)
                 slr0 = cluster_classification_dataset.get_ecal_tower(0, i_eta, i_phi)
                 self.assertIs(type(slr0), int)
                 self.assertLess(slr0, 12)  # SLR0 has only 12 towers
                 self.assertGreaterEqual(slr0, 0)
-            logger.log_close_control_flow("i_eta_for_loop")
+                logger.log_iteration_tail()
+            logger.log_postloop("i_eta_for_loop")
 
-            logger.log_open_control_flow("slr_i_eta_for_loops")
+            logger.log_preloop("slr_i_eta_for_loops")
             for slr in range(3):
                 # {2,3,4,5,6}
                 # {7,8,9,10,11}
                 # {12,13,14,15,16}
                 for i_eta in range(2 + 5 * slr, 7 + 5 * slr):
-                    logger.log_control_element("Iteration", slr=slr, i_eta=i_eta)
+                    logger.log_iteration_head(slr=slr, i_eta=i_eta)
                     slri = cluster_classification_dataset.get_ecal_tower(
                         slr + 1, i_eta, i_phi
                     )
                     self.assertIs(type(slri), int)
                     self.assertLess(slri, 30)
                     self.assertGreaterEqual(slri, 0)
-            logger.log_close_control_flow("slr_i_eta_for_loop")
+                    logger.log_iteration_tail()
+            logger.log_postloop("slr_i_eta_for_loop")
 
         logger.log_exit_function("get_ecal_tower_in_bounds")
 
     def test_ccd__get_hcal_location__in_bounds(self):
         """Tests if `get_hcal_location` produces valid indices on valid input."""
         logger.log_enter_function("get_ecal_tower_in_bounds")
-        logger.log_open_control_flow("i_phi_card_for_loops")
+        logger.log_preloop("i_phi_card_for_loops")
         for i_phi in range(6):
             for card in range(24):
-                logger.log_open_control_flow("Iteration", i_phi=i_phi, card=card)
+                logger.log_iteration_head(i_phi=i_phi, card=card)
                 # All i_eta > 17 should return None
                 info = cluster_classification_dataset.get_hcal_location(card, 17, i_phi)
                 self.assertIsNone(info)
 
                 # If i_eta < 8, then data should be in links 5 or 7
-                logger.log_open_control_flow("small_i_eta_for_loop")
+                logger.log_preloop("small_i_eta_for_loop")
                 for i_eta in range(8):
-                    logger.log_open_control_flow("Iteration", i_eta=i_eta)
+                    logger.log_iteration_head(i_eta=i_eta)
                     info = cluster_classification_dataset.get_hcal_location(
                         card, i_eta, i_phi
                     )
@@ -84,13 +86,13 @@ class TestClusterClassificationDataset(unittest.TestCase):
                     self.assertLess(tower, 32)
                     self.assertGreaterEqual(tower, 0)
                     self.assertIn(link, {5, 7})
-                    logger.log_close_control_flow("Iteration")
-                logger.log_close_control_flow("small_i_eta_for_loop")
+                    logger.log_iteration_tail()
+                logger.log_postloop("small_i_eta_for_loop")
 
                 # if i_eta > 7, data should be in links 6 or 8
-                logger.log_open_control_flow("large_i_eta_for_loop")
+                logger.log_preloop("large_i_eta_for_loop")
                 for i_eta in range(8, 16):
-                    logger.log_open_control_flow("Iteration", i_eta=i_eta)
+                    logger.log_iteration_head(i_eta=i_eta)
                     info = cluster_classification_dataset.get_hcal_location(
                         card, i_eta, i_phi
                     )
@@ -101,10 +103,10 @@ class TestClusterClassificationDataset(unittest.TestCase):
                     self.assertLess(tower, 32)
                     self.assertGreaterEqual(tower, 0)
                     self.assertIn(link, {6, 8})
-                    logger.log_close_control_flow("Iteration")
-                logger.log_close_control_flow("large_i_eta_for_loop")
-                logger.log_close_control_flow("Iteration")
-        logger.log_close_control_flow("i_phi_card_for_loops")
+                    logger.log_iteration_tail()
+                logger.log_postloop("large_i_eta_for_loop")
+                logger.log_iteration_tail()
+        logger.log_postloop("i_phi_card_for_loops")
 
     @parameterized.expand(
         [
@@ -1134,22 +1136,18 @@ class TestClusterClassificationDataset(unittest.TestCase):
             from_tree, SignalType.BACKGROUND, 2
         )
 
-        logger.log_open_control_flow("cluster_counting_for_loop")
+        logger.log_preloop("cluster_counting_for_loop")
         for i in range(6):
-            logger.log_open_control_flow("Iteration", i=i)
-            logger.log_open_control_flow("data_append_try")
+            logger.log_iteration_head(i=i)
             try:
                 data.append(next(generator))
             except StopIteration:
                 self.fail(f"Only {i} clusters extracted; expected 6.")
-            logger.log_close_control_flow("data_append_try")
-            logger.log_close_control_flow("Iteration")
-        logger.log_close_control_flow("cluster_counting_for_loop")
+            logger.log_iteration_tail()
+        logger.log_postloop("cluster_counting_for_loop")
 
-        logger.log_open_control_flow("stop_iteration_with")
         with self.assertRaises(StopIteration):
             next(generator)
-        logger.log_close_control_flow("stop_iteration_with")
 
         cluster_0_expected = [  # extra zeros from dead data in provided file
             1,

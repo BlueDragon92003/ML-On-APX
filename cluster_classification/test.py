@@ -49,19 +49,17 @@ def test_loop(
     # also serves to reduce unnecessary gradient computations and memory usage
     #       for tensors with requires_grad=True
 
-    logger.log_open_control_flow("with_torch_no_grad")
     with torch.no_grad():
-        logger.log_open_control_flow("testing_for_loop")
+        logger.log_preloop("testing_for_loop")
         for data, label in dataloader:
-            logger.log_open_control_flow("Iteration")
+            logger.log_iteration_head(data=data, label=label)
             data = data.to(device)
             label = label.to(device)
             pred = model(data)
             test_loss += loss_fn(pred, label).item()
             correct += (pred.argmax(1) == label).type(torch.float).sum().item()
-            logger.log_close_control_flow("Iteration")
-        logger.log_close_control_flow("testing_for_loop")
-    logger.log_close_control_flow("with_torch_no_grad")
+            logger.log_iteration_tail()
+        logger.log_postloop("testing_for_loop")
 
     test_loss /= num_batches
     correct /= size

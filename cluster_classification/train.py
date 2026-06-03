@@ -44,10 +44,10 @@ def train_loop(
     model.to(device)
 
     # Loop through each batch of data from the dataloader.
-    logger.log_open_control_flow("training_for_loop")
+    logger.log_preloop("training_for_loop")
     #
     for batch_num, batch_items in enumerate(dataloader):
-        logger.log_open_control_flow("iteration", batch_num=batch_num)
+        logger.log_iteration_head(batch_num=batch_num)
         # Move data to GPU
         data = batch_items[:, :-1].to(device)
         labels = batch_items[:, -1].to(device)
@@ -59,8 +59,8 @@ def train_loop(
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
-        logger.log_close_control_flow("Iteration")
-    logger.log_close_control_flow("training_for_loop")
+        logger.log_iteration_tail()
+    logger.log_postloop("training_for_loop")
     logger.log_exit_function("train_loop_fn")
 
 

@@ -114,7 +114,6 @@ class ConsoleFormatter(logging.Formatter):
 class CleverLogger:
     """A less-basic extention to the default python logger."""
 
-    HYPERTRACE = logging.DEBUG - 8  # 2
     TRACE = logging.DEBUG - 5  # 5
     DEBUG = logging.DEBUG  # 10
     INFO = logging.INFO  # 20
@@ -161,39 +160,47 @@ class CleverLogger:
         self.logger.addHandler(console_handler)
 
     # TRACE
-    def log_open_control_flow(self, control_flow_element: str, **kwargs: Any):
-        """Trace entrance into control flow constructs for deep debugging."""
+    def log_preloop(self, loop_name_and_type: str):
         self.logger.log(
-            self.HYPERTRACE,
-            control_flow_element,
+            self.TRACE,
+            loop_name_and_type,
             extra={
                 "type": RecordShape.OPEN,
-                "title": "Entering `{name}`.",
-                "arguments": kwargs,
-            },
-        )
-
-    def log_close_control_flow(
-        self,
-        control_flow_element: str,
-    ):
-        """Trace exit from control flow constructs for deep debugging."""
-        self.logger.log(
-            self.HYPERTRACE,
-            control_flow_element,
-            extra={
-                "type": RecordShape.CLOSE,
-                "title": "Leaving `{name}`.",
+                "title": "Starting loop `{name}`...",
                 "arguments": None,
             },
         )
 
-    def log_control_element(self, control_flow_element: str, **kwargs: Any):
-        """Trace control flow modifiers (case, break, etc.) for deep debugging."""
+    def log_postloop(self, loop_name_and_type: str):
         self.logger.log(
-            self.HYPERTRACE,
-            control_flow_element,
-            extra={"type": RecordShape.SINGLE, "title": "{name}.", "arguments": kwargs},
+            self.TRACE,
+            loop_name_and_type,
+            extra={
+                "type": RecordShape.CLOSE,
+                "title": "Loop `{name}` finished.",
+                "arguments": None,
+            },
+        )
+
+    def log_iteration_head(self, **kwargs: Any):
+        self.logger.log(
+            self.TRACE,
+            "iteration",
+            extra={"type": RecordShape.OPEN, "title": "Iteration", "arguments": kwargs},
+        )
+
+    def log_iteration_tail(self):
+        self.logger.log(
+            self.TRACE,
+            "iteration",
+            extra={"type": RecordShape.CLOSE, "title": "Iteration", "arguments": None},
+        )
+
+    def log_iteration_exit(self, type: str):
+        self.logger.log(
+            self.TRACE,
+            type,
+            extra={"type": RecordShape.SINGLE, "title": "{name}", "arguments": None},
         )
 
     def log_micro_function(
@@ -203,11 +210,10 @@ class CleverLogger:
         self.logger.log(
             self.TRACE,
             function_name,
-            kwargs,
             extra={
                 "type": RecordShape.SINGLE,
                 "title": "`{name}` executed (" + str(exit_type) + ").",
-                "arguments": None,
+                "arguments": kwargs,
             },
         )
 

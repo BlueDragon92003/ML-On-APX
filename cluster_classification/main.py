@@ -64,9 +64,9 @@ sentinal = True
 epoch = 0
 # Epoch loop
 logger.log_start_major_process("train_test_loop")
-logger.log_open_control_flow("epoch_while_loop")
+logger.log_preloop("epoch_while_loop")
 while sentinal:
-    logger.log_open_control_flow("Iteration", Epoch=epoch)
+    logger.log_iteration_head(Epoch=epoch)
     logger.log_start_minor_process("training")
     # Run through the training data once
     train_loop(device, training_data, model, loss_fn, optimizer)
@@ -78,9 +78,7 @@ while sentinal:
     logger.log_end_minor_process("testing")
 
     # If the epoch is a checpoint epoch,
-    logger.log_open_control_flow("checkpoint_if_statement")
     if epoch % CHECKPOINT_RATE == 0:
-        logger.log_control_element("ThenBranch")
         logger.log_notice(
             "Checkpoint reached", checkpoint=(epoch // CHECKPOINT_RATE), status=string
         )
@@ -88,28 +86,21 @@ while sentinal:
         torch.save(
             model, f"checkpoint-{(epoch // CHECKPOINT_RATE):>05d}-classification.pth"
         )
-        logger.log_open_control_flow("accuracy_threshold_if_statement")
         if acc > STOP_THRESHOLD:
-            logger.log_control_element("ThenBranch")
             # If the accuracy is hight enough, exit training
             logger.log_notice(f"Accuracy threshold reached: {acc}")
             sentinal = False
-        logger.log_close_control_flow("accuracy_threshold_if_statement")
 
-        logger.log_open_control_flow("growth_threshold_if_statement")
         if acc - last_acc < GROWTH_THRESHOLD:
-            logger.log_control_element("ThenBranch")
             # If the accuacy has not grown appreciably since last test, exit
             # training
             logger.log_notice(f"Accuracy growth limit reached: {acc - last_acc}")
             sentinal = False
-        logger.log_close_control_flow("growth_threshold_if_statement")
 
         last_acc = acc
-    logger.log_close_control_flow("checkpoint_if_statement")
     epoch = epoch + 1
-    logger.log_close_control_flow("Iteration")
-logger.log_close_control_flow("epoch_while_loop")
+    logger.log_iteration_tail()
+logger.log_postloop("epoch_while_loop")
 logger.log_end_major_process("train_test_loop")
 
 # Softlink the last checkpoint
