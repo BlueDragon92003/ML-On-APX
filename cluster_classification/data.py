@@ -26,6 +26,7 @@ class DatasourceType(Enum):
 
 def get_data(
     datasource_type: DatasourceType,
+    datasets: DatasetSubset,
     batch_size: int,
 ) -> DataLoader:
     """Return a PyTorch DataLoader with a specified batch size and datatype.
@@ -38,10 +39,13 @@ def get_data(
     - A PyTorch dataloader that serves cluster classification data.
     """
     logger.log_enter_function(
-        "get_data", datasource_type=datasource_type, batch_size=batch_size
+        "get_data",
+        datasource_type=datasource_type,
+        datasets=datasets,
+        batch_size=batch_size,
     )
 
-    data = load_data(datasource_type, DatasetSubset.DOUBLE_ELECTRON)
+    data = load_data(datasource_type, datasets)
     data_loader = DataLoader(
         # The data to load
         data,

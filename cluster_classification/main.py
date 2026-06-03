@@ -1,3 +1,4 @@
+from cluster_classification.dataset_subset import DatasetSubset
 import os
 
 import torch
@@ -8,6 +9,10 @@ from cluster_classification.model import Model
 from cluster_classification.test import test_loop
 from cluster_classification.train import train_loop
 from cluster_classification.data import get_data, DatasourceType
+
+if __name__ != "__main__":
+    print("Attempted to load main.py as a module, not run it as a script")
+    exit(-1)
 
 logger = CleverLogger(__name__)
 
@@ -40,11 +45,15 @@ loss_fn.to(device)
 
 # Collect data
 logger.log_start_major_process("load_training_data")
-training_data = get_data(DatasourceType.TRAINING, BATCH_SIZE)
+training_data = get_data(
+    DatasourceType.TRAINING, DatasetSubset.DOUBLE_ELECTRON, BATCH_SIZE
+)
 logger.log_end_major_process("load_training_data")
 
 logger.log_start_major_process("load_testing_data")
-testing_data = get_data(DatasourceType.TESTING, BATCH_SIZE)
+testing_data = get_data(
+    DatasourceType.TESTING, DatasetSubset.DOUBLE_ELECTRON, BATCH_SIZE
+)
 logger.log_end_major_process("load_testing_data")
 
 # Stochastic Gradient Descent
