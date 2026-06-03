@@ -45,11 +45,12 @@ def train_loop(
 
     # Loop through each batch of data from the dataloader.
     logger.log_open_control_flow("training_for_loop")
-    for batch_num, (data, labels) in enumerate(dataloader):
+    #
+    for batch_num, batch_items in enumerate(dataloader):
         logger.log_open_control_flow("iteration", batch_num=batch_num)
         # Move data to GPU
-        data = data.to(device)
-        labels = labels.to(device)
+        data = batch_items[:, :-1].to(device)
+        labels = batch_items[:, -1].to(device)
         # Run the model and calculate loss for all items in the batch
         pred = model(data)
         loss = loss_fn(pred, labels)

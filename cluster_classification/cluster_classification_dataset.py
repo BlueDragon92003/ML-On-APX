@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import Set, Tuple, List, Union, Iterator
+from typing import Set, Tuple, List, Union, Iterator, Dict
 
 import numpy as np
 import uproot
@@ -19,6 +19,8 @@ class ClusterClassificationDataset(Dataset):
     Extends: `torch.utils.data.IterableDataset`
     """
 
+    labels: Dict[int, Tuple[SignalType, int]]
+
     def __init__(self, components: Set[Tuple[str, SignalType]]):
         """Generate a CCD using the provided file names and signal types.
 
@@ -30,6 +32,22 @@ class ClusterClassificationDataset(Dataset):
         super(ClusterClassificationDataset, self).__init__()
         logger.log_enter_function("ccd_init", components=components)
         data = []
+
+        labels: Dict[SignalType, int] = dict()
+        next_label = 0
+        logger.log_open_control_flow("labeling_for_loop")
+        for _, signal_type in components:
+            logger.log_open_control_flow("Iteration", signal_type=signal_type)
+            logger.log_open_control_flow("signal_in_labels_if_statement")
+            if signal_type not in labels.keys():
+                logger.log_control_element("ThenBranch")
+                labels[signal_type] = next_label
+                self.labels[next_label] = (signal_type, 0)
+                next_label += 1
+            logger.log_close_control_flow("signal_in_labels_if_statement")
+            logger.log_close_control_flow("Iteration")
+        logger.log_close_control_flow("labeling_for_loop")
+
         # Data structure: data [cluster][features]
         logger.log_open_control_flow("init_for_loop")
         for filepath, cluster_type in components:
@@ -39,34 +57,39 @@ class ClusterClassificationDataset(Dataset):
             logger.log_open_control_flow("open_uproot_with")
             with uproot.open(filepath) as file:
                 tree = file["l1NtupleProducer/linkTree;1"]
-                data.append(
-                    np.fromiter(
-                        cluster_generator(
-                            lambda feature, event, card, final: tree[feature].array()[
-                                event
-                            ][card][final],
-                            cluster_type,
-                            num_events=len(tree["SLR0_cluster_eta"].array()),
-                        ),
-                        (int, 15),
-                    )
+                localdata = np.fromiter(
+                    cluster_generator(
+                        lambda feature, event, card, final: tree[feature].array()[
+                            event
+                        ][card][final],
+                        labels[cluster_type],
+                        num_events=len(tree["SLR0_cluster_eta"].array()),
+                    ),
+                    (int, 15),
                 )
+                # increase size
+                curr_len = self.labels[labels[cluster_type]][1]
+                self.labels[labels[cluster_type]] = (
+                    cluster_type,
+                    curr_len + len(localdata),
+                )
+                data.append(localdata)
             logger.log_close_control_flow("open_uproot_with")
             logger.log_close_control_flow("Iteration")
         logger.log_close_control_flow("init_for_loop")
         # # General data structure:
         # # data [ SLR/link + feature ][ event ][ card ]
         """
-            0: cluster_et
-            1: cluster_seed
-            2: cluster_et5x5
-            3: cluster_et2x5
-            4: cluster_timing
-            5: cluster_spike
-            6: cluster_brems
-            7: cluster_satur
-            8: cluster_spare
-            9: ecal_tower_et
+        0: cluster_et
+        1: cluster_seed
+        2: cluster_et5x5
+        3: cluster_et2x5
+        4: cluster_timing
+        5: cluster_spike
+        6: cluster_brems
+        7: cluster_satur
+        8: cluster_spare
+        9: ecal_tower_et
         10: ecal_tower_timing
         11: ecal_tower_spike
         12: hcal_et
@@ -169,7 +192,7 @@ def get_hcal_location(
 
 def cluster_generator(
     from_tree: Callable[[str, int, int, int], int],
-    signal_type: SignalType,
+    label: int,
     num_events: int,
 ) -> Iterator[List[int]]:
     """Generates a tuple of all datapoints corresponding to a cluster.
@@ -185,7 +208,7 @@ def cluster_generator(
     logger.log_enter_function(
         "cluster_generator",
         from_tree=from_tree,
-        signal_type=signal_type,
+        label=label,
         num_events=num_events,
     )
     logger.log_open_control_flow("cluster_for_loops")
@@ -274,7 +297,7 @@ def cluster_generator(
                         ),
                         hcal_et,
                         hcal_fb,
-                        int(signal_type),
+                        int(label),
                     ]
                     logger.log_enter_function("cluster_generator")
     logger.log_close_control_flow("cluster_for_loops")
