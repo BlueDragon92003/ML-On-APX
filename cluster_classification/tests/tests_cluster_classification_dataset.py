@@ -1,3 +1,4 @@
+from cluster_classification.signal_type import SignalType
 from typing import Tuple
 import unittest
 
@@ -5,7 +6,6 @@ from parameterized import parameterized
 
 from cleverlogger import CleverLogger
 from cluster_classification import cluster_classification_dataset
-from cluster_classification.signal_type import SignalType
 
 
 logger = CleverLogger(__name__)
@@ -1132,9 +1132,7 @@ class TestClusterClassificationDataset(unittest.TestCase):
         from_tree = TestClusterClassificationDataset.__data_for__test_ccd__cluster_generator__correctness
 
         data = []
-        generator = cluster_classification_dataset.cluster_generator(
-            from_tree, SignalType.BACKGROUND, 2
-        )
+        generator = cluster_classification_dataset.cluster_generator(from_tree, 0, 2)
 
         logger.log_preloop("cluster_counting_for_loop")
         for i in range(6):
@@ -1164,7 +1162,7 @@ class TestClusterClassificationDataset(unittest.TestCase):
             12,
             13,
             14,
-            SignalType.BACKGROUND,
+            0,
         ]
 
         cluster_1_expected = [  # extra zeros from dead data in provided file
@@ -1182,7 +1180,7 @@ class TestClusterClassificationDataset(unittest.TestCase):
             41,
             43,
             47,
-            SignalType.BACKGROUND,
+            0,
         ]
 
         cluster_2_expected = [  # extra zeros from dead data in provided file
@@ -1200,7 +1198,7 @@ class TestClusterClassificationDataset(unittest.TestCase):
             16,
             -23,
             -7,
-            SignalType.BACKGROUND,
+            0,
         ]
 
         cluster_3_expected = [  # extra zeros from dead data in provided file
@@ -1218,7 +1216,7 @@ class TestClusterClassificationDataset(unittest.TestCase):
             13,
             7,
             14,
-            SignalType.BACKGROUND,
+            0,
         ]
 
         cluster_4_expected = [  # extra zeros from dead data in provided file
@@ -1236,7 +1234,7 @@ class TestClusterClassificationDataset(unittest.TestCase):
             3,
             2,
             1,
-            SignalType.BACKGROUND,
+            0,
         ]
 
         cluster_5_expected = [  # extra zeros from dead data in provided file
@@ -1254,7 +1252,7 @@ class TestClusterClassificationDataset(unittest.TestCase):
             10,
             -1,
             -1,
-            SignalType.BACKGROUND,
+            0,
         ]
 
         self.assertIn(cluster_0_expected, data)
@@ -1264,6 +1262,25 @@ class TestClusterClassificationDataset(unittest.TestCase):
         self.assertIn(cluster_4_expected, data)
         self.assertIn(cluster_5_expected, data)
         logger.log_enter_function("cluster_generator_correctness")
+
+    def test_ccd__get_labels(self):
+        """Test that the label reducer works as anticipated."""
+        signal_to_label, labels = cluster_classification_dataset.get_labels(
+            {
+                ("", SignalType.BACKGROUND),
+                ("", SignalType.HADRONIC),
+                ("", SignalType.BACKGROUND),
+            }
+        )
+
+        self.assertIn(SignalType.BACKGROUND, signal_to_label.keys())
+        self.assertIn(SignalType.HADRONIC, signal_to_label.keys())
+        self.assertEqual(
+            labels[signal_to_label[SignalType.BACKGROUND]], (SignalType.BACKGROUND, 0)
+        )
+        self.assertEqual(
+            labels[signal_to_label[SignalType.HADRONIC]], (SignalType.HADRONIC, 0)
+        )
 
 
 logger.log_end_load_module()

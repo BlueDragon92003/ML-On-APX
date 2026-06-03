@@ -33,17 +33,7 @@ class ClusterClassificationDataset(Dataset):
         logger.log_enter_function("ccd_init", components=components)
         data = []
 
-        labels: Dict[SignalType, int] = dict()
-        next_label = 0
-        logger.log_preloop("labeling_for_loop")
-        for _, signal_type in components:
-            logger.log_iteration_head(signal_type=signal_type)
-            if signal_type not in labels.keys():
-                labels[signal_type] = next_label
-                self.labels[next_label] = (signal_type, 0)
-                next_label += 1
-            logger.log_iteration_tail()
-        logger.log_postloop("labeling_for_loop")
+        signal_to_label, self.labels = get_labels(components)
 
         # Data structure: data [cluster][features]
         logger.log_preloop("init_for_loop")
@@ -56,14 +46,14 @@ class ClusterClassificationDataset(Dataset):
                         lambda feature, event, card, final: tree[feature].array()[
                             event
                         ][card][final],
-                        labels[cluster_type],
+                        signal_to_label[cluster_type],
                         num_events=len(tree["SLR0_cluster_eta"].array()),
                     ),
                     (int, 15),
                 )
                 # increase size
-                curr_len = self.labels[labels[cluster_type]][1]
-                self.labels[labels[cluster_type]] = (
+                curr_len = self.labels[signal_to_label[cluster_type]][1]
+                self.labels[signal_to_label[cluster_type]] = (
                     cluster_type,
                     curr_len + len(localdata),
                 )
@@ -287,6 +277,28 @@ def cluster_generator(
                     logger.log_preloop("cluster_for_loops")
     logger.log_postloop("cluster_for_loops")
     logger.log_exit_function("cluster_generator")
+
+
+def get_labels(
+    components: Set[Tuple[str, SignalType]],
+) -> Tuple[Dict[SignalType, int], Dict[int, Tuple[SignalType, int]]]:
+    """Create a set of contiguous integer labels for each signal type, with additional data storage."""
+    logger.log_enter_function("get_lables", components=components)
+    signal_to_label: Dict[SignalType, int] = dict()
+    labels: Dict[int, Tuple[SignalType, int]] = dict()
+    next_label = 0
+    logger.log_preloop("labeling_for_loop")
+    for _, signal_type in components:
+        logger.log_iteration_head(signal_type=signal_type)
+        if signal_type not in signal_to_label.keys():
+            signal_to_label[signal_type] = next_label
+            labels[next_label] = (signal_type, 0)
+            next_label += 1
+        logger.log_iteration_tail()
+    logger.log_postloop("labeling_for_loop")
+    logger.log_function_exit_type("return", retval=(signal_to_label, labels))
+    logger.log_exit_function("get_labels")
+    return signal_to_label, labels
 
 
 logger.log_end_load_module()
