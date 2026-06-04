@@ -83,17 +83,17 @@ class TestLoadData(unittest.TestCase, TestCaseMixin):
         cls.dirs["root"] = cls.ffs.create_dir(cls.paths["root"])
         cls.dirs["pickle"] = cls.ffs.create_dir(cls.paths["pickle"])
 
-        cls.datasets["data_1"] = DatasetSubset(
-            0b0001, "data_1.root", SignalType.BACKGROUND
+        cls.datasets["data_1"] = DatasetSubset.new_dataset(
+            0b0001, ["data_1.root"], SignalType.BACKGROUND
         )
-        cls.datasets["data_2"] = DatasetSubset(
-            0b0010, "data_2.root", SignalType.BACKGROUND
+        cls.datasets["data_2"] = DatasetSubset.new_dataset(
+            0b0010, ["data_2.root"], SignalType.BACKGROUND
         )
-        cls.datasets["data_3"] = DatasetSubset(
-            0b0100, "data_3.root", SignalType.BACKGROUND
+        cls.datasets["data_3"] = DatasetSubset.new_dataset(
+            0b0100, ["data_3.root"], SignalType.BACKGROUND
         )
-        cls.datasets["data_n"] = DatasetSubset(
-            0b1000, "data_n.root", SignalType.BACKGROUND
+        cls.datasets["data_n"] = DatasetSubset.new_dataset(
+            0b1000, ["data_n.root"], SignalType.BACKGROUND
         )
 
         # Age 0
