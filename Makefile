@@ -52,16 +52,16 @@ run-tests:
 	python3 run_tests.py
 
 clean-identify:
-	./bash/clean-identification.sh
+	bash/clean-identification.sh
 
 clean-classify:
-	./bash/clean-classification.sh
+	bash/clean-classification.sh
 
 train-identify:
-	python3 "./cluster-identification/main.py"
+	python3 "cluster_identification/main.py"
 
 train-classify:
-	python3 "./cluster-classification/main.py"
+	python3 "cluster_classification/main.py"
 
 hls4ml-translate: models/current-classification.pth models/current-identification.pth
 	@echo "This process is currently unsupported."
