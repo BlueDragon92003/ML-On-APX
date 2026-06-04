@@ -57,9 +57,6 @@ clean-identify:
 clean-classify:
 	./bash/clean-classification.sh
 
-generate-data: data/PLACEHOLDER.csv
-	@echo "This process is currently unsupported."
-
 train-identify: generate-data
 	python3 "./cluster-identification/main.py"
 
