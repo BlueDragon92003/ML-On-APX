@@ -1,9 +1,12 @@
+from typing import Tuple
 import os
 import pathlib
 import pickle
 import textwrap
 from enum import Enum
 
+from torch import Tensor, log
+from torch.nn.functional import normalize
 from torch.utils.data import DataLoader
 
 from cluster_classification.cluster_classification_dataset import (
@@ -28,7 +31,7 @@ def get_data(
     datasource_type: DatasourceType,
     datasets: DatasetSubset,
     batch_size: int,
-) -> DataLoader:
+) -> Tuple[DataLoader, Tensor]:
     """Return a PyTorch DataLoader with a specified batch size and datatype.
 
     Arguments:
@@ -46,6 +49,12 @@ def get_data(
     )
 
     data = load_data(datasource_type, datasets)
+
+    weights = [0 for _ in data.labels.keys()]
+    for key in data.labels.keys():
+        weights[key] = data.labels[key][1]
+    weights = normalize(-1 * log(normalize(Tensor(weights), dim=0)))
+
     data_loader = DataLoader(
         # The data to load
         data,
@@ -60,7 +69,7 @@ def get_data(
 
     logger.log_function_exit_type("return", retval=data_loader)
     logger.log_exit_function("get_data")
-    return data_loader
+    return data_loader, weights
 
 
 def load_data(

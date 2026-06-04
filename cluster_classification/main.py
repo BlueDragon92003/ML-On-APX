@@ -39,22 +39,22 @@ else:
 
 logger.log_notice(f"Using {device.type} device")
 
-# Set loss function
-loss_fn = nn.CrossEntropyLoss()
-loss_fn.to(device)
-
 # Collect data
 logger.log_start_major_process("load_training_data")
-training_data = get_data(
+training_data, weights = get_data(
     DatasourceType.TRAINING, DatasetSubset.DOUBLE_ELECTRON, BATCH_SIZE
 )
 logger.log_end_major_process("load_training_data")
 
 logger.log_start_major_process("load_testing_data")
-testing_data = get_data(
+testing_data, _ = get_data(
     DatasourceType.TESTING, DatasetSubset.DOUBLE_ELECTRON, BATCH_SIZE
 )
 logger.log_end_major_process("load_testing_data")
+
+# Set loss function
+loss_fn = nn.CrossEntropyLoss(weight=weights)
+loss_fn.to(device)
 
 # Stochastic Gradient Descent
 optimizer = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE)
