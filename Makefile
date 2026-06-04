@@ -57,7 +57,7 @@ clean-identify:
 clean-classify:
 	./bash/clean-classification.sh
 
-train-identify: generate-data
+train-identify:
 	python3 "./cluster-identification/main.py"
 
 train-classify: generate-data
