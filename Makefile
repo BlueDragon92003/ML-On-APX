@@ -60,7 +60,7 @@ clean-classify:
 train-identify:
 	python3 "./cluster-identification/main.py"
 
-train-classify: generate-data
+train-classify:
 	python3 "./cluster-classification/main.py"
 
 hls4ml-translate: models/current-classification.pth models/current-identification.pth
