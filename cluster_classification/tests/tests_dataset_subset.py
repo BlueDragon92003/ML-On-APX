@@ -29,27 +29,17 @@ class TestDatasetSubset(unittest.TestCase):
     - `test_dataset_subset__combo__len`
     """
 
-    def test_dataset_subset__instantiation_data(self):
-        """Tests for errors when a subset is created using data."""
-        logger.log_enter_function("data_instantiation")
-        DatasetSubset(0x0, data={("test", SignalType.HADRONIC)})
-        logger.log_exit_function("data_instantiation")
-
-    def test_dataset_subset__instantiation_file_type(self):
+    def test_dataset_subset__instantiation(self):
         """Tests for errors when a subset is created using files and types"""
-        logger.log_enter_function("file_instantiation")
-        DatasetSubset(0x0, filename="test", data_type=SignalType.HADRONIC)
-        logger.log_exit_function("file_instantiation")
+        logger.log_enter_function("instantiation")
+        DatasetSubset.new_dataset(0x0, ["test"], SignalType.HADRONIC)
+        logger.log_exit_function("instantiation")
 
     def test_dataset_subset__instantiation_breaks(self):
         """Tests if an error is raised if a subset is created improperly."""
         logger.log_enter_function("instantiation_breaks")
-        with self.assertRaises(ValueError):
-            DatasetSubset(0x0)
-        with self.assertRaises(ValueError):
-            DatasetSubset(0x0, filename="test")
-        with self.assertRaises(ValueError):
-            DatasetSubset(0x0, data_type=SignalType.BACKGROUND)
+        with self.assertRaises(TypeError):
+            DatasetSubset(0x0, None)
         logger.log_enter_function("instantiation_breaks")
 
     @parameterized.expand(
@@ -70,7 +60,7 @@ class TestDatasetSubset(unittest.TestCase):
         logger.log_enter_function(
             "get_hex", name=name, bitstring=bitstring, expected=str
         )
-        sub = DatasetSubset(bitstring, filename="test", data_type=SignalType.HADRONIC)
+        sub = DatasetSubset.new_dataset(bitstring, ["test"], SignalType.HADRONIC)
         self.assertEqual(expected, sub.get_hex())
         logger.log_exit_function("get_hex")
 
@@ -101,7 +91,7 @@ class TestDatasetSubset(unittest.TestCase):
         - `data`: Provided `DatasetSubset` data.
         """
         logger.log_enter_function("get_data", name=name, data=data)
-        sub = DatasetSubset(0, data=data)
+        sub = DatasetSubset._from_raw_components(0, data=data)
         self.assertEqual(data, sub.get_data())
         logger.log_exit_function("get_data")
 
@@ -134,7 +124,7 @@ class TestDatasetSubset(unittest.TestCase):
         - `length`: Expected length of the data.
         """
         logger.log_enter_function("len", name=name, length=length)
-        sub = DatasetSubset(0, data=data)
+        sub = DatasetSubset._from_raw_components(0, data=data)
         self.assertEqual(length, len(sub))
         logger.log_exit_function("len")
 
@@ -160,8 +150,8 @@ class TestDatasetSubset(unittest.TestCase):
         logger.log_enter_function(
             "combo_get_hex", name=name, hex1=hex1, hex2=hex2, expected=expected
         )
-        sub1 = DatasetSubset(hex1, data=set())
-        sub2 = DatasetSubset(hex2, data=set())
+        sub1 = DatasetSubset._from_raw_components(hex1, data=set())
+        sub2 = DatasetSubset._from_raw_components(hex2, data=set())
         sub = sub1 | sub2
         self.assertEqual(expected, sub.get_hex())
         logger.log_exit_function("combo_get_hex")
@@ -192,8 +182,8 @@ class TestDatasetSubset(unittest.TestCase):
         - `data2`: Provided data for the second initial set.
         """
         logger.log_enter_function("combo_get_data", name=name, data1=data1, data2=data2)
-        sub1 = DatasetSubset(0, data=data1)
-        sub2 = DatasetSubset(0, data=data2)
+        sub1 = DatasetSubset._from_raw_components(0, data=data1)
+        sub2 = DatasetSubset._from_raw_components(0, data=data2)
         sub = sub1 | sub2
         expected = data1 | data2
         self.assertEqual(expected, sub.get_data())
@@ -235,8 +225,8 @@ class TestDatasetSubset(unittest.TestCase):
         logger.log_enter_function(
             "combo_get_data", name=name, data1=data1, data2=data2, expected=expected
         )
-        sub1 = DatasetSubset(0, data=data1)
-        sub2 = DatasetSubset(0, data=data2)
+        sub1 = DatasetSubset._from_raw_components(0, data=data1)
+        sub2 = DatasetSubset._from_raw_components(0, data=data2)
         sub = sub1 | sub2
         self.assertEqual(expected, len(sub))
         logger.log_exit_function("combo_get_data")

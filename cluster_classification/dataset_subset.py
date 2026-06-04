@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Tuple, Set, Self, Union
+from typing import Tuple, Set, Self, List
 
 from cleverlogger import CleverLogger
 from cluster_classification.signal_type import SignalType
@@ -10,7 +10,9 @@ logger.log_start_load_module()
 
 
 class DatasetSubset:
-    data: Set[Tuple[str, SignalType]]
+    __create_key = object()
+
+    __data: Set[Tuple[str, SignalType]]
     """Represents a subset of data sources data is pulled from.
 
     Public methods:
@@ -26,9 +28,10 @@ class DatasetSubset:
     def __init__(
         self,
         bitstring: int,
-        filename: Union[str, None] = None,
-        data_type: Union[SignalType, None] = None,
-        data: Union[Set[Tuple[str, SignalType]], None] = None,
+        create_key: object,
+        # filename: Union[str, None] = None,
+        # data_type: Union[SignalType, None] = None,
+        # data: Union[Set[Tuple[str, SignalType]], None] = None,
     ):
         """Create a new subset from a ROOT file and a signal type or data.
 
@@ -47,27 +50,63 @@ class DatasetSubset:
         logger.log_enter_function(
             "ds_init",
             bitstring=bitstring,
-            filename=filename,
-            data_type=data_type,
-            data=data,
+            # filename=filename,
+            # data_type=data_type,
+            # data=data,
         )
+        if create_key is not DatasetSubset.__create_key:
+            raise TypeError(
+                "Please use the new_dataset method to create a Dataset Subset."
+            )
         self.bitstring = bitstring
-        if data is None:
-            if filename is None:
-                raise ValueError("Must provide a filename")
-            if data_type is None:
-                raise ValueError("Must provide a filename")
-            self.data = {(filename, data_type)}
-        else:
-            self.data = data
+        # if data is None:
+        #     if filename is None:
+        #         raise ValueError("Must provide a filename")
+        #     if data_type is None:
+        #         raise ValueError("Must provide a filename")
+        #     self.data = {(filename, data_type)}
+        # else:
+        #     self.data = data
+        self.__data: Set[Tuple[str, SignalType]] = set()
         logger.log_exit_function("ds_init")
+
+    @classmethod
+    def new_dataset(
+        cls, bitstring: int, filenames: List[str], signal_type: SignalType
+    ) -> DatasetSubset:
+        """Construct a new dataset from a list of filenames and a signal type"""
+        logger.log_enter_function("new_dataset")
+        retval = DatasetSubset(bitstring, cls.__create_key)
+        data = set()
+        logger.log_preloop("filenames_for_loop")
+        for filename in filenames:
+            logger.log_iteration_head(filename=filename)
+            data.add((filename, signal_type))
+            logger.log_iteration_tail()
+        logger.log_postloop("filenames_for_loop")
+        retval.__data = data
+        logger.log_function_exit_type("return", retval=retval)
+        logger.log_exit_function("new_dataset")
+        return retval
+
+    @classmethod
+    def _from_raw_components(
+        cls, bitstring: int, data: Set[Tuple[str, SignalType]]
+    ) -> DatasetSubset:
+        """Construct a new dataset from raw data"""
+        logger.log_enter_function("__from_raw_components")
+        retval = DatasetSubset(bitstring, cls.__create_key)
+        retval.__data = data
+        logger.log_function_exit_type("return", retval=retval)
+        logger.log_exit_function("__from_raw_components")
+        return retval
 
     def __or__(self, other: Self) -> DatasetSubset:
         """Combine with another available dataset into a new, larger dataset."""
         logger.log_enter_function("ds_or", other=other)
         bitstring = self.bitstring | other.bitstring
-        data = self.data | other.data
-        retval = DatasetSubset(bitstring, data=data)
+        data = self.__data | other.__data
+        retval = DatasetSubset._from_raw_components(bitstring, data)
         logger.log_function_exit_type("return", retval=retval)
         logger.log_exit_function("ds_or")
         return retval
@@ -91,21 +130,13 @@ class DatasetSubset:
     def get_data(self) -> Set[Tuple[str, SignalType]]:
         """Return all filenames and corresponding signal types in this DsSs."""
         logger.log_micro_function("get_data", "return")
-        return self.data
+        return self.__data
 
     def __len__(self) -> int:
         """Returns the number of datasets in this DsSs"""
-        out = len(self.data)
+        out = len(self.__data)
         logger.log_micro_function("ds_len", "return", retval=out)
         return out
 
-    DOUBLE_ELECTRON: DatasetSubset
-
-
-DatasetSubset.DOUBLE_ELECTRON = DatasetSubset(
-    0b0000_0000_0000_0000_0000_0000_0000_0001,
-    "double_electron.root",
-    SignalType.BACKGROUND,
-)
 
 logger.log_end_load_module()
