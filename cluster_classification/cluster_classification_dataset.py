@@ -1,8 +1,11 @@
+import jaxtyping
 from collections.abc import Callable
-from typing import Set, Tuple, List, Union, Iterator, Dict
+from typing import Set, Tuple, List, Iterator, Dict
 
 import numpy as np
 import uproot
+import jax
+import jax.numpy as jnp
 from torch.utils.data import Dataset
 
 from cleverlogger import CleverLogger
@@ -39,18 +42,15 @@ class ClusterClassificationDataset(Dataset):
         logger.log_preloop("init_for_loop")
         for filepath, cluster_type in components:
             logger.log_iteration_head(filepath=filepath, cluster_type=cluster_type)
+            process_clusters = jax.vmap(process_cluster)
             with uproot.open(filepath) as file:
                 tree = file["l1NtupleProducer/linkTree;1"]
-                localdata = np.fromiter(
-                    cluster_generator(
-                        lambda feature, event, card, final: tree[feature].array()[
-                            event
-                        ][card][final],
-                        signal_to_label[cluster_type],
-                        num_events=len(tree["SLR0_cluster_eta"].array()),
-                    ),
-                    (int, 15),
-                )
+                data = []
+                localdata = []  # TODO remove
+                for cluster in range(9):
+                    # TODO how to turn the tree data into a mega-list of everything to parallelize?
+                    data.append(process_clusters(tree["SLR0_cluster_energy"]))
+
                 # increase size
                 curr_len = self.labels[signal_to_label[cluster_type]][1]
                 self.labels[signal_to_label[cluster_type]] = (
@@ -94,6 +94,7 @@ class ClusterClassificationDataset(Dataset):
         return out
 
 
+@jax.jit
 def get_ecal_tower(slr: int, i_eta: int, i_phi: int) -> int:
     """Calculates the index needed to extract the proper ECALUnclustered data.
 
@@ -105,28 +106,37 @@ def get_ecal_tower(slr: int, i_eta: int, i_phi: int) -> int:
     `i_eta` is correlated with slr and all inputs must respect these brackets.
     This will be changed in the future.
     """
-    logger.log_enter_function("get_ecal_tower", slr=slr, i_eta=i_eta, i_phi=i_phi)
+    # logger.log_enter_function("get_ecal_tower", slr=slr, i_eta=i_eta, i_phi=i_phi)
     tower = 6 * i_eta + i_phi
-    match slr:
-        case 0:
-            pass
-        case 1:
-            tower = tower - 12  # Index 0 in the SLR2 branch is eta=2,
-            #   shifting indices by 12
-        case 2:
-            tower = tower - 42  # 12+30
-        case 3:
-            tower = tower - 72  # i_eta = 16, i_phi = 5 -> index 101
-            #   101 - 72 = 29, the last index in SLR3 :)
+    tower = jax.lax.switch(
+        slr,
+        [
+            lambda tower: tower,
+            lambda tower: tower - 12,
+            lambda tower: tower - 42,
+            lambda tower: tower - 72,
+        ],
+        tower,
+    )
+    # match slr:
+    #     case 0:
+    #         pass
+    #     case 1:
+    #         tower = tower - 12  # Index 0 in the SLR2 branch is eta=2,
+    #         #   shifting indices by 12
+    #     case 2:
+    #         tower = tower - 42  # 12+30
+    #     case 3:
+    #         tower = tower - 72  # i_eta = 16, i_phi = 5 -> index 101
+    #         #   101 - 72 = 29, the last index in SLR3 :)
 
-    logger.log_function_exit_type("return", retval=tower)
-    logger.log_exit_function("get_ecal_tower")
+    # logger.log_function_exit_type("return", retval=tower)
+    # logger.log_exit_function("get_ecal_tower")
     return tower
 
 
-def get_hcal_location(
-    card: int, i_eta: int, i_phi: int
-) -> Union[Tuple[int, int], None]:
+@jax.jit
+def get_hcal_location(card: int, i_eta: int, i_phi: int) -> Tuple[int, int]:
     """Calculates the index to extract the proper HCAL data.
 
     Arguments:
@@ -134,19 +144,27 @@ def get_hcal_location(
     - `i_eta`: The rotational position accessed, in towers, in RCT coordinates.
     - `i_phi`: The horizontal position accessed, in towers, in RCT coordinates.
     """
-    logger.log_enter_function("get_hcal_location", card=card, i_eta=i_eta, i_phi=i_phi)
-    link = 5
-    if i_eta > 15:
-        logger.log_function_exit_type("return", retval=None)
-        logger.log_exit_function("get_hcal_location")
-        return None
-    elif i_eta > 7:
-        link += 1
-        i_eta += -8  # index 0 of Link 6/8 is i_eta = 8
-
+    # logger.log_enter_function("get_hcal_location", card=card, i_eta=i_eta, i_phi=i_phi)
     high_link = i_phi + 6 * ((card % 4 - 1) // 2 % 2)
     # 1(True) if Links 5/6 start with 2, 0(False) otherwise
     # it's only ever actually used times 6 plus i_phi, so may as well do it here
+
+    return jax.lax.cond(
+        i_eta > 15,  # cond
+        (-1, -1),  # true -- no HCAL data for i_eta 16
+        jax.lax.cond(  # false -- HCAL data may exist
+            i_eta > 7,  # cond -- Link 5/7 or 6/8?
+            (  # true -- link 6 or 8
+                4 * (i_eta - 8) + high_link % 4,  # tower_index
+                6 + (high_link // 4 % 2 * 2),  # link
+            ),
+            (  # false -- link 5 or 7
+                4 * (i_eta) + high_link % 4,  # tower_index
+                5 + (high_link // 4 % 2 * 2),  # link
+            ),
+        ),
+    )
+    high_link = i_phi + 6 * ((card % 4 - 1) // 2 % 2)
 
     """
     | high_link | i_phi = 0 |   1   |   2   |   3   |   4   |   5   |
@@ -160,12 +178,82 @@ def get_hcal_location(
         offset (L-5)
     """
 
-    tower_index = 4 * i_eta + high_link % 4
-    link += high_link // 4 % 2 * 2
 
-    logger.log_function_exit_type("return", retval=(tower_index, link))
-    logger.log_exit_function("get_hcal_location")
-    return tower_index, link
+@jax.jit
+def process_cluster(
+    slr: int,
+    event: int,
+    card: int,
+    cluster_eta: int,
+    cluster_phi: int,
+    cluster_energy: int,
+    cluster_seed_energy: int,
+    cluster_et5x5: int,
+    cluster_et2x5: int,
+    cluster_timing: int,
+    cluster_spike: int,
+    cluster_brems: int,
+    cluster_satur: int,
+    cluster_spare: int,
+    unclustered_ets: jaxtyping.Int[jax.Array, " etower"],  # noqa: F722
+    unclustered_timings: jaxtyping.Int[jax.Array, " etower"],  # noqa: F722
+    unclustered_spikes: jaxtyping.Int[jax.Array, " etower"],  # noqa: F722
+    hcal5_ets: jaxtyping.Int[jax.Array, " htower"],  # noqa: F722
+    hcal5_fbs: jaxtyping.Int[jax.Array, " htower"],  # noqa: F722
+    hcal6_ets: jaxtyping.Int[jax.Array, " htower"],  # noqa: F722
+    hcal6_fbs: jaxtyping.Int[jax.Array, " htower"],  # noqa: F722
+    hcal7_ets: jaxtyping.Int[jax.Array, " htower"],  # noqa: F722
+    hcal7_fbs: jaxtyping.Int[jax.Array, " htower"],  # noqa: F722
+    hcal8_ets: jaxtyping.Int[jax.Array, " htower"],  # noqa: F722
+    hcal8_fbs: jaxtyping.Int[jax.Array, " htower"],  # noqa: F722
+) -> jax.Array:
+    i_eta = cluster_eta // 5
+    i_phi = cluster_phi // 5
+    ecal_tower = get_ecal_tower(slr, i_eta, i_phi)
+    hcal_tower, hcal_link = get_hcal_location(card, i_eta, i_phi)
+    hcal_et = jax.lax.switch(
+        hcal_link - 5,
+        [
+            lambda tower: hcal5_ets[tower],
+            lambda tower: hcal6_ets[tower],
+            lambda tower: hcal7_ets[tower],
+            lambda tower: hcal8_ets[tower],
+        ],
+        hcal_tower,
+    )
+    hcal_fb = jax.lax.switch(
+        hcal_link - 5,
+        [
+            lambda tower: hcal5_fbs[tower],
+            lambda tower: hcal6_fbs[tower],
+            lambda tower: hcal7_fbs[tower],
+            lambda tower: hcal8_fbs[tower],
+        ],
+        hcal_tower,
+    )
+    return jnp.array(
+        [
+            slr,
+            event,
+            card,
+            cluster_eta,
+            cluster_phi,
+            cluster_energy,
+            cluster_seed_energy,
+            cluster_et5x5,
+            cluster_et2x5,
+            cluster_timing,
+            cluster_spike,
+            cluster_brems,
+            cluster_satur,
+            cluster_spare,
+            unclustered_ets[ecal_tower],
+            unclustered_timings[ecal_tower],
+            unclustered_spikes[ecal_tower],
+            hcal_et,
+            hcal_fb,
+        ]
+    )
 
 
 def cluster_generator(
