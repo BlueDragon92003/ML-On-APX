@@ -1,8 +1,11 @@
+from cluster_classification.cluster_classification_dataset import process_clusters
 from cluster_classification.signal_type import SignalType
 from typing import Tuple
 import unittest
 
 from parameterized import parameterized
+import numpy as np
+import jax.numpy as jnp
 
 from cleverlogger import CleverLogger
 from cluster_classification import cluster_classification_dataset
@@ -204,6 +207,68 @@ class TestClusterClassificationDataset(unittest.TestCase):
             cluster_classification_dataset.get_hcal_location(card, i_eta, i_phi),
         )
         logger.log_exit_function("get_hcal_location_correctness")
+
+    def test_ccd__process_cluster__correctness(self):
+        slrs = [0, 1, 2, 3, 2, 3]
+        cards = [0, 3, 6, 9, 12, 15]
+        cluster_etas = [0, 12, 54, 76, 37, 84]
+        cluster_phis = [10, 1, 16, 23, 6, 29]
+        ecal_towers = [2, 0, 21, 22, 1, 29]
+        hcal_links = [5, 7, 6, 8, 7]
+        hcal_towers = [0, 10, 11, 28, 31]
+
+        unclustered_ets = np.zeros((6, 30), dtype=int)
+        unclustered_timings = np.zeros((6, 30), dtype=int)
+        unclustered_spikes = np.zeros((6, 30), dtype=int)
+
+        for i in range(6):
+            unclustered_ets[i][ecal_towers[i]] = 1
+            unclustered_timings[i][ecal_towers[i]] = 1
+            unclustered_spikes[i][ecal_towers[i]] = 1
+
+        hcal_ets = np.zeros((4, 6, 32), dtype=int)
+        hcal_fbs = np.zeros((4, 6, 32), dtype=int)
+
+        for i in range(5):
+            hcal_ets[hcal_links[i] - 5][i][hcal_towers[i]] = 1
+            hcal_fbs[hcal_links[i] - 5][i][hcal_towers[i]] = 1
+        clusters = process_clusters(
+            jnp.array(slrs),
+            jnp.array([1 for _ in range(6)]),
+            jnp.array(cards),
+            jnp.array(cluster_etas),
+            jnp.array(cluster_phis),
+            jnp.array([1 for _ in range(6)]),
+            jnp.array([1 for _ in range(6)]),
+            jnp.array([1 for _ in range(6)]),
+            jnp.array([1 for _ in range(6)]),
+            jnp.array([1 for _ in range(6)]),
+            jnp.array([1 for _ in range(6)]),
+            jnp.array([1 for _ in range(6)]),
+            jnp.array([1 for _ in range(6)]),
+            jnp.array([1 for _ in range(6)]),
+            jnp.array(unclustered_ets),
+            jnp.array(unclustered_timings),
+            jnp.array(unclustered_spikes),
+            jnp.array(hcal_ets[5 - 5]),
+            jnp.array(hcal_fbs[5 - 5]),
+            jnp.array(hcal_ets[6 - 5]),
+            jnp.array(hcal_fbs[6 - 5]),
+            jnp.array(hcal_ets[7 - 5]),
+            jnp.array(hcal_fbs[7 - 5]),
+            jnp.array(hcal_ets[8 - 5]),
+            jnp.array(hcal_fbs[8 - 5]),
+        )
+        clusters = np.array(clusters)
+        comparisons = np.ones((6, 19), dtype=int)
+        for i in range(6):
+            comparisons[i][0] = slrs[i]
+            comparisons[i][2] = cards[i]
+            comparisons[i][3] = cluster_etas[i]
+            comparisons[i][4] = cluster_phis[i]
+        comparisons[-1][-1] = -1
+        comparisons[-1][-2] = -1
+        np.testing.assert_array_equal(clusters, comparisons)
 
     def test_ccd__get_labels(self):
         """Test that the label reducer works as anticipated."""

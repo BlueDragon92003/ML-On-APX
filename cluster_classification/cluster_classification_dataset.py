@@ -7,6 +7,7 @@ import jaxtyping
 import jax
 import jax.numpy as jnp
 from torch.utils.data import Dataset
+from uproot.behaviors.TBranch import TBranch
 
 from cleverlogger import CleverLogger
 from cluster_classification.signal_type import SignalType
@@ -34,7 +35,7 @@ class ClusterClassificationDataset(Dataset):
         """
         super(ClusterClassificationDataset, self).__init__()
         logger.log_enter_function("ccd_init", components=components)
-        localdata = []
+        data_parts = []
 
         signal_to_label, self.labels = get_labels(components)
 
@@ -42,84 +43,74 @@ class ClusterClassificationDataset(Dataset):
         logger.log_preloop("init_for_loop")
         for filepath, cluster_type in components:
             logger.log_iteration_head(filepath=filepath, cluster_type=cluster_type)
-            process_clusters = jax.vmap(process_cluster)
             with uproot.open(filepath) as file:
                 tree: uproot.ReadOnlyDirectory = file["l1NtupleProducer/linkTree;1"]
-                localdata = []
-                for event in range(len(tree["SLR0_cluster_energy"].array())):
-                    for slr in range(4):
-                        for card in range(24):
-                            unclustered_ets: jax.Array = tree[
-                                f"ECALUnclusteredSLR{slr}_tower_et"
-                            ].array()[event][card]
-                            unclustered_timings = tree[
-                                f"ECALUnclusteredSLR{slr}_tower_timing"
-                            ].array()[event][card]
-                            unclustered_spikes = tree[
-                                f"ECALUnclusteredSLR{slr}_tower_spike"
-                            ].array()[event][card]
-                            hcal5_ets = tree["HCAL5_tower_et"].array()[event][card]
-                            hcal5_fbs = tree["HCAL5_tower_fb"].array()[event][card]
-                            hcal6_ets = tree["HCAL6_tower_et"].array()[event][card]
-                            hcal6_fbs = tree["HCAL6_tower_fb"].array()[event][card]
-                            hcal7_ets = tree["HCAL7_tower_et"].array()[event][card]
-                            hcal7_fbs = tree["HCAL7_tower_fb"].array()[event][card]
-                            hcal8_ets = tree["HCAL8_tower_et"].array()[event][card]
-                            hcal8_fbs = tree["HCAL8_tower_fb"].array()[event][card]
-                            for cluster in range(9):
-                                localdata.append(
-                                    process_clusters(
-                                        slr,
-                                        event,
-                                        card,
-                                        tree[f"SLR{slr}_cluster_energy"].array()[event][
-                                            card
-                                        ][cluster],
-                                        tree[f"SLR{slr}_cluster_seed_energy"].array()[
-                                            event
-                                        ][card][cluster],
-                                        tree[f"SLR{slr}_cluster_et5x5"].array()[event][
-                                            card
-                                        ][cluster],
-                                        tree[f"SLR{slr}_cluster_et2x5"].array()[event][
-                                            card
-                                        ][cluster],
-                                        tree[f"SLR{slr}_cluster_timing"].array()[event][
-                                            card
-                                        ][cluster],
-                                        tree[f"SLR{slr}_cluster_spike"].array()[event][
-                                            card
-                                        ][cluster],
-                                        tree[f"SLR{slr}_cluster_brems"].array()[event][
-                                            card
-                                        ][cluster],
-                                        tree[f"SLR{slr}_cluster_satur"].array()[event][
-                                            card
-                                        ][cluster],
-                                        tree[f"SLR{slr}_cluster_spare"].array()[event][
-                                            card
-                                        ][cluster],
-                                        jnp.copy(unclustered_ets),
-                                        jnp.copy(unclustered_timings),
-                                        jnp.copy(unclustered_spikes),
-                                        jnp.copy(hcal5_ets),
-                                        jnp.copy(hcal5_fbs),
-                                        jnp.copy(hcal6_ets),
-                                        jnp.copy(hcal6_fbs),
-                                        jnp.copy(hcal7_ets),
-                                        jnp.copy(hcal7_fbs),
-                                        jnp.copy(hcal8_ets),
-                                        jnp.copy(hcal8_fbs),
-                                    )
-                                )
-                localdata = localdata[localdata[5] > 0]  # index 5 is cluster_energy
+                localdata_parts = []
+                num_events = len(tree["HCAL5_tower_et"].array(library="np"))
+                hcal5_ets = mostly_flatten(tree["HCAL5_tower_et"]).repeat(9, axis=0)
+                hcal5_fbs = mostly_flatten(tree["HCAL5_tower_fb"]).repeat(9, axis=0)
+                hcal6_ets = mostly_flatten(tree["HCAL6_tower_et"]).repeat(9, axis=0)
+                hcal6_fbs = mostly_flatten(tree["HCAL6_tower_fb"]).repeat(9, axis=0)
+                hcal7_ets = mostly_flatten(tree["HCAL7_tower_et"]).repeat(9, axis=0)
+                hcal7_fbs = mostly_flatten(tree["HCAL7_tower_fb"]).repeat(9, axis=0)
+                hcal8_ets = mostly_flatten(tree["HCAL8_tower_et"]).repeat(9, axis=0)
+                hcal8_fbs = mostly_flatten(tree["HCAL8_tower_fb"]).repeat(9, axis=0)
+                for slr in range(4):
+                    unclustered_ets = mostly_flatten(
+                        tree[f"ECALUnclusteredSLR{slr}_tower_et"]
+                    ).repeat(9, axis=0)
+                    unclustered_timings = mostly_flatten(
+                        tree[f"ECALUnclusteredSLR{slr}_tower_timing"]
+                    ).repeat(9, axis=0)
+                    unclustered_spikes = mostly_flatten(
+                        tree[f"ECALUnclusteredSLR{slr}_tower_spike"]
+                    ).repeat(9, axis=0)
+                    localdata_parts.append(
+                        process_clusters(
+                            jnp.array([slr for _ in range(len(unclustered_ets))]),
+                            jnp.arange(num_events).repeat(9 * 24),  # event
+                            jnp.array(
+                                [i for _ in range(num_events * 9) for i in range(24)]
+                            ),  # card
+                            mostly_flatten(tree[f"SLR{slr}_cluster_eta"]).ravel(),
+                            mostly_flatten(tree[f"SLR{slr}_cluster_phi"]).ravel(),
+                            mostly_flatten(tree[f"SLR{slr}_cluster_energy"]).ravel(),
+                            mostly_flatten(
+                                tree[f"SLR{slr}_cluster_seed_energy"]
+                            ).ravel(),
+                            mostly_flatten(tree[f"SLR{slr}_cluster_et5x5"]).ravel(),
+                            mostly_flatten(tree[f"SLR{slr}_cluster_et2x5"]).ravel(),
+                            mostly_flatten(tree[f"SLR{slr}_cluster_timing"]).ravel(),
+                            jnp.zeros(9 * 24 * num_events),
+                            # mostly_flatten(tree[f"SLR{slr}_cluster_spike"]).ravel(),
+                            mostly_flatten(tree[f"SLR{slr}_cluster_brems"]).ravel(),
+                            jnp.zeros(9 * 24 * num_events),
+                            # mostly_flatten(tree[f"SLR{slr}_cluster_satur"]).ravel(),
+                            # mostly_flatten(tree[f"SLR{slr}_cluster_spare"]).ravel(),
+                            unclustered_ets,
+                            unclustered_timings,
+                            unclustered_spikes,
+                            hcal5_ets,
+                            hcal5_fbs,
+                            hcal6_ets,
+                            hcal6_fbs,
+                            hcal7_ets,
+                            hcal7_fbs,
+                            hcal8_ets,
+                            hcal8_fbs,
+                        )
+                    )
+                localdata = np.concatenate(
+                    localdata_parts
+                )  # sync up with jax execution
+                localdata = localdata[localdata[:, 5] > 0]  # index 5 is cluster_energy
                 # increase size
                 curr_len = self.labels[signal_to_label[cluster_type]][1]
                 self.labels[signal_to_label[cluster_type]] = (
                     cluster_type,
                     curr_len + len(localdata),
                 )
-                localdata.append(localdata)
+                data_parts.append(localdata)
             logger.log_iteration_tail()
         logger.log_postloop("init_for_loop")
         # # General data structure:
@@ -133,16 +124,23 @@ class ClusterClassificationDataset(Dataset):
         5: cluster_spike
         6: cluster_brems
         7: cluster_satur
-        8: cluster_spare
-        9: ecal_tower_et
+        8: cluster_spare.array(library="np")[event][card].tolist()
+.array(library="np")[event][card].tolist()
+.array(library="np")[event][card].tolist()
+.array(library="np")[event][card].tolist()
+.array(library="np")[event][card].tolist()
+.array(library="np")[event][card].tolist()
+.array(library="np")[event][card].tolist()
+.array(library="np")[event][card].tolist()
+       f upro 9: ecal_tower_et
         10: ecal_tower_timing
         11: ecal_tower_spike
         12: hcal_et
         13: hcal_fb
         14: classification
         """
-        np_data = np.array(localdata)
-        self.__data = np_data.reshape(-1, np_data.shape[-1])
+        data = np.concatenate(data_parts)
+        self.__data = data  # .reshape(-1, data.shape[-1])
         logger.log_exit_function("ccd_init")
 
     def __getitem__(self, index: int):
@@ -154,6 +152,11 @@ class ClusterClassificationDataset(Dataset):
         out = len(self.__data)
         logger.log_micro_function("ccd_len", "return", retval=out)
         return out
+
+
+def mostly_flatten(branch: TBranch) -> jax.Array:
+    arr = branch.array()
+    return jnp.array(np.array(arr.tolist()).reshape(-1, len(arr[0][0])))
 
 
 @jax.jit
@@ -242,7 +245,8 @@ def get_hcal_location(card: int, i_eta: int, i_phi: int) -> Tuple[int, int]:
 
 
 @jax.jit
-def process_cluster(
+@jax.vmap
+def process_clusters(
     slr: int,
     event: int,
     card: int,
@@ -256,7 +260,7 @@ def process_cluster(
     cluster_spike: int,
     cluster_brems: int,
     cluster_satur: int,
-    cluster_spare: int,
+    # cluster_spare: int,
     unclustered_ets: jaxtyping.Int[jax.Array, " etower"],  # noqa: F722
     unclustered_timings: jaxtyping.Int[jax.Array, " etower"],  # noqa: F722
     unclustered_spikes: jaxtyping.Int[jax.Array, " etower"],  # noqa: F722
@@ -273,25 +277,34 @@ def process_cluster(
     i_phi = cluster_phi // 5
     ecal_tower = get_ecal_tower(slr, i_eta, i_phi)
     hcal_tower, hcal_link = get_hcal_location(card, i_eta, i_phi)
-    hcal_et = jax.lax.switch(
-        hcal_link - 5,
-        [
-            lambda tower: hcal5_ets[tower],
-            lambda tower: hcal6_ets[tower],
-            lambda tower: hcal7_ets[tower],
-            lambda tower: hcal8_ets[tower],
-        ],
-        hcal_tower,
+
+    hcal_et = jax.lax.cond(
+        hcal_tower >= 0,
+        lambda: jax.lax.switch(
+            hcal_link - 5,
+            [
+                lambda tower: hcal5_ets[tower],
+                lambda tower: hcal6_ets[tower],
+                lambda tower: hcal7_ets[tower],
+                lambda tower: hcal8_ets[tower],
+            ],
+            hcal_tower,
+        ),
+        lambda: -1,
     )
-    hcal_fb = jax.lax.switch(
-        hcal_link - 5,
-        [
-            lambda tower: hcal5_fbs[tower],
-            lambda tower: hcal6_fbs[tower],
-            lambda tower: hcal7_fbs[tower],
-            lambda tower: hcal8_fbs[tower],
-        ],
-        hcal_tower,
+    hcal_fb = jax.lax.cond(
+        hcal_tower >= 0,
+        lambda: jax.lax.switch(
+            hcal_link - 5,
+            [
+                lambda tower: hcal5_fbs[tower],
+                lambda tower: hcal6_fbs[tower],
+                lambda tower: hcal7_fbs[tower],
+                lambda tower: hcal8_fbs[tower],
+            ],
+            hcal_tower,
+        ),
+        lambda: -1,
     )
     return jnp.array(
         [
@@ -308,7 +321,7 @@ def process_cluster(
             cluster_spike,
             cluster_brems,
             cluster_satur,
-            cluster_spare,
+            # cluster_spare,
             unclustered_ets[ecal_tower],
             unclustered_timings[ecal_tower],
             unclustered_spikes[ecal_tower],
