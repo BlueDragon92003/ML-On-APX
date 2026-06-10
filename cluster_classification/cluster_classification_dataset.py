@@ -1,9 +1,9 @@
-import jaxtyping
-from collections.abc import Callable
-from typing import Set, Tuple, List, Iterator, Dict
+# from collections.abc import Callable
+from typing import Set, Tuple, Dict  # , List, Iterator
 
 import numpy as np
 import uproot
+import jaxtyping
 import jax
 import jax.numpy as jnp
 from torch.utils.data import Dataset
@@ -34,7 +34,7 @@ class ClusterClassificationDataset(Dataset):
         """
         super(ClusterClassificationDataset, self).__init__()
         logger.log_enter_function("ccd_init", components=components)
-        data = []
+        localdata = []
 
         signal_to_label, self.labels = get_labels(components)
 
@@ -44,20 +44,82 @@ class ClusterClassificationDataset(Dataset):
             logger.log_iteration_head(filepath=filepath, cluster_type=cluster_type)
             process_clusters = jax.vmap(process_cluster)
             with uproot.open(filepath) as file:
-                tree = file["l1NtupleProducer/linkTree;1"]
-                data = []
-                localdata = []  # TODO remove
-                for cluster in range(9):
-                    # TODO how to turn the tree data into a mega-list of everything to parallelize?
-                    data.append(process_clusters(tree["SLR0_cluster_energy"]))
-
+                tree: uproot.ReadOnlyDirectory = file["l1NtupleProducer/linkTree;1"]
+                localdata = []
+                for event in range(len(tree["SLR0_cluster_energy"].array())):
+                    for slr in range(4):
+                        for card in range(24):
+                            unclustered_ets: jax.Array = tree[
+                                f"ECALUnclusteredSLR{slr}_tower_et"
+                            ].array()[event][card]
+                            unclustered_timings = tree[
+                                f"ECALUnclusteredSLR{slr}_tower_timing"
+                            ].array()[event][card]
+                            unclustered_spikes = tree[
+                                f"ECALUnclusteredSLR{slr}_tower_spike"
+                            ].array()[event][card]
+                            hcal5_ets = tree["HCAL5_tower_et"].array()[event][card]
+                            hcal5_fbs = tree["HCAL5_tower_fb"].array()[event][card]
+                            hcal6_ets = tree["HCAL6_tower_et"].array()[event][card]
+                            hcal6_fbs = tree["HCAL6_tower_fb"].array()[event][card]
+                            hcal7_ets = tree["HCAL7_tower_et"].array()[event][card]
+                            hcal7_fbs = tree["HCAL7_tower_fb"].array()[event][card]
+                            hcal8_ets = tree["HCAL8_tower_et"].array()[event][card]
+                            hcal8_fbs = tree["HCAL8_tower_fb"].array()[event][card]
+                            for cluster in range(9):
+                                localdata.append(
+                                    process_clusters(
+                                        slr,
+                                        event,
+                                        card,
+                                        tree[f"SLR{slr}_cluster_energy"].array()[event][
+                                            card
+                                        ][cluster],
+                                        tree[f"SLR{slr}_cluster_seed_energy"].array()[
+                                            event
+                                        ][card][cluster],
+                                        tree[f"SLR{slr}_cluster_et5x5"].array()[event][
+                                            card
+                                        ][cluster],
+                                        tree[f"SLR{slr}_cluster_et2x5"].array()[event][
+                                            card
+                                        ][cluster],
+                                        tree[f"SLR{slr}_cluster_timing"].array()[event][
+                                            card
+                                        ][cluster],
+                                        tree[f"SLR{slr}_cluster_spike"].array()[event][
+                                            card
+                                        ][cluster],
+                                        tree[f"SLR{slr}_cluster_brems"].array()[event][
+                                            card
+                                        ][cluster],
+                                        tree[f"SLR{slr}_cluster_satur"].array()[event][
+                                            card
+                                        ][cluster],
+                                        tree[f"SLR{slr}_cluster_spare"].array()[event][
+                                            card
+                                        ][cluster],
+                                        jnp.copy(unclustered_ets),
+                                        jnp.copy(unclustered_timings),
+                                        jnp.copy(unclustered_spikes),
+                                        jnp.copy(hcal5_ets),
+                                        jnp.copy(hcal5_fbs),
+                                        jnp.copy(hcal6_ets),
+                                        jnp.copy(hcal6_fbs),
+                                        jnp.copy(hcal7_ets),
+                                        jnp.copy(hcal7_fbs),
+                                        jnp.copy(hcal8_ets),
+                                        jnp.copy(hcal8_fbs),
+                                    )
+                                )
+                localdata = localdata[localdata[5] > 0]  # index 5 is cluster_energy
                 # increase size
                 curr_len = self.labels[signal_to_label[cluster_type]][1]
                 self.labels[signal_to_label[cluster_type]] = (
                     cluster_type,
                     curr_len + len(localdata),
                 )
-                data.append(localdata)
+                localdata.append(localdata)
             logger.log_iteration_tail()
         logger.log_postloop("init_for_loop")
         # # General data structure:
@@ -79,7 +141,7 @@ class ClusterClassificationDataset(Dataset):
         13: hcal_fb
         14: classification
         """
-        np_data = np.array(data)
+        np_data = np.array(localdata)
         self.__data = np_data.reshape(-1, np_data.shape[-1])
         logger.log_exit_function("ccd_init")
 
@@ -151,14 +213,14 @@ def get_hcal_location(card: int, i_eta: int, i_phi: int) -> Tuple[int, int]:
 
     return jax.lax.cond(
         i_eta > 15,  # cond
-        (-1, -1),  # true -- no HCAL data for i_eta 16
-        jax.lax.cond(  # false -- HCAL data may exist
+        lambda: (-1, -1),  # true -- no HCAL data for i_eta 16
+        lambda: jax.lax.cond(  # false -- HCAL data may exist
             i_eta > 7,  # cond -- Link 5/7 or 6/8?
-            (  # true -- link 6 or 8
+            lambda: (  # true -- link 6 or 8
                 4 * (i_eta - 8) + high_link % 4,  # tower_index
                 6 + (high_link // 4 % 2 * 2),  # link
             ),
-            (  # false -- link 5 or 7
+            lambda: (  # false -- link 5 or 7
                 4 * (i_eta) + high_link % 4,  # tower_index
                 5 + (high_link // 4 % 2 * 2),  # link
             ),
@@ -254,117 +316,6 @@ def process_cluster(
             hcal_fb,
         ]
     )
-
-
-def cluster_generator(
-    from_tree: Callable[[str, int, int, int], int],
-    label: int,
-    num_events: int,
-) -> Iterator[List[int]]:
-    """Generates a tuple of all datapoints corresponding to a cluster.
-
-    Arguments:
-    - `from_tree`: A function that accepts a feature, event number, card number,
-                    and "final" number and pulls data from an attached source.
-    - `signal_type`: The signal type of this dataset.
-    - `num_events`: The number of events to pull from. Typically the number of
-                    events in the dataset.
-    """
-
-    logger.log_enter_function(
-        "cluster_generator",
-        from_tree=from_tree,
-        label=label,
-        num_events=num_events,
-    )
-    logger.log_preloop("cluster_for_loops")
-    for event in range(num_events):
-        for card in range(24):
-            for slr in range(4):
-                for cluster in range(9):
-                    logger.log_iteration_head(
-                        event=event, card=card, slr=slr, cluster=cluster
-                    )
-                    # cluster i_eta and i_phi are in crystal;
-                    # everyhting else is in tower
-                    i_eta = (
-                        from_tree(f"SLR{slr}_cluster_eta", event, card, cluster) // 5
-                    )
-                    i_phi = (
-                        from_tree(f"SLR{slr}_cluster_phi", event, card, cluster) // 5
-                    )
-                    cluster_et = from_tree(
-                        f"SLR{slr}_cluster_energy", event, card, cluster
-                    )
-                    # Energy can be left in its integer format; the specific
-                    # values don't matter so much as the scale
-
-                    if cluster_et == 0:
-                        # Not a cluster
-                        logger.log_iteration_exit("continue")
-                        logger.log_iteration_tail()
-                        continue
-
-                    ecal_tower = get_ecal_tower(slr, i_eta, i_phi)
-                    hcal_info = get_hcal_location(card, i_eta, i_phi)
-                    logger.log_variables(ecal_tower=ecal_tower, hcal_info=hcal_info)
-
-                    hcal_et = -1
-                    hcal_fb = -1
-                    if hcal_info:
-                        # HCAL information exists
-                        (hcal_tower, link) = hcal_info
-                        hcal_et = from_tree(
-                            f"HCAL{link}_tower_et", event, card, hcal_tower
-                        )
-                        hcal_fb = from_tree(
-                            f"HCAL{link}_tower_fb", event, card, hcal_tower
-                        )
-
-                    logger.log_iteration_exit("yield")
-                    logger.log_iteration_tail()
-                    logger.log_postloop("cluster_for_loops")
-                    logger.log_function_exit_type("yield")
-                    logger.log_exit_function("cluster_generator")
-                    yield [
-                        cluster_et,
-                        from_tree(
-                            f"SLR{slr}_cluster_seed_energy", event, card, cluster
-                        ),
-                        from_tree(f"SLR{slr}_cluster_et5x5", event, card, cluster),
-                        from_tree(f"SLR{slr}_cluster_et2x5", event, card, cluster),
-                        from_tree(f"SLR{slr}_cluster_timing", event, card, cluster),
-                        0,  # from_tree(
-                        #     f'SLR{slr}_cluster_spike', event, card, cluster
-                        #     ),
-                        from_tree(f"SLR{slr}_cluster_brems", event, card, cluster),
-                        0,  # from_tree(
-                        #     f'SLR{slr}_cluster_satur', event, card, cluster
-                        #     ),
-                        from_tree(f"SLR{slr}_cluster_spare", event, card, cluster),
-                        from_tree(
-                            f"ECALUnclusteredSLR{slr}_tower_et", event, card, ecal_tower
-                        ),
-                        from_tree(
-                            f"ECALUnclusteredSLR{slr}_tower_timing",
-                            event,
-                            card,
-                            ecal_tower,
-                        ),
-                        from_tree(
-                            f"ECALUnclusteredSLR{slr}_tower_spike",
-                            event,
-                            card,
-                            ecal_tower,
-                        ),
-                        hcal_et,
-                        hcal_fb,
-                        int(label),
-                    ]
-                    logger.log_enter_function("cluster_generator")
-                    logger.log_preloop("cluster_for_loops")
-    logger.log_postloop("cluster_for_loops")
-    logger.log_exit_function("cluster_generator")
 
 
 def get_labels(
