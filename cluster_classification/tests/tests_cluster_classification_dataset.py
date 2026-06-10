@@ -1,3 +1,4 @@
+import sys
 from cluster_classification.cluster_classification_dataset import process_clusters
 from cluster_classification.signal_type import SignalType
 from typing import Tuple
@@ -216,37 +217,38 @@ class TestClusterClassificationDataset(unittest.TestCase):
         ecal_towers = [2, 0, 21, 22, 1, 29]
         hcal_links = [5, 7, 6, 8, 7]
         hcal_towers = [0, 10, 11, 28, 31]
+        test_len = len(slrs)
 
-        unclustered_ets = np.zeros((6, 30), dtype=int)
-        unclustered_timings = np.zeros((6, 30), dtype=int)
-        unclustered_spikes = np.zeros((6, 30), dtype=int)
+        unclustered_ets = np.zeros((test_len, 30), dtype=int)
+        unclustered_timings = np.zeros((test_len, 30), dtype=int)
+        unclustered_spikes = np.zeros((test_len, 30), dtype=int)
 
-        for i in range(6):
+        for i in range(test_len):
             unclustered_ets[i][ecal_towers[i]] = 1
             unclustered_timings[i][ecal_towers[i]] = 1
             unclustered_spikes[i][ecal_towers[i]] = 1
 
-        hcal_ets = np.zeros((4, 6, 32), dtype=int)
-        hcal_fbs = np.zeros((4, 6, 32), dtype=int)
+        hcal_ets = np.zeros((4, test_len, 32), dtype=int)
+        hcal_fbs = np.zeros((4, test_len, 32), dtype=int)
 
         for i in range(5):
             hcal_ets[hcal_links[i] - 5][i][hcal_towers[i]] = 1
             hcal_fbs[hcal_links[i] - 5][i][hcal_towers[i]] = 1
         clusters = process_clusters(
             jnp.array(slrs),
-            jnp.array([1 for _ in range(6)]),
+            jnp.ones(test_len, dtype=int),
             jnp.array(cards),
             jnp.array(cluster_etas),
             jnp.array(cluster_phis),
-            jnp.array([1 for _ in range(6)]),
-            jnp.array([1 for _ in range(6)]),
-            jnp.array([1 for _ in range(6)]),
-            jnp.array([1 for _ in range(6)]),
-            jnp.array([1 for _ in range(6)]),
-            jnp.array([1 for _ in range(6)]),
-            jnp.array([1 for _ in range(6)]),
-            jnp.array([1 for _ in range(6)]),
-            jnp.array([1 for _ in range(6)]),
+            jnp.ones(test_len, dtype=int),  # energy
+            jnp.ones(test_len, dtype=int),  # seed energy
+            jnp.ones(test_len, dtype=int),  # et 5x5
+            jnp.ones(test_len, dtype=int),  # et 2x5
+            jnp.ones(test_len, dtype=int),  # timing
+            jnp.ones(test_len, dtype=int),  # spike
+            jnp.ones(test_len, dtype=int),  # brems
+            jnp.ones(test_len, dtype=int),  # satur
+            # jnp.ones(test_len), # spare
             jnp.array(unclustered_ets),
             jnp.array(unclustered_timings),
             jnp.array(unclustered_spikes),
@@ -258,17 +260,25 @@ class TestClusterClassificationDataset(unittest.TestCase):
             jnp.array(hcal_fbs[7 - 5]),
             jnp.array(hcal_ets[8 - 5]),
             jnp.array(hcal_fbs[8 - 5]),
+            jnp.ones(test_len, dtype=int),
         )
         clusters = np.array(clusters)
-        comparisons = np.ones((6, 19), dtype=int)
-        for i in range(6):
+        comparisons = np.ones((test_len, 19), dtype=int)
+        for i in range(test_len):
             comparisons[i][0] = slrs[i]
             comparisons[i][2] = cards[i]
             comparisons[i][3] = cluster_etas[i]
             comparisons[i][4] = cluster_phis[i]
-        comparisons[-1][-1] = -1
         comparisons[-1][-2] = -1
-        np.testing.assert_array_equal(clusters, comparisons)
+        comparisons[-1][-3] = -1
+        try:
+            np.testing.assert_array_equal(clusters, comparisons)
+        except AssertionError as e:
+            np.printoptions(threshold=sys.maxsize)
+            print()
+            print("comp", comparisons)
+            print("clus", clusters)
+            self.fail(e)
 
     def test_ccd__get_labels(self):
         """Test that the label reducer works as anticipated."""

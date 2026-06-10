@@ -43,6 +43,7 @@ class ClusterClassificationDataset(Dataset):
         logger.log_preloop("init_for_loop")
         for filepath, cluster_type in components:
             logger.log_iteration_head(filepath=filepath, cluster_type=cluster_type)
+            local_label = signal_to_label[cluster_type]
             with uproot.open(filepath) as file:
                 tree: uproot.ReadOnlyDirectory = file["l1NtupleProducer/linkTree;1"]
                 localdata_parts = []
@@ -98,6 +99,9 @@ class ClusterClassificationDataset(Dataset):
                             hcal7_fbs,
                             hcal8_ets,
                             hcal8_fbs,
+                            jnp.array(
+                                [local_label for _ in range(num_events * 9 * 24)]
+                            ),
                         )
                     )
                 localdata = np.concatenate(
@@ -124,15 +128,8 @@ class ClusterClassificationDataset(Dataset):
         5: cluster_spike
         6: cluster_brems
         7: cluster_satur
-        8: cluster_spare.array(library="np")[event][card].tolist()
-.array(library="np")[event][card].tolist()
-.array(library="np")[event][card].tolist()
-.array(library="np")[event][card].tolist()
-.array(library="np")[event][card].tolist()
-.array(library="np")[event][card].tolist()
-.array(library="np")[event][card].tolist()
-.array(library="np")[event][card].tolist()
-       f upro 9: ecal_tower_et
+        8: cluster_spare
+        9: ecal_tower_et
         10: ecal_tower_timing
         11: ecal_tower_spike
         12: hcal_et
@@ -272,6 +269,7 @@ def process_clusters(
     hcal7_fbs: jaxtyping.Int[jax.Array, " htower"],  # noqa: F722
     hcal8_ets: jaxtyping.Int[jax.Array, " htower"],  # noqa: F722
     hcal8_fbs: jaxtyping.Int[jax.Array, " htower"],  # noqa: F722
+    label: int,
 ) -> jax.Array:
     i_eta = cluster_eta // 5
     i_phi = cluster_phi // 5
@@ -327,6 +325,7 @@ def process_clusters(
             unclustered_spikes[ecal_tower],
             hcal_et,
             hcal_fb,
+            label,
         ]
     )
 
