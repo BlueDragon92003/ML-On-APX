@@ -20,7 +20,7 @@ class Model(nn.Module):
         # if they make any sense. It's a small model though, so likely not
         self.stack = nn.Sequential(
             # Output based on what was provided by the CCD
-            nn.Linear(14, 16),
+            nn.Linear(18, 16),
             nn.ReLU(),
             nn.Linear(16, 8),
             nn.ReLU(),

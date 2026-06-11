@@ -50,7 +50,7 @@ def train_loop(
         logger.log_iteration_head(batch_num=batch_num)
         # Move data to GPU
         data = batch_items[:, :-1].to(device)
-        labels = batch_items[:, -1].to(device)
+        labels = batch_items[:, -1].to(device).type(torch.long)
         # Run the model and calculate loss for all items in the batch
         pred = model(data)
         loss = loss_fn(pred, labels)
