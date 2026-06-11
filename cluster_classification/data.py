@@ -53,7 +53,7 @@ def get_data(
     weights = [0 for _ in data.labels.keys()]
     for key in data.labels.keys():
         weights[key] = data.labels[key][1]
-    weights = normalize(-1 * log(normalize(Tensor(weights), dim=0)))
+    weights = normalize(-1 * log(normalize(Tensor(weights), dim=0)), dim=0)
 
     data_loader = DataLoader(
         # The data to load

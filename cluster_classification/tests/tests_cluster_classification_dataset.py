@@ -274,10 +274,10 @@ class TestClusterClassificationDataset(unittest.TestCase):
         try:
             np.testing.assert_array_equal(clusters, comparisons)
         except AssertionError as e:
-            np.printoptions(threshold=sys.maxsize)
-            print()
-            print("comp", comparisons)
-            print("clus", clusters)
+            with np.printoptions(threshold=sys.maxsize):
+                print()
+                print("comp", comparisons)
+                print("clus", clusters)
             self.fail(e)
 
     def test_ccd__get_labels(self):

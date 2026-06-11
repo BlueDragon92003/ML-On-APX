@@ -226,7 +226,6 @@ def get_hcal_location(card: int, i_eta: int, i_phi: int) -> Tuple[int, int]:
             ),
         ),
     )
-    high_link = i_phi + 6 * ((card % 4 - 1) // 2 % 2)
 
     """
     | high_link | i_phi = 0 |   1   |   2   |   3   |   4   |   5   |
