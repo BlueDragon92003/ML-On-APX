@@ -1,5 +1,6 @@
 import os
 
+import numpy as np
 import torch
 from torch import nn
 
@@ -20,9 +21,9 @@ logger = CleverLogger(__name__)
 # After how many epochs should a checkpoint be made?
 CHECKPOINT_RATE = 10
 # If accuracy growth falls below this value, stop training early
-GROWTH_THRESHOLD = 0.001
+GROWTH_THRESHOLD = [0.0001 for _ in range(3)]
 # If accuracy reaches this this threshold, then stop training.
-STOP_THRESHOLD = 0.95
+STOP_THRESHOLD = 0.85
 # Learning rate of the model.
 LEARNING_RATE = 1e-4
 # How many data points to analyze in a batch.
@@ -57,6 +58,7 @@ loss_fn.to(device)
 optimizer = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE)
 
 last_acc = 0.0
+growth = []
 sentinal = True
 epoch = 0
 # Epoch loop
@@ -81,14 +83,18 @@ while sentinal:
         )
         # save the model as a checkpoint
         torch.save(
-            model, f"checkpoint-{(epoch // CHECKPOINT_RATE):>05d}-classification.pth"
+            model,
+            f"./models/classification/checkpoint-{(epoch // CHECKPOINT_RATE):>05d}.pth",
         )
         if acc > STOP_THRESHOLD:
             # If the accuracy is hight enough, exit training
             logger.log_notice(f"Accuracy threshold reached: {acc}")
             sentinal = False
 
-        if acc - last_acc < GROWTH_THRESHOLD:
+        growth.append(acc - last_acc)
+        if len(growth) > len(GROWTH_THRESHOLD):
+            growth.pop()
+        if np.all(np.array(growth) < GROWTH_THRESHOLD):
             # If the accuacy has not grown appreciably since last test, exit
             # training
             logger.log_notice(f"Accuracy growth limit reached: {acc - last_acc}")
