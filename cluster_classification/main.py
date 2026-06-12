@@ -58,7 +58,7 @@ loss_fn.to(device)
 optimizer = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE)
 
 last_acc = 0.0
-growth = []
+growth = [np.inf for _ in range(len(GROWTH_THRESHOLD))]
 sentinal = True
 epoch = 0
 # Epoch loop
@@ -91,9 +91,8 @@ while sentinal:
             logger.log_notice(f"Accuracy threshold reached: {acc}")
             sentinal = False
 
+        growth.pop()
         growth.append(acc - last_acc)
-        if len(growth) > len(GROWTH_THRESHOLD):
-            growth.pop()
         if np.all(np.array(growth) < GROWTH_THRESHOLD):
             # If the accuacy has not grown appreciably since last test, exit
             # training
