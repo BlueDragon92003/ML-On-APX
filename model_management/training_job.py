@@ -1,5 +1,5 @@
-from typing import List
-from collections.abc import Callable
+from model_management.stop_functions import StopFunction
+from typing import List, Callable
 from dataset_management.dataset_info import DatasetInfo
 
 
@@ -15,7 +15,7 @@ class TrainingJob:
         self,
         group_name: str,
         dataset: DatasetInfo,
-        stop_function: Callable[[List[float], List[float], int], bool],
+        stop_function: StopFunction,
         lookback_distance: int,
         batch_size: int,
         checkpoint_rate: int,
@@ -39,9 +39,7 @@ class TrainingJobBuilder:
     def __init__(self):
         self._group_name: str | None = None
         self._dataset: DatasetInfo | None = None
-        self._stop_function: Callable[[List[float], List[float], int], bool] | None = (
-            None
-        )
+        self._stop_function: StopFunction | None = None
         self._lookback_distance: int = 3
         self._batch_size: int = 1
         self._checkpoint_rate: int = 10
@@ -101,11 +99,11 @@ class TrainingJobBuilder:
         if self._lookback_distance < 0:
             raise ValueError("Lookback distance must be non-negative.")
         if self._batch_size < 1:
-            raise ValueError("Batch size must be positive")
+            raise ValueError("Batch size must be positive.")
         if self._checkpoint_rate < 1:
-            raise ValueError("Checkpoint rate must be positive")
+            raise ValueError("Checkpoint rate must be positive.")
         if self._learning_rate <= 0:
-            raise ValueError("Learning rate must be positive")
+            raise ValueError("Learning rate must be positive.")
         return TrainingJob(
             self._group_name,
             self._dataset,

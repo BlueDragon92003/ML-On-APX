@@ -1,18 +1,26 @@
+from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List
+from typing import List, Type, Tuple, Set
 from dataset_management.dataset_info import DatasetInfo
+
+
+class Dataset(ABC):
+    @abstractmethod
+    def create(components: Set[Tuple[str, int]]) -> "Dataset":
+        pass
 
 
 class DatasetManager:
     """Manages a collection of datasets stored in a location."""
 
-    def __init__(self, dataset_dir: Path):
+    def __init__(self, dataset_dir: Path, type: Type[Dataset]):
         pass
 
     def __enter__(self):
         pass
 
     def __exit__(self):
+        # possibly recompile pickles
         pass
 
     def create_dataset(self, dataset: DatasetInfo):
@@ -29,10 +37,12 @@ class DatasetManager:
 
     def update_dataset(self, dataset_name: str, dataset: DatasetInfo):
         """Update a dataset's information."""
+        # flag to recompile the pickle upoin __exit__ing
         pass
 
     def rename_dataset(self, dataset_name: str, new_name: str):
         """Rename a dataset."""
+        # flag to recompile the pickle upoin __exit__ing
         pass
 
     def delete_dataset(self, dataset_name: str):
