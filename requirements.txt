@@ -47,8 +47,10 @@ nvidia-nvtx-cu12==12.8.90
 opt_einsum==3.4.0
 packaging==26.2
 parameterized==0.9.0
+pip-licenses==5.5.5
 platformdirs==4.10.0
 pre_commit==4.6.0
+prettytable==3.17.0
 pyfakefs==6.2.0
 Pygments==2.20.0
 pyreqver==0.1.0
@@ -69,4 +71,5 @@ uproot==5.7.1
 urllib3==2.7.0
 virtualenv==21.4.1
 wadler_lindig==0.1.7
+wcwidth==0.8.1
 xxhash==3.7.0
