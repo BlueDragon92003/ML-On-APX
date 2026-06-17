@@ -125,35 +125,47 @@ class CleverLogger:
     major_process: str
     minor_process: str
 
+    file_log_level: str | None = None
+    console_log_level: str | None = None
+
     log_file: pathlib.Path | None = None
 
     def __init__(self, name):
         self.logger = logging.getLogger(name)
+
         self.logger.setLevel(os.environ.get("LOG_LEVEL", "INFO").upper())
 
-        file_log_level = os.environ.get(
-            "FILE_LOG_LEVEL", os.environ.get("LOG_LEVEL", "INFO")
-        ).upper()
+        if CleverLogger.file_log_level is None:
+            CleverLogger.file_log_level = os.environ.get(
+                "FILE_LOG_LEVEL", os.environ.get("LOG_LEVEL", "INFO")
+            ).upper()
 
-        stream_log_level = os.environ.get(
-            "CONSOLE_LOG_LEVEL", os.environ.get("LOG_LEVEL", "ERROR")
-        ).upper()
+        if CleverLogger.console_log_level is None:
+            CleverLogger.console_log_level = os.environ.get(
+                "CONSOLE_LOG_LEVEL", os.environ.get("LOG_LEVEL", "ERROR")
+            ).upper()
 
         if CleverLogger.log_file is None:
+            application_dir = os.environ.get("APP_DIR")
+            if application_dir is None:
+                raise ValueError("Begun logging too early!")
+            CleverLogger.log_file = pathlib.Path(application_dir) / "logs"
+
+        if os.path.isdir(CleverLogger.log_file):
             filestring = str(date.today())
             log_number = 0
-            file = pathlib.Path(f"./logs/{filestring}.log.xml")
+            file = CleverLogger.log_file / f"{filestring}.log.xml"
             while os.path.isfile(file):
                 log_number += 1
-                file = pathlib.Path(f"./logs/{filestring}-{log_number}.log.xml")
+                file = CleverLogger.log_file / f"{filestring}-{log_number}.log.xml"
             CleverLogger.log_file = file
         file_handler = logging.FileHandler(CleverLogger.log_file)
         # os.symlink(file, './logs/latest.log.xml')
-        file_handler.setLevel(file_log_level)
+        file_handler.setLevel(CleverLogger.file_log_level)
         file_handler.setFormatter(XMLFormatter())
 
         console_handler = logging.StreamHandler()
-        console_handler.setLevel(stream_log_level)
+        console_handler.setLevel(CleverLogger.console_log_level)
         console_handler.setFormatter(ConsoleFormatter())
 
         self.logger.addHandler(file_handler)
@@ -254,32 +266,6 @@ class CleverLogger:
         )
 
     # DEBUG
-    def log_start_load_module(self, **kwargs: Any):
-        """Log module loads."""
-        self.logger.log(
-            self.DEBUG,
-            None,
-            extra={
-                "type": RecordShape.OPEN,
-                "title": "Loading this module...",
-                "arguments": kwargs,
-            },
-        )
-
-    def log_end_load_module(
-        self,
-    ):
-        """Log module loads."""
-        self.logger.log(
-            self.DEBUG,
-            None,
-            extra={
-                "type": RecordShape.CLOSE,
-                "title": "Loaded this module.",
-                "arguments": None,
-            },
-        )
-
     def log_start_minor_process(self, minor_process_name: str, **kwargs: Any):
         """Log processes started by major processes."""
         self.logger.log(

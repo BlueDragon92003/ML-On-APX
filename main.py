@@ -1,20 +1,20 @@
+import dataset_management.app
+import cluster_classification.main
+from cleverlogger import CleverLogger
+from typing import LiteralString
+import os
 from pathlib import Path
 import argparse
 
+LOG_LEVELS = ["TRACE", "DEBUG", "INFO", "WARN", "ERROR", "CRITICAL", "FATAL", "SILENT"]
 
-def handle_training_process(args: argparse.Namespace):
-    print("training!")
-    pass
+MODE_CLASSIFICATION: str = "classification"
+MODE_IDENTIFICATION: str = "identification"
+MODES = [MODE_CLASSIFICATION, MODE_IDENTIFICATION]
 
-
-def handle_data_management(args: argparse.Namespace):
-    print("data manager")
-    pass
-
-
-def handle_model_management(args: argparse.Namespace):
-    print("model manager")
-    pass
+SUBCOMMAND_TRAIN: str = "train"
+SUBCOMMAND_MNG_DATA: str = "manage data"
+SUBCOMMAND_MNG_MODEL: str = "manage model"
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -23,27 +23,51 @@ def get_parser() -> argparse.ArgumentParser:
         "--application-dir",
         help="Specify a different working directory than `./``",
         type=Path,
+        default=None,
     )
     parser.add_argument(
         "--data-dir",
         help="Specify a different directiory to store data in than `{application-dir}/data/`",
         type=Path,
+        default=None,
     )
     parser.add_argument(
         "--model-dir",
         help="Specify a different directiory to store models in than `{application-dir}/models/`",
         type=Path,
+        default=None,
     )
     parser.add_argument(
-        "--log-to-console", action="store_true", help="Enables console logging."
+        "--console-log-level",
+        type=str,
+        choices=LOG_LEVELS,
+        default="ERROR",
+        help="Specify the console logging level.",
+    )
+    parser.add_argument(
+        "--file-log-level",
+        type=str,
+        choices=LOG_LEVELS,
+        default="INFO",
+        help="Specify the file logging level.",
+    )
+    log_paths = parser.add_mutually_exclusive_group()
+    log_paths.add_argument(
+        "--log-file", type=Path, default=None, help="Specify the file to log over."
+    )
+    log_paths.add_argument(
+        "--log-dir",
+        type=Path,
+        default=None,
+        help="Specify the directory to save logs to.",
     )
     subparsers = parser.add_subparsers()
 
     train_parser = subparsers.add_parser("train")
-    train_parser.set_defaults(subcommand=handle_training_process)
+    train_parser.set_defaults(subcommand=SUBCOMMAND_TRAIN)
     train_parser.add_argument(
         "mode",
-        choices=["classification", "identification"],
+        choices=MODES,
         help="Specify whether to run the job set for classification or identification.",
     )
     (
@@ -58,16 +82,16 @@ def get_parser() -> argparse.ArgumentParser:
     manage_parser = subparsers.add_parser("manage")
     manage_parser.add_argument(
         "mode",
-        choices=["classification", "identification"],
+        choices=MODES,
         help="Specify whether to run the job set for classification or identification.",
     )
     manage_subparsers = manage_parser.add_subparsers()
 
     manage_data_parser = manage_subparsers.add_parser("data")
-    manage_data_parser.set_defaults(subcommand=handle_data_management)
+    manage_data_parser.set_defaults(subcommand=SUBCOMMAND_MNG_DATA)
 
     manage_models_parser = manage_subparsers.add_parser("models")
-    manage_models_parser.set_defaults(subcommand=handle_model_management)
+    manage_models_parser.set_defaults(subcommand=SUBCOMMAND_MNG_MODEL)
 
     return parser
 
@@ -114,7 +138,75 @@ def main():
         argparser.print_help()
         return -1
 
-    args.subcommand(args)
+    application_dir: Path = (
+        args.application_dir if args.application_dir is not None else Path(os.getcwd())
+    )
+    os.environ["APP_DIR"] = str(application_dir)
+    data_dir: Path = (
+        args.data_dir if args.data_dir is not None else application_dir / "data"
+    )
+    model_dir: Path = (
+        args.model_dir if args.model_dir is not None else application_dir / "model"
+    )
+
+    console_log_level: LiteralString = args.console_log_level
+    file_log_level: LiteralString = args.file_log_level
+
+    log_path: Path = application_dir / "logs"
+    if args.log_file is not None:
+        if os.path.isfile(args.log_file) or not os.path.exists(args.log_file):
+            log_path: Path = args.log_file
+        else:
+            print(f"{args.log_dir} must not exist or be a regular file.", end="\n\n")
+            argparser.print_help()
+            return -1
+    elif args.log_dir is not None:
+        if os.path.isdir(args.log_dir):
+            log_path: Path = args.log_dir
+        else:
+            print(f"{args.log_dir} is not a directory.", end="\n\n")
+            argparser.print_help()
+            return -1
+
+    CleverLogger.file_log_level = file_log_level
+    CleverLogger.console_log_level = console_log_level
+    CleverLogger.log_file = log_path
+
+    mode: LiteralString = args.mode
+
+    match args.subcommand:
+        case subcommand if subcommand == SUBCOMMAND_TRAIN:
+            match mode:
+                case mode if mode == MODE_CLASSIFICATION:
+                    print("Not yet implemeneted")
+                    return 0
+                    cluster_classification.main.main(data_dir, model_dir)
+                case mode if mode == MODE_IDENTIFICATION:
+                    print("Not yet implemeneted")
+                    pass
+        case subcommand if subcommand == SUBCOMMAND_MNG_DATA:
+            match mode:
+                case mode if mode == MODE_CLASSIFICATION:
+                    print("Not yet implemeneted")
+                    return 0
+                    dataset_management.app.main(data_dir, mode)
+                case mode if mode == MODE_IDENTIFICATION:
+                    print("Not yet implemeneted")
+                    return 0
+                    dataset_management.app.main(data_dir, mode)
+        case subcommand if subcommand == SUBCOMMAND_MNG_MODEL:
+            match mode:
+                case mode if mode == MODE_CLASSIFICATION:
+                    print("Not yet implemeneted")
+                    return 0
+                    dataset_management.app.main(model_dir, mode)
+                case mode if mode == MODE_IDENTIFICATION:
+                    print("Not yet implemeneted")
+                    return 0
+                    dataset_management.app.main(model_dir, mode)
+        case _:
+            argparser.print_help()
+            return -1
 
     return 0
 
