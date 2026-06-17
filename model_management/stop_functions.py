@@ -1,9 +1,20 @@
+from typing import Dict, List, Tuple
 import math
-from typing import List, Dict
+
+LispType = float | str | List["LispType"]
+LispVars = List[Tuple[str, LispType]]
 
 
 class StopFunction:
     """Represents an expression that determines if training should stop.
+
+    WARNING! THIS IMPLEMENTATION DOES NOT CHECK THE INPUTTED CODE.
+    Any call to a `StopFunction` must catch the following exceptions:
+    - TypeError
+    - ValueError
+    - IndexError
+    Many of these will occur from user errors, but some are due to the fact that
+    my type checker cannot properly consider the union types used :/
 
     An odd extention of the Lisp implementation from
     https://zserge.com/posts/langs-lisp/
@@ -15,24 +26,31 @@ class StopFunction:
         self._parsed = StopFunction.parse(StopFunction.lex(self._code))
 
     def __call__(self, **kwargs: float) -> bool:
-        value = StopFunction.eval(self._parsed, StopFunction.from_kwargs(kwargs))
-        return False if value is List and len(value) == 0 else True
+        value = StopFunction.eval(self._parsed, StopFunction.convert_kwargs(kwargs))
+        return not StopFunction.is_nil(value)
 
     @staticmethod
-    def from_kwargs(kwargs: Dict[str, float]) -> List[List[str | float]]:
-        g = []
-        for key, value in kwargs.items():
-            g.append([key, value])
-        return g
+    def execute(code: str, **kwargs: float) -> bool:
+        return StopFunction.eval(
+            StopFunction.parse(StopFunction.lex(code)),
+            StopFunction.convert_kwargs(kwargs),
+        )
+
+    @staticmethod
+    def convert_kwargs(kwargs: Dict[str, float]) -> LispVars:
+        globals = []
+        for entry in kwargs.items():
+            globals.append(entry)
+        return globals
 
     # Very simple lexer, split by parens and whitespace
     @staticmethod
-    def lex(code):
+    def lex(code: str) -> List[str]:
         return code.replace("(", " ( ").replace(")", " ) ").split()
 
     # A simple parser: build nested lists from nested parenthesis
     @staticmethod
-    def parse(tokens):
+    def parse(tokens: List[str]) -> LispType:
         t = tokens.pop(0)
         if t == "(":
             sexp = []
@@ -52,8 +70,8 @@ class StopFunction:
     #   pairlis([1, 2, 3], [4, 5, 6], [[7, 8]]) -> [[1, 4], [2, 5], [3, 6], [7, 8]]
     #
     @staticmethod
-    def pairlis(x, y, L):
-        return L if not x else [[x[0], y[0]]] + StopFunction.pairlis(x[1:], y[1:], L)
+    def pairlis(x: List[str], y: List[LispType], L: LispVars) -> LispVars:
+        return L if not x else [(x[0], y[0])] + StopFunction.pairlis(x[1:], y[1:], L)
 
     #
     # Find value in associated list L by key x:
@@ -62,7 +80,7 @@ class StopFunction:
     #   assoc("bar", L) -> 42
     #
     @staticmethod
-    def assoc(x, L):
+    def assoc(x: str, L: LispVars) -> LispType:
         return (
             [] if not L else L[0][1] if L[0][0] == x else StopFunction.assoc(x, L[1:])
         )
@@ -74,8 +92,12 @@ class StopFunction:
     #   atom([42, 'a']) -> []
     #
     @staticmethod
-    def atom(x):
-        return "t" if (x is not List) or len(x) == 0 else []
+    def atom(x: LispType) -> LispType:
+        return "t" if (type(x) is not list) or len(x) == 0 else []
+
+    @staticmethod
+    def is_nil(x: LispType) -> bool:
+        return (type(x) is list) and len(x) == 0
 
     #
     #   apply[fn;x;a] =
@@ -88,7 +110,7 @@ class StopFunction:
     #        eq[car[fn];LAMBDA] → eval[caddr[fn]; pairlis[cadr[fn];x;a]]];
     #
     @staticmethod
-    def apply(f, args, L):
+    def apply(f, args, L: LispVars):
         if f == "atom":
             return StopFunction.atom(args[0])
         elif f == "car":
@@ -109,30 +131,42 @@ class StopFunction:
             return args[0] / args[1]
         elif f == "**":
             return args[0] ** args[1]
-        elif f == "~":
-            return -args[0]
         elif f == "log":
-            return math.log(args[0], 2)
-        elif f[0] == "lambda":
-            return eval(f[2], StopFunction.pairlis(f[1], args, L))
-        else:
-            return StopFunction.apply(eval(f, L), args, L)
+            return math.log(args[0], args[1])
+        elif f == "<":
+            return "t" if args[0] < args[1] else []
+        elif f == "<=":
+            return "t" if args[0] <= args[1] else []
+        elif f == ">":
+            return "t" if args[0] > args[1] else []
+        elif f == ">=":
+            return "t" if args[0] >= args[1] else []
+        elif f == "or":
+            return args[1] if StopFunction.is_nil(args[0]) else args[0]
+        elif f == "and":
+            return args[0] if StopFunction.is_nil(args[0]) else args[1]
+        elif f == "not":
+            return "t" if StopFunction.is_nil(args[0]) else []
+        else:  # StopFunction.is_nil(f):
+            raise ValueError(f"No such lisp function `{f}`.")
+        # elif (type(f) is list) and f[0] == "lambda":
+        #     return StopFunction.eval(f[2], StopFunction.pairlis(f[1], args, L))
+        # else:
+        #     return StopFunction.apply(StopFunction.eval(f, L), args, L)
 
     # Evaluate "cond"
     @staticmethod
-    def evcon(x, L):
-        return (
-            []
-            if len(x) == 0
-            else eval(x[0][1], L)
-            if eval(x[0][0], L)
-            else StopFunction.evcon(x[1:], L)
-        )
+    def evcon(x: List[List[LispType]], L: LispVars) -> LispType:
+        if len(x) == 0:
+            return []
+        if StopFunction.eval(x[0][0], L):
+            return StopFunction.eval(x[0][1], L)
+        return StopFunction.evcon(x[1:], L)
 
     # Evaluate list of lambda arguments
     @staticmethod
-    def evlis(x, L):
-        return [eval(x[0], L)] + StopFunction.evlis(x[1:], L) if x else []
+    def evlis(x: List[LispType], L: LispVars) -> List[LispType]:
+        return [StopFunction.eval(x[0], L)] + StopFunction.evlis(x[1:], L) if x else []
 
     #
     # McCarthy's eval from the paper:
@@ -148,19 +182,19 @@ class StopFunction:
     # ...with a few additions: nil, t, symbols and label
     #
     @staticmethod
-    def eval(x, L):
+    def eval(x, L: LispVars):
         if x == "nil":
             return []
-        elif x == "t" or x is int:
+        elif x == "t" or type(x) is float:
             return x
-        elif x is str:
+        elif type(x) is str:
             return StopFunction.assoc(x, L)
-        elif x[0] == "quote":
+        elif type(x) is list and x[0] == "quote":
             return x[1]
-        elif x[0] == "cond":
+        elif type(x) is list and x[0] == "cond":
             return StopFunction.evcon(x[1:], L)
-        elif x[0] == "label":
-            L.insert(0, [x[1], x[2]])
-            return x[1]
+        # elif type(x) is list and x[0] == "label":
+        #     L.insert(0, (x[1], x[2]))
+        #     return x[1]
         else:
             return StopFunction.apply(x[0], StopFunction.evlis(x[1:], L), L)
