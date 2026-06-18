@@ -2,11 +2,7 @@ from typing import Tuple
 
 import torch
 
-from cleverlogger import CleverLogger
-
-logger = CleverLogger(__name__)
-
-logger.log_start_load_module()
+from ml_on_apx.cleverlogger import CleverLogger
 
 
 def test_loop(
@@ -28,6 +24,7 @@ def test_loop(
     - A formatted string for user display messages.
     """
 
+    logger = CleverLogger(__name__)
     logger.log_enter_function(
         "test_loop_fn",
         device=device,
@@ -68,6 +65,3 @@ def test_loop(
     logger.log_function_exit_type("return", retval=[correct, outstring])
     logger.log_exit_function("test_loop_fn")
     return correct, outstring
-
-
-logger.log_end_load_module()

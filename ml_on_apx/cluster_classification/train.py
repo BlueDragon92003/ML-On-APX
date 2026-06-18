@@ -1,11 +1,7 @@
 import torch
 from torch import nn
 
-from cleverlogger import CleverLogger
-
-logger = CleverLogger(__name__)
-
-logger.log_start_load_module()
+from ml_on_apx.cleverlogger import CleverLogger
 
 
 def train_loop(
@@ -29,6 +25,7 @@ def train_loop(
     - A formatted string for user display messages.
     """
 
+    logger = CleverLogger(__name__)
     logger.log_enter_function(
         "train_loop_fn",
         device=device,
@@ -62,6 +59,3 @@ def train_loop(
         logger.log_iteration_tail()
     logger.log_postloop("training_for_loop")
     logger.log_exit_function("train_loop_fn")
-
-
-logger.log_end_load_module()

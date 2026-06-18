@@ -1,10 +1,6 @@
 from torch import nn
 
-from cleverlogger import CleverLogger
-
-logger = CleverLogger(__name__)
-
-logger.log_start_load_module()
+from ml_on_apx.cleverlogger import CleverLogger
 
 
 class Model(nn.Module):
@@ -15,7 +11,8 @@ class Model(nn.Module):
 
     def __init__(self):
         super().__init__()
-        logger.log_enter_function("model_constructor")
+        self.logger = CleverLogger(__name__)
+        self.logger.log_enter_function("model_constructor")
         # Other layers to try: Dropout and batch normalization,
         # if they make any sense. It's a small model though, so likely not
         self.stack = nn.Sequential(
@@ -27,14 +24,11 @@ class Model(nn.Module):
             nn.Linear(8, 2),
             # em similarity, tau similarity
         )
-        logger.log_exit_function("model_constructor")
+        self.logger.log_exit_function("model_constructor")
 
     def forward(self, x):
-        logger.log_enter_function("model_forward")
+        self.logger.log_enter_function("model_forward")
         certainties = self.stack(x)
-        logger.log_function_exit_type("return", retval=certainties)
-        logger.log_exit_function("model_forward")
+        self.logger.log_function_exit_type("return", retval=certainties)
+        self.logger.log_exit_function("model_forward")
         return certainties
-
-
-logger.log_end_load_module()

@@ -24,4 +24,4 @@ install-dependencies:
 	python3 -m pip install -r requirements.txt
 
 run-tests:
-	python3 run_tests.py
+	python3 -m tests

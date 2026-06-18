@@ -9,15 +9,11 @@ from torch import Tensor, log
 from torch.nn.functional import normalize
 from torch.utils.data import DataLoader
 
-from cluster_classification.cluster_classification_dataset import (
+from ml_on_apx.cluster_classification.cluster_classification_dataset import (
     ClusterClassificationDataset,
 )
-from cleverlogger import CleverLogger
-from cluster_classification.dataset_subset import DatasetSubset
-
-logger = CleverLogger(__name__)
-
-logger.log_start_load_module()
+from ml_on_apx.cleverlogger import CleverLogger
+from ml_on_apx.cluster_classification.dataset_subset import DatasetSubset
 
 
 class DatasourceType(Enum):
@@ -41,6 +37,7 @@ def get_data(
     Returns:
     - A PyTorch dataloader that serves cluster classification data.
     """
+    logger = CleverLogger(__name__)
     logger.log_enter_function(
         "get_data",
         datasource_type=datasource_type,
@@ -96,6 +93,7 @@ def load_data(
     Returns:
     - A PyTorch Dataset of the requested ROOT data.
     """
+    logger = CleverLogger(__name__)
     logger.log_enter_function(
         "load_data", datasource_type=datasource_type, datasets=datasets
     )
@@ -177,6 +175,3 @@ def load_data(
     logger.log_function_exit_type("return", retval=ccd)
     logger.log_exit_function("load_data")
     return ccd
-
-
-logger.log_end_load_module()

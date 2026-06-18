@@ -1,3 +1,4 @@
+import sys
 import pathlib
 from datetime import datetime, date
 from enum import Enum
@@ -8,6 +9,7 @@ import os
 logging.addLevelName(2, "HYPERTRACE")
 logging.addLevelName(5, "TRACE")
 logging.addLevelName(45, "CRITICAL")
+logging.addLevelName(sys.maxsize, "NONE")
 
 
 class RecordShape(Enum):

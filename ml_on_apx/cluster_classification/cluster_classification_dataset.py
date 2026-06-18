@@ -9,12 +9,8 @@ import jax.numpy as jnp
 from torch.utils.data import Dataset
 from uproot.behaviors.TBranch import TBranch
 
-from cleverlogger import CleverLogger
-from cluster_classification.signal_type import SignalType
-
-logger = CleverLogger(__name__)
-
-logger.log_start_load_module()
+from ml_on_apx.cleverlogger import CleverLogger
+from ml_on_apx.cluster_classification.signal_type import SignalType
 
 
 class ClusterClassificationDataset(Dataset):
@@ -26,6 +22,7 @@ class ClusterClassificationDataset(Dataset):
     labels: Dict[int, Tuple[SignalType, int]]
 
     def __init__(self, components: Set[Tuple[str, SignalType]]):
+        self.logger = CleverLogger(__name__)
         """Generate a CCD using the provided file names and signal types.
 
         Arguments:
@@ -34,15 +31,15 @@ class ClusterClassificationDataset(Dataset):
                         each root file is associated with.
         """
         super(ClusterClassificationDataset, self).__init__()
-        logger.log_enter_function("ccd_init", components=components)
+        self.logger.log_enter_function("ccd_init", components=components)
         data_parts = []
 
         signal_to_label, self.labels = get_labels(components)
 
         # Data structure: data [cluster][features]
-        logger.log_preloop("init_for_loop")
+        self.logger.log_preloop("init_for_loop")
         for filepath, cluster_type in components:
-            logger.log_iteration_head(filepath=filepath, cluster_type=cluster_type)
+            self.logger.log_iteration_head(filepath=filepath, cluster_type=cluster_type)
             local_label = signal_to_label[cluster_type]
             with uproot.open(filepath) as file:
                 tree: uproot.ReadOnlyDirectory = file["l1NtupleProducer/linkTree;1"]
@@ -115,8 +112,8 @@ class ClusterClassificationDataset(Dataset):
                     curr_len + len(localdata),
                 )
                 data_parts.append(localdata)
-            logger.log_iteration_tail()
-        logger.log_postloop("init_for_loop")
+            self.logger.log_iteration_tail()
+        self.logger.log_postloop("init_for_loop")
         # # General data structure:
         # # data [ SLR/link + feature ][ event ][ card ]
         """
@@ -138,16 +135,16 @@ class ClusterClassificationDataset(Dataset):
         """
         data = np.concatenate(data_parts)
         self.__data = data  # .reshape(-1, data.shape[-1])
-        logger.log_exit_function("ccd_init")
+        self.logger.log_exit_function("ccd_init")
 
     def __getitem__(self, index: int):
         out = self.__data[index]
-        logger.log_micro_function("ccd_get_item", "return", retval=out)
+        self.logger.log_micro_function("ccd_get_item", "return", retval=out)
         return out
 
     def __len__(self):
         out = len(self.__data)
-        logger.log_micro_function("ccd_len", "return", retval=out)
+        self.logger.log_micro_function("ccd_len", "return", retval=out)
         return out
 
 
@@ -333,6 +330,7 @@ def get_labels(
     components: Set[Tuple[str, SignalType]],
 ) -> Tuple[Dict[SignalType, int], Dict[int, Tuple[SignalType, int]]]:
     """Create a set of contiguous integer labels for each signal type, with additional data storage."""
+    logger = CleverLogger(__name__)
     logger.log_enter_function("get_lables", components=components)
     signal_to_label: Dict[SignalType, int] = dict()
     labels: Dict[int, Tuple[SignalType, int]] = dict()
@@ -349,6 +347,3 @@ def get_labels(
     logger.log_function_exit_type("return", retval=(signal_to_label, labels))
     logger.log_exit_function("get_labels")
     return signal_to_label, labels
-
-
-logger.log_end_load_module()

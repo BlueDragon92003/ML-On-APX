@@ -1,12 +1,8 @@
 from __future__ import annotations
 from typing import Tuple, Set, Self, List
 
-from cleverlogger import CleverLogger
-from cluster_classification.signal_type import SignalType
-
-logger = CleverLogger(__name__)
-
-logger.log_start_load_module()
+from ml_on_apx.cleverlogger import CleverLogger
+from ml_on_apx.cluster_classification.signal_type import SignalType
 
 
 class DatasetSubset:
@@ -47,7 +43,8 @@ class DatasetSubset:
                     contain.
         ONLY `data` OR (`filename` AND `data_type`) should be used.
         """
-        logger.log_enter_function(
+        self.logger = CleverLogger(__name__)
+        self.logger.log_enter_function(
             "ds_init",
             bitstring=bitstring,
             # filename=filename,
@@ -68,13 +65,14 @@ class DatasetSubset:
         # else:
         #     self.data = data
         self.__data: Set[Tuple[str, SignalType]] = set()
-        logger.log_exit_function("ds_init")
+        self.logger.log_exit_function("ds_init")
 
     @classmethod
     def new_dataset(
         cls, bitstring: int, filenames: List[str], signal_type: SignalType
     ) -> DatasetSubset:
         """Construct a new dataset from a list of filenames and a signal type"""
+        logger = CleverLogger(__name__)
         logger.log_enter_function("new_dataset")
         retval = DatasetSubset(bitstring, cls.__create_key)
         data = set()
@@ -94,6 +92,7 @@ class DatasetSubset:
         cls, bitstring: int, data: Set[Tuple[str, SignalType]]
     ) -> DatasetSubset:
         """Construct a new dataset from raw data"""
+        logger = CleverLogger(__name__)
         logger.log_enter_function("__from_raw_components")
         retval = DatasetSubset(bitstring, cls.__create_key)
         retval.__data = data
@@ -103,40 +102,37 @@ class DatasetSubset:
 
     def __or__(self, other: Self) -> DatasetSubset:
         """Combine with another available dataset into a new, larger dataset."""
-        logger.log_enter_function("ds_or", other=other)
+        self.logger.log_enter_function("ds_or", other=other)
         bitstring = self.bitstring | other.bitstring
         data = self.__data | other.__data
         retval = DatasetSubset._from_raw_components(bitstring, data)
-        logger.log_function_exit_type("return", retval=retval)
-        logger.log_exit_function("ds_or")
+        self.logger.log_function_exit_type("return", retval=retval)
+        self.logger.log_exit_function("ds_or")
         return retval
 
     def get_hex(self) -> str:
         """Returns a hex ID for this dataset. Enables pickle identification."""
-        logger.log_enter_function("get_hex")
+        self.logger.log_enter_function("get_hex")
         bitstring = self.bitstring
         string = ""
-        logger.log_preloop("hex_for_loop")
+        self.logger.log_preloop("hex_for_loop")
         for _ in range(8):
-            logger.log_iteration_head()
+            self.logger.log_iteration_head()
             string = hex(bitstring & 0b1111)[2:] + string
             bitstring = bitstring >> 4
-            logger.log_iteration_tail()
-        logger.log_postloop("hex_for_loop")
-        logger.log_function_exit_type("return", retval=string)
-        logger.log_exit_function("get_hex")
+            self.logger.log_iteration_tail()
+        self.logger.log_postloop("hex_for_loop")
+        self.logger.log_function_exit_type("return", retval=string)
+        self.logger.log_exit_function("get_hex")
         return string
 
     def get_data(self) -> Set[Tuple[str, SignalType]]:
         """Return all filenames and corresponding signal types in this DsSs."""
-        logger.log_micro_function("get_data", "return")
+        self.logger.log_micro_function("get_data", "return")
         return self.__data
 
     def __len__(self) -> int:
         """Returns the number of datasets in this DsSs"""
         out = len(self.__data)
-        logger.log_micro_function("ds_len", "return", retval=out)
+        self.logger.log_micro_function("ds_len", "return", retval=out)
         return out
-
-
-logger.log_end_load_module()

@@ -1,11 +1,5 @@
 from enum import IntEnum
 
-from cleverlogger import CleverLogger
-
-logger = CleverLogger(__name__)
-
-logger.log_start_load_module()
-
 
 class SignalType(IntEnum):
     """Types of signal an individual event may be part of.
@@ -19,6 +13,3 @@ class SignalType(IntEnum):
 
     BACKGROUND = (1,)
     HADRONIC = (2,)
-
-
-logger.log_end_load_module()

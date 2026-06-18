@@ -4,18 +4,16 @@ import numpy as np
 import torch
 from torch import nn
 
-from cleverlogger import CleverLogger
-from cluster_classification.model import Model
-from cluster_classification.test import test_loop
-from cluster_classification.train import train_loop
-from cluster_classification.data import get_data, DatasourceType
-
-from data import TRAINING_DATASET, TESTING_DATASET
-
-logger = CleverLogger(__name__)
+from ml_on_apx.cleverlogger import CleverLogger
+from ml_on_apx.cluster_classification.model import Model
+from ml_on_apx.cluster_classification.test import test_loop
+from ml_on_apx.cluster_classification.train import train_loop
+from ml_on_apx.cluster_classification.data import get_data, DatasourceType
 
 
 def main():
+    raise NotImplementedError("Must be redone")
+    logger = CleverLogger(__name__)
     # After how many epochs should a checkpoint be made?
     CHECKPOINT_RATE = 10
     # If accuracy growth falls below this value, stop training early
@@ -42,12 +40,12 @@ def main():
     # Collect data
     logger.log_start_major_process("load_training_data")
     training_data, weights = get_data(
-        DatasourceType.TRAINING, TRAINING_DATASET, BATCH_SIZE
+        DatasourceType.TRAINING, current_device, BATCH_SIZE
     )
     logger.log_end_major_process("load_training_data")
 
     logger.log_start_major_process("load_testing_data")
-    testing_data, _ = get_data(DatasourceType.TESTING, TESTING_DATASET, BATCH_SIZE)
+    testing_data, _ = get_data(DatasourceType.TESTING, current_device, BATCH_SIZE)
     logger.log_end_major_process("load_testing_data")
 
     # Set loss function
