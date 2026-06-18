@@ -1,12 +1,12 @@
 from ml_on_apx.labelling import Label, Labels
 from pathlib import Path
-from typing import List, Tuple, Set
+from typing import Tuple, Set, Iterable
 
 
 class DatasetInfo:
     """Stores information relating to a dataset."""
 
-    def __init__(self, labels: Labels, sources: List[Tuple[Path, Label]]):
+    def __init__(self, labels: Labels, sources: Iterable[Tuple[Path, Label]]):
         self._labels = labels
         self._sources = set(sources)
         for source in self._sources:
@@ -17,7 +17,7 @@ class DatasetInfo:
         return self._labels
 
     def get_sources(self) -> Set[Path]:
-        return set(map(lambda x: x[1], self._sources))
+        return set(map(lambda x: x[0], self._sources))
 
     def get_labeled_sources(self) -> Set[Tuple[Path, int]]:
         labled_sources = set()
