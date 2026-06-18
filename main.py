@@ -1,6 +1,7 @@
+from core.modes import Mode
 import dataset_management.app
 import cluster_classification.main
-from cleverlogger import CleverLogger
+from core.cleverlogger import CleverLogger
 from typing import LiteralString
 import os
 from pathlib import Path
@@ -172,38 +173,31 @@ def main():
     CleverLogger.console_log_level = console_log_level
     CleverLogger.log_file = log_path
 
-    mode: LiteralString = args.mode
+    mode: Mode
+    match args.mode:
+        case argsmode if argsmode == MODE_CLASSIFICATION:
+            mode = Mode.Classification
+        case argsmode if argsmode == MODE_IDENTIFICATION:
+            mode = Mode.Identification
 
     match args.subcommand:
         case subcommand if subcommand == SUBCOMMAND_TRAIN:
             match mode:
-                case mode if mode == MODE_CLASSIFICATION:
+                case mode if mode is Mode.Classification:
                     print("Not yet implemeneted")
                     return 0
                     cluster_classification.main.main(data_dir, model_dir)
-                case mode if mode == MODE_IDENTIFICATION:
+                case mode if mode is Mode.Identification:
                     print("Not yet implemeneted")
-                    pass
+                    return 0
         case subcommand if subcommand == SUBCOMMAND_MNG_DATA:
-            match mode:
-                case mode if mode == MODE_CLASSIFICATION:
-                    print("Not yet implemeneted")
-                    return 0
-                    dataset_management.app.main(data_dir, mode)
-                case mode if mode == MODE_IDENTIFICATION:
-                    print("Not yet implemeneted")
-                    return 0
-                    dataset_management.app.main(data_dir, mode)
+            print("Not yet implemeneted")
+            return 0
+            dataset_management.app.main(data_dir, mode)
         case subcommand if subcommand == SUBCOMMAND_MNG_MODEL:
-            match mode:
-                case mode if mode == MODE_CLASSIFICATION:
-                    print("Not yet implemeneted")
-                    return 0
-                    dataset_management.app.main(model_dir, mode)
-                case mode if mode == MODE_IDENTIFICATION:
-                    print("Not yet implemeneted")
-                    return 0
-                    dataset_management.app.main(model_dir, mode)
+            print("Not yet implemeneted")
+            return 0
+            dataset_management.app.main(model_dir, mode)
         case _:
             argparser.print_help()
             return -1

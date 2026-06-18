@@ -1,5 +1,5 @@
 from typing import List, Type
-from labelling import Labels
+from core.labelling import Labels
 import torch.nn
 
 

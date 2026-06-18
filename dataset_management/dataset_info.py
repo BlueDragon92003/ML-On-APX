@@ -1,22 +1,26 @@
-from labelling import Label, Labels
+from core.labelling import Label, Labels
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Set
 
 
 class DatasetInfo:
     """Stores information relating to a dataset."""
 
-    def __init__(self, labels: Labels):
-        pass
+    def __init__(self, labels: Labels, sources: List[Tuple[Path, Label]]):
+        self._labels = labels
+        self._sources = set(sources)
+        for source in self._sources:
+            if source[1] not in labels:
+                raise ValueError(f"Label {source[1]} not found in provided labels!")
 
     def get_labels(self) -> Labels:
-        pass
+        return self._labels
 
-    def add_sources(self, sources: List[Path], label: Label):
-        pass
+    def get_sources(self) -> Set[Path]:
+        return set(map(lambda x: x[1], self._sources))
 
-    def get_labeled_sources(self) -> List[Tuple[Path, Label]]:
-        pass
-
-    def remove_source(self, source: Path):
-        pass
+    def get_labeled_sources(self) -> Set[Tuple[Path, int]]:
+        labled_sources = set()
+        for path, label in self._sources:
+            labled_sources.add((path, self._labels[label]))
+        return labled_sources
