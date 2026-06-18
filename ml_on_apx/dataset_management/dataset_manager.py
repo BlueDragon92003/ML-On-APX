@@ -79,7 +79,7 @@ class DatasetManager(Generic[T]):
         """Create a new dataset."""
         if name in self._set_info.keys():
             # TODO LOG WARN
-            raise ValueError("Set already exists!")
+            raise KeyError("Set already exists!")
         self._set_info[name] = dataset
         self._to_recompile.append(name)
 
@@ -89,13 +89,12 @@ class DatasetManager(Generic[T]):
 
     def get_dataset_info(self, dataset_name: str) -> DatasetInfo:
         """Retrieve information for a dataset."""
-        if dataset_name in self._set_info.keys():
-            return self._set_info[dataset_name]
-        # TODO LOG WARN
-        raise ValueError(f"No such dataset {dataset_name}!")
+        return self._set_info[dataset_name]
 
     def get_dataset(self, dataset_name: str) -> T:
         """Retrieve a dataset object."""
+        if dataset_name not in self._set_info.keys():
+            raise KeyError("No such set!")
         set_path = self._get_dataset_path(dataset_name)
         if dataset_name in self._to_recompile:
             self._recompile_dataset(set_path, self._set_info[dataset_name])
@@ -105,11 +104,17 @@ class DatasetManager(Generic[T]):
 
     def update_dataset(self, dataset_name: str, dataset_info: DatasetInfo):
         """Update a dataset's information."""
+        if dataset_name not in self._set_info.keys():
+            raise KeyError("No such set!")
         self._to_recompile.append(dataset_name)
         self._set_info[dataset_name] = dataset_info
 
     def rename_dataset(self, dataset_name: str, new_name: str):
         """Rename a dataset."""
+        if dataset_name not in self._set_info.keys():
+            raise KeyError(f"No such set `{dataset_name}`!")
+        if new_name in self._set_info.keys():
+            raise KeyError(f"Set `{new_name}` already exists!")
         path = self._get_dataset_path(dataset_name)
         path.move(self._get_dataset_path(new_name))
         info = self._set_info.pop(dataset_name)
@@ -120,6 +125,8 @@ class DatasetManager(Generic[T]):
 
     def delete_dataset(self, dataset_name: str):
         """Delete a dataset."""
+        if dataset_name not in self._set_info.keys():
+            raise KeyError(f"No such set `{dataset_name}`!")
         path = self._get_dataset_path(dataset_name)
         path.unlink()
         self._set_info.pop(dataset_name)
