@@ -35,10 +35,11 @@ T = TypeVar("T", bound=Dataset)
 class DatasetManager(Generic[T]):
     """Manages a collection of datasets stored in a location."""
 
-    def __init__(self, dataset_dir: Path, mode: Mode, dataset_class: Type[Dataset]):
+    def __init__(self, dataset_dir: Path, mode: Mode, dataset_class: Type[T]):
         self._root_dir_path = dataset_dir / mode.value / "root"
         self._sets_dir_path = dataset_dir / mode.value / "sets"
-        self._dataset_class: Type[Dataset] = dataset_class
+        self._sets_dir_path = dataset_dir / mode.value / "sets"
+        self._dataset_class: Type[T] = dataset_class
 
     def __enter__(self):
         self._to_recompile: List[str] = []
@@ -73,8 +74,10 @@ class DatasetManager(Generic[T]):
                 self._set_info.pop(set)
 
     def __exit__(self):
-        # possibly recompile pickles
-        pass
+        for dataset_name in self._to_recompile:
+            self._recompile_dataset(
+                self._get_dataset_path(dataset_name), self._set_info[dataset_name]
+            )
 
     def get_sources(self) -> TreeNode:
         return self._sources
@@ -98,9 +101,9 @@ class DatasetManager(Generic[T]):
 
     def get_dataset(self, dataset_name: str) -> T:
         """Retrieve a dataset object."""
-        set_path = self._sets_dir_path / f"{dataset_name}.root"
+        set_path = self._get_dataset_path(dataset_name)
         if dataset_name in self._to_recompile:
-            self.recompile_dataset(set_path, self._set_info[dataset_name])
+            self._recompile_dataset(set_path, self._set_info[dataset_name])
             self._to_recompile.remove(dataset_name)
         with open(set_path, mode="rb") as file:
             return pickle.load(file)
@@ -112,16 +115,30 @@ class DatasetManager(Generic[T]):
 
     def rename_dataset(self, dataset_name: str, new_name: str):
         """Rename a dataset."""
-        # flag to recompile the pickle upoin __exit__ing
-        pass
+        path = self._get_dataset_path(dataset_name)
+        path.move(self._get_dataset_path(new_name))
+        info = self._set_info.pop(dataset_name)
+        self._set_info[new_name] = info
+        if dataset_name in self._to_recompile:
+            self._to_recompile.remove(dataset_name)
+            self._to_recompile.append(new_name)
 
     def delete_dataset(self, dataset_name: str):
         """Delete a dataset."""
-        pass
+        path = self._get_dataset_path(dataset_name)
+        path.unlink()
+        self._set_info.pop(dataset_name)
+        if dataset_name in self._to_recompile:
+            self._to_recompile.remove(dataset_name)
 
-    def recompile_dataset(self, path: Path, dataset_info: DatasetInfo):
-        self._dataset_class.create(dataset_info.get_labeled_sources())
-        pass
+    def _recompile_dataset(self, path: Path, dataset_info: DatasetInfo):
+        """(Re)create a dataset, pickle it, and save it to the path."""
+        to_pickle = self._dataset_class.create(dataset_info.get_labeled_sources())
+        with open(path, mode="wb") as file:
+            pickle.dump(to_pickle, file)
+
+    def _get_dataset_path(self, dataset_name: str) -> Path:
+        return self._sets_dir_path / f"{dataset_name}.root"
 
 
 def fs_tree(name: str, sources: Iterable[Path]) -> TreeNode:
