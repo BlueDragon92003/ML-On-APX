@@ -24,6 +24,7 @@ class DatasetManager(Generic[T]):
         self._sources: TreeNode
 
         self._set_info: Dict[str, DatasetInfo] = dict()
+
         if self._set_info_path.exists() and self._set_info_path.is_file():
             with open(self._set_info_path, mode="rb") as set_info:
                 self._set_info: Dict[str, DatasetInfo] = pickle.load(set_info)
@@ -55,7 +56,7 @@ class DatasetManager(Generic[T]):
             self._root_dir_path.parent.name, self._root_dir_path.iterdir()
         )
 
-        valid = list(self._sets_dir_path.iterdir())
+        valid = self._datasets_in_dir(self._sets_dir_path)
         for set in self._set_info.keys():
             if set not in valid:
                 self._set_info.pop(set)
@@ -140,4 +141,13 @@ class DatasetManager(Generic[T]):
             pickle.dump(to_pickle, file)
 
     def _get_dataset_path(self, dataset_name: str) -> Path:
-        return self._sets_dir_path / f"{dataset_name}.root"
+        return self._sets_dir_path / f"{dataset_name}.dataset.pckl"
+
+    def _datasets_in_dir(self, dir: Path) -> List[str]:
+        options = dir.iterdir()
+        correct_type_and_extention = filter(
+            lambda path: path.is_file() and path.suffixes == [".dataset", ".pckl"],
+            options,
+        )
+        just_the_name = map(lambda path: path.name, correct_type_and_extention)
+        return list(just_the_name)
