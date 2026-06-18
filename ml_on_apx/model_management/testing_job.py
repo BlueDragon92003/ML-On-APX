@@ -1,4 +1,4 @@
-from dataset_management.dataset_info import DatasetInfo
+from ml_on_apx.dataset_management.dataset_info import DatasetInfo
 from pathlib import Path
 
 

@@ -1,6 +1,6 @@
-from model_management.stop_functions import StopFunction
+from ml_on_apx.model_management.stop_functions import StopFunction
 from typing import List, Callable
-from dataset_management.dataset_info import DatasetInfo
+from ml_on_apx.dataset_management.dataset_info import DatasetInfo
 
 
 class TrainingJob:

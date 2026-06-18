@@ -1,4 +1,4 @@
-from core.labelling import Label, Labels
+from ml_on_apx.labelling import Label, Labels
 from pathlib import Path
 from typing import List, Tuple, Set
 

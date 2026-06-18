@@ -1,7 +1,7 @@
 from typing import List
-from dataset_management.dataset_info import DatasetInfo
+from ml_on_apx.dataset_management.dataset_info import DatasetInfo
 from datetime import datetime, date
-from core.labelling import Labels
+from ml_on_apx.labelling import Labels
 
 
 class ModelTestInfo:

@@ -1,9 +1,9 @@
 import pickle
-from core.modes import Mode
+from ml_on_apx.modes import Mode
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List, Tuple, Set, Generic, TypeVar, Dict, Iterable, Type
-from dataset_management.dataset_info import DatasetInfo
+from ml_on_apx.dataset_management.dataset_info import DatasetInfo
 import torch
 
 

@@ -1,9 +1,9 @@
-from model_management.group_info import GroupInfo
+from ml_on_apx.model_management.group_info import GroupInfo
 from pathlib import Path
-from model_management.testing_job import TestingJob
-from model_management.training_job import TrainingJob
+from ml_on_apx.model_management.testing_job import TestingJob
+from ml_on_apx.model_management.training_job import TrainingJob
 from typing import List
-from model_management.model_info import ModelInfo
+from ml_on_apx.model_management.model_info import ModelInfo
 
 
 class ModelManager:

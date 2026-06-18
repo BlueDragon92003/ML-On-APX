@@ -1,5 +1,5 @@
 from typing import List, Type
-from core.labelling import Labels
+from ml_on_apx.labelling import Labels
 import torch.nn
 
 
