@@ -1,33 +1,10 @@
 import pickle
 from ml_on_apx.modes import Mode
-from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Tuple, Set, Generic, TypeVar, Dict, Iterable, Type
+from typing import List, Generic, TypeVar, Dict, Type
 from ml_on_apx.dataset_management.dataset_info import DatasetInfo
-import torch
-
-
-class Dataset(ABC, torch.utils.data.Dataset):
-    @abstractmethod
-    @classmethod
-    def create(cls, components: Set[Tuple[Path, int]]) -> "Dataset":
-        pass
-
-
-class TreeNode:
-    def __init__(self, name: str):
-        self._name: str = name
-        self._children: List["TreeNode"] = []
-
-    def get_name(self) -> str:
-        return self._name
-
-    def get_children(self) -> List["TreeNode"]:
-        return self._children
-
-    def add_child(self, child: "TreeNode"):
-        self._children.append(child)
-
+from ml_on_apx.dataset_management.dataset import Dataset
+from ml_on_apx.dataset_management.tree import TreeNode
 
 T = TypeVar("T", bound=Dataset)
 
@@ -38,7 +15,7 @@ class DatasetManager(Generic[T]):
     def __init__(self, dataset_dir: Path, mode: Mode, dataset_class: Type[T]):
         self._root_dir_path = dataset_dir / mode.value / "root"
         self._sets_dir_path = dataset_dir / mode.value / "sets"
-        self._sets_dir_path = dataset_dir / mode.value / "sets"
+        self._set_info_path = dataset_dir / f"{mode.value}_set_info.pckl"
         self._dataset_class: Type[T] = dataset_class
 
     def __enter__(self):
@@ -46,11 +23,20 @@ class DatasetManager(Generic[T]):
         self._set_info: Dict[str, DatasetInfo]
         self._sources: TreeNode
 
+        self._set_info: Dict[str, DatasetInfo] = dict()
+        if self._set_info_path.exists() and self._set_info_path.is_file():
+            with open(self._set_info_path, mode="rb") as set_info:
+                self._set_info: Dict[str, DatasetInfo] = pickle.load(set_info)
+        elif self._set_info_path.exists():
+            # TODO LOG WARN
+            pass
+
         if not self._root_dir_path.exists():
             # Create
             self._root_dir_path.mkdir()
         elif not self._root_dir_path.is_dir():
             # Error
+            # TODO LOG CRITICAL
             raise NotADirectoryError(
                 f"Expected a directory at `{self._root_dir_path}`."
             )
@@ -60,11 +46,12 @@ class DatasetManager(Generic[T]):
             self._sets_dir_path.mkdir()
         elif not self._sets_dir_path.is_dir():
             # Error
+            # TODO LOG CRITICAL
             raise NotADirectoryError(
                 f"Expected a directory at `{self._sets_dir_path}`."
             )
 
-        self._sources = fs_tree(
+        self._sources = TreeNode.from_filesystem(
             self._root_dir_path.parent.name, self._root_dir_path.iterdir()
         )
 
@@ -78,6 +65,12 @@ class DatasetManager(Generic[T]):
             self._recompile_dataset(
                 self._get_dataset_path(dataset_name), self._set_info[dataset_name]
             )
+        if self._set_info_path.exists() and self._set_info_path.is_file():
+            with open(self._set_info_path, mode="wb") as set_info:
+                pickle.dump(self._set_info, set_info)
+        else:
+            # TODO LOG ERROR
+            pass
 
     def get_sources(self) -> TreeNode:
         return self._sources
@@ -85,6 +78,7 @@ class DatasetManager(Generic[T]):
     def create_dataset(self, name: str, dataset: DatasetInfo):
         """Create a new dataset."""
         if name in self._set_info.keys():
+            # TODO LOG WARN
             raise ValueError("Set already exists!")
         self._set_info[name] = dataset
         self._to_recompile.append(name)
@@ -97,6 +91,7 @@ class DatasetManager(Generic[T]):
         """Retrieve information for a dataset."""
         if dataset_name in self._set_info.keys():
             return self._set_info[dataset_name]
+        # TODO LOG WARN
         raise ValueError(f"No such dataset {dataset_name}!")
 
     def get_dataset(self, dataset_name: str) -> T:
@@ -139,15 +134,3 @@ class DatasetManager(Generic[T]):
 
     def _get_dataset_path(self, dataset_name: str) -> Path:
         return self._sets_dir_path / f"{dataset_name}.root"
-
-
-def fs_tree(name: str, sources: Iterable[Path]) -> TreeNode:
-    out = TreeNode(name)
-    for source in sources:
-        if not source.exists():
-            continue
-        elif source.is_dir():
-            out.add_child(fs_tree(source.name, source.iterdir()))
-        elif source.suffix == ".root":
-            out.add_child(TreeNode(source.name))
-    return out
