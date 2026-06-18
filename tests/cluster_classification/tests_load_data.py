@@ -9,14 +9,9 @@ from pyfakefs import fake_filesystem as fakefs
 from pyfakefs.fake_filesystem_unittest import TestCaseMixin
 import numpy as np
 
-from cleverlogger import CleverLogger
-from cluster_classification.data import load_data, DatasourceType
-from cluster_classification.dataset_subset import DatasetSubset
-from cluster_classification.signal_type import SignalType
-
-logger = CleverLogger(__name__)
-
-logger.log_start_load_module()
+from ml_on_apx.cluster_classification.data import load_data, DatasourceType
+from ml_on_apx.cluster_classification.dataset_subset import DatasetSubset
+from ml_on_apx.cluster_classification.signal_type import SignalType
 
 
 def mock_cluster_generator(components: Iterable) -> Iterator[int]:
@@ -61,7 +56,6 @@ class TestLoadData(unittest.TestCase, TestCaseMixin):
 
     @classmethod
     def setUpClass(cls):
-        logger.log_start_minor_process("Setting up fake filesystem...")
         cls.setUpClassPyfakefs()
 
         cls.ffs = cls.fake_fs()
@@ -199,14 +193,12 @@ class TestLoadData(unittest.TestCase, TestCaseMixin):
                 )
             )
         )
-        logger.log_end_minor_process("Setting up fake filesystem...")
 
     # ========================================================================
     # with pickle
     # ------------------------------------------------------------------------
     def test_load_data__pickle_exists(self):
         """Test that the system reads a present, in-date pickle"""
-        logger.log_enter_function("pickle_exists")
         old_time = os.path.getmtime(self.paths["pickle"] / "0000" / "0003.pckl")
         out = load_data(
             DatasourceType.TESTING, self.datasets["data_1"] | self.datasets["data_2"]
@@ -221,11 +213,7 @@ class TestLoadData(unittest.TestCase, TestCaseMixin):
             (int, 2),
         )
         new_time = os.path.getmtime(self.paths["pickle"] / "0000" / "0003.pckl")
-        logger.log_variables(
-            old_time=old_time, new_time=new_time, out=out, expected=expected
-        )
         # that the pickle has the right data
-        logger.log_exit_function("pickle_exists")
         self.assertIn(out[0], expected)
         self.assertIn(out[1], expected)
         # that the pickle wasn't recreated
@@ -236,7 +224,6 @@ class TestLoadData(unittest.TestCase, TestCaseMixin):
     # ------------------------------------------------------------------------
     def test_load_data__create_pickle(self):
         """Test that the system creates a new pickle when needed"""
-        logger.log_enter_function("create_pickle")
         out = load_data(
             DatasourceType.TESTING, self.datasets["data_2"] | self.datasets["data_n"]
         )
@@ -250,19 +237,16 @@ class TestLoadData(unittest.TestCase, TestCaseMixin):
             (int, 2),
         )
         # that the pickle has the right data
-        logger.log_variables(out=out, expected=expected)
         self.assertIn(out[0], expected)
         self.assertIn(out[1], expected)
         # that the pickle was created
         self.assertTrue(os.path.isfile(self.paths["pickle"] / "0000" / "000a.pckl"))
-        logger.log_exit_function("create_pickle")
 
     # ========================================================================
     # with outdated pickle
     # ------------------------------------------------------------------------
     def test_load_data__old_pickle_data(self):
         """Test that the system updates a pickle when the root dataset is changed"""
-        logger.log_enter_function("old_pickle_data")
         old_time = os.path.getmtime(self.paths["pickle"] / "0000" / "0009.pckl")
         out = load_data(
             DatasourceType.TESTING, self.datasets["data_1"] | self.datasets["data_n"]
@@ -277,22 +261,17 @@ class TestLoadData(unittest.TestCase, TestCaseMixin):
             (int, 2),
         )
         new_time = os.path.getmtime(self.paths["pickle"] / "0000" / "0009.pckl")
-        logger.log_variables(
-            old_time=old_time, new_time=new_time, out=out, expected=expected
-        )
         # that the pickle has the right data
         self.assertIn(out[0], expected)
         self.assertIn(out[1], expected)
         # that the pickle was recreated
         self.assertGreater(new_time, old_time)
-        logger.log_exit_function("old_pickle_data")
 
     # ========================================================================
     # with old pickle
     # ------------------------------------------------------------------------
     def test_load_data__old_pickle_format(self):
         """Test that the system updates a pickle when the underlying representation is updated"""
-        logger.log_enter_function("old_pickle_format")
         old_time = os.path.getmtime(self.paths["pickle"] / "0000" / "0005.pckl")
         out = load_data(
             DatasourceType.TESTING, self.datasets["data_1"] | self.datasets["data_3"]
@@ -307,15 +286,8 @@ class TestLoadData(unittest.TestCase, TestCaseMixin):
             (int, 2),
         )
         new_time = os.path.getmtime(self.paths["pickle"] / "0000" / "0005.pckl")
-        logger.log_variables(
-            old_time=old_time, new_time=new_time, out=out, expected=expected
-        )
         # that the pickle has the right data
         self.assertIn(out[0], expected)
         self.assertIn(out[1], expected)
         # That the pickle was recreated
         self.assertGreater(new_time, old_time)
-        logger.log_exit_function("old_pickle_format")
-
-
-logger.log_end_load_module()

@@ -6,32 +6,8 @@ Functions available in this project:
 
 install-dependencies	Installs relevant dependencies via pip
 
-clean					Removes the current model links and any intermediate
-						files used in training models.
-
 run-tests				Runs the test suite to ensure non-model-training code
 						behaves as expected.
-
-clean-identify			Removes the current model softlink and any intermeidate
-						files used in training the identification model.
-
-clean-classify			Removes the current model softlink and any intermeidate
-						files used in training the classification model.
-
-generate-data			Generates the training and testing data needed to train and
-						evaluate the models.
-
-train-identify			Runs the training algorithm for the identification
-						model. More information to follow once the
-						identification model is designed.
-
-train-classify			Runs the training algorithm for the classification
-						model. Once the model stops making significant
-						improvements, updates the current model softlink and
-						generates an accuracy report.
-
-hls4ml-translate		Convert the generated models for use and testing in
-						FPGAs or emulation software for evaluation of success.
 
 
 endef
@@ -43,31 +19,9 @@ _readme:
 install-dependencies:
 	@echo -e "import sys\nif not sys.version_info >= (3,11):\n\tprint('Python version 3.11 or greater is required.')\n\texit(1)" | python3 -
 	python3 -m ensurepip
+	python3 -m pip freeze | xargs python3 -m pip uninstall
 	python3 -m pip install --upgrade pip
 	python3 -m pip install -r requirements.txt
 
-clean: clean-identify clean-classify
-
 run-tests:
 	python3 run_tests.py
-
-clean-identify:
-	bash/clean-identification.sh
-
-clean-classify:
-	bash/clean-classification.sh
-
-train-identify:
-	python3 "cluster_identification/main.py"
-
-train-classify:
-	python3 "cluster_classification/main.py"
-
-hls4ml-translate: models/current-classification.pth models/current-identification.pth
-	@echo "This process is currently unsupported."
-
-models/current-identification.pth: train-identify
-	@echo "Training missing identification model before translation"
-
-models/current-classification.pth: train-classification
-	@echo "Training missing classification model before translation"

@@ -1,6 +1,8 @@
 import sys
-from cluster_classification.cluster_classification_dataset import process_clusters
-from cluster_classification.signal_type import SignalType
+from ml_on_apx.cluster_classification.cluster_classification_dataset import (
+    process_clusters,
+)
+from ml_on_apx.cluster_classification.signal_type import SignalType
 from typing import Tuple
 import unittest
 
@@ -8,13 +10,7 @@ from parameterized import parameterized
 import numpy as np
 import jax.numpy as jnp
 
-from cleverlogger import CleverLogger
-from cluster_classification import cluster_classification_dataset
-
-
-logger = CleverLogger(__name__)
-
-logger.log_start_load_module()
+from ml_on_apx.cluster_classification import cluster_classification_dataset
 
 
 class TestClusterClassificationDataset(unittest.TestCase):
@@ -32,29 +28,20 @@ class TestClusterClassificationDataset(unittest.TestCase):
 
     def test_ccd__get_ecal_tower__in_bounds(self):
         """Tests if `get_ecal_tower` produces valid indices on valid input."""
-        logger.log_enter_function("get_ecal_tower_in_bounds")
-        logger.log_preloop("i_phi_for_loop")
         for i_phi in range(6):
-            logger.log_iteration_head(i_phi=i_phi)
             # {0,1}
-            logger.log_preloop("i_eta_for_loop")
             for i_eta in range(2):
-                logger.log_iteration_head(i_eta=i_eta)
                 slr0 = cluster_classification_dataset.get_ecal_tower(0, i_eta, i_phi)
                 slr0 = slr0.item()
                 self.assertIs(type(slr0), int)
                 self.assertLess(slr0, 12)  # SLR0 has only 12 towers
                 self.assertGreaterEqual(slr0, 0)
-                logger.log_iteration_tail()
-            logger.log_postloop("i_eta_for_loop")
 
-            logger.log_preloop("slr_i_eta_for_loops")
             for slr in range(3):
                 # {2,3,4,5,6}
                 # {7,8,9,10,11}
                 # {12,13,14,15,16}
                 for i_eta in range(2 + 5 * slr, 7 + 5 * slr):
-                    logger.log_iteration_head(slr=slr, i_eta=i_eta)
                     slri = cluster_classification_dataset.get_ecal_tower(
                         slr + 1, i_eta, i_phi
                     )
@@ -62,26 +49,17 @@ class TestClusterClassificationDataset(unittest.TestCase):
                     self.assertIs(type(slri), int)
                     self.assertLess(slri, 30)
                     self.assertGreaterEqual(slri, 0)
-                    logger.log_iteration_tail()
-            logger.log_postloop("slr_i_eta_for_loop")
-
-        logger.log_exit_function("get_ecal_tower_in_bounds")
 
     def test_ccd__get_hcal_location__in_bounds(self):
         """Tests if `get_hcal_location` produces valid indices on valid input."""
-        logger.log_enter_function("get_ecal_tower_in_bounds")
-        logger.log_preloop("i_phi_card_for_loops")
         for i_phi in range(6):
             for card in range(24):
-                logger.log_iteration_head(i_phi=i_phi, card=card)
                 # All i_eta > 17 should return None
                 info = cluster_classification_dataset.get_hcal_location(card, 17, i_phi)
                 self.assertEqual(info, (-1, -1))
 
                 # If i_eta < 8, then data should be in links 5 or 7
-                logger.log_preloop("small_i_eta_for_loop")
                 for i_eta in range(8):
-                    logger.log_iteration_head(i_eta=i_eta)
                     info = cluster_classification_dataset.get_hcal_location(
                         card, i_eta, i_phi
                     )
@@ -94,13 +72,9 @@ class TestClusterClassificationDataset(unittest.TestCase):
                     self.assertLess(tower, 32)
                     self.assertGreaterEqual(tower, 0)
                     self.assertIn(link, {5, 7})
-                    logger.log_iteration_tail()
-                logger.log_postloop("small_i_eta_for_loop")
 
                 # if i_eta > 7, data should be in links 6 or 8
-                logger.log_preloop("large_i_eta_for_loop")
                 for i_eta in range(8, 16):
-                    logger.log_iteration_head(i_eta=i_eta)
                     info = cluster_classification_dataset.get_hcal_location(
                         card, i_eta, i_phi
                     )
@@ -113,10 +87,6 @@ class TestClusterClassificationDataset(unittest.TestCase):
                     self.assertLess(tower, 32)
                     self.assertGreaterEqual(tower, 0)
                     self.assertIn(link, {6, 8})
-                    logger.log_iteration_tail()
-                logger.log_postloop("large_i_eta_for_loop")
-                logger.log_iteration_tail()
-        logger.log_postloop("i_phi_card_for_loops")
 
     @parameterized.expand(
         [
@@ -145,18 +115,9 @@ class TestClusterClassificationDataset(unittest.TestCase):
 
         Does **not** test what happens when given bad input.
         """
-        logger.log_enter_function(
-            "get_ecal_tower_correctness",
-            name=name,
-            slr=slr,
-            i_eta=i_eta,
-            i_phi=i_phi,
-            tower=tower,
-        )
         self.assertEqual(
             tower, cluster_classification_dataset.get_ecal_tower(slr, i_eta, i_phi)
         )
-        logger.log_exit_function("get_ecal_tower_correctness")
 
     @parameterized.expand(
         [
@@ -195,19 +156,10 @@ class TestClusterClassificationDataset(unittest.TestCase):
 
         Does **not** test what happens when given bad input.
         """
-        logger.log_enter_function(
-            "get_hcal_location_correctness",
-            name=name,
-            card=card,
-            i_eta=i_eta,
-            i_phi=i_phi,
-            location=location,
-        )
         self.assertEqual(
             location,
             cluster_classification_dataset.get_hcal_location(card, i_eta, i_phi),
         )
-        logger.log_exit_function("get_hcal_location_correctness")
 
     def test_ccd__process_cluster__correctness(self):
         slrs = [0, 1, 2, 3, 2, 3]
@@ -298,6 +250,3 @@ class TestClusterClassificationDataset(unittest.TestCase):
         self.assertEqual(
             labels[signal_to_label[SignalType.HADRONIC]], (SignalType.HADRONIC, 0)
         )
-
-
-logger.log_end_load_module()
