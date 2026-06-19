@@ -24,3 +24,8 @@ class DatasetInfo:
         for path, label in self._sources:
             labled_sources.add((path, self._labels[label]))
         return labled_sources
+
+    def __eq__(self, other: object) -> bool:
+        if type(other) is not DatasetInfo:
+            return False
+        return self._labels == other._labels and self._sources == other._sources

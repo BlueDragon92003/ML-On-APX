@@ -5,7 +5,7 @@ import torch
 
 
 class Dataset(ABC, torch.utils.data.Dataset):
-    @abstractmethod
     @classmethod
+    @abstractmethod
     def create(cls, components: Set[Tuple[Path, int]]) -> "Dataset":
-        pass
+        raise NotImplementedError

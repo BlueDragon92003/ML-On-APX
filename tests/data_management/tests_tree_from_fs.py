@@ -18,8 +18,9 @@ class TestTreeFromFS(
         self.create_fake_files(PATH, depth=DEPTH)
         expected = self.create_expected_tree(NAME, depth=DEPTH)
         result = TreeNode.from_filesystem(NAME, PATH.iterdir())
-        self.assertTrue(
-            self.compare_trees(expected, result),
+        self.assertEqual(
+            expected,
+            result,
             msg="Trees not equivalent.\n\n"
             + self.print_tree(expected)
             + "\n"
@@ -32,26 +33,10 @@ class TestTreeFromFS(
             out += self.print_tree(child, depth=depth + 1)
         return out
 
-    def compare_trees(self, tree1: TreeNode, tree2: TreeNode) -> bool:
-        if tree1.get_name() != tree2.get_name():
-            return False
-        children1 = tree1.get_children()
-        children2 = tree2.get_children()
-        if len(children1) != len(children2):
-            return False
-        for child1 in children1:
-            match_found = False
-            for child2 in children2:
-                if self.compare_trees(child1, child2):
-                    match_found = True
-            if not match_found:
-                return False
-        return True
-
     def create_expected_tree(self, name: str, depth: int) -> TreeNode:
         out = TreeNode(name)
         for i in range(depth):
-            out.add_child(self.create_expected_tree(f"f{i}.root", depth=i))
+            out.add_child(self.create_expected_tree(f"f{i}", depth=i))
         return out
 
     def create_fake_files(self, path: Path, depth: int):
