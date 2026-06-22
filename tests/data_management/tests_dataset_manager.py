@@ -89,7 +89,7 @@ class TestDatasetManager(
         for name, set_info in self.dataset_infos.items():
             path = self.manager._get_dataset_path(name)
             with open(path, mode="wb") as file:
-                pickle.dump(_MockDataset(set_info.get_labeled_sources()), file)
+                pickle.dump(_MockDataset(set_info.get_numbered_sources()), file)
 
     # ========================================================================
     #                                 HELPERS
@@ -111,7 +111,7 @@ class TestDatasetManager(
         path = self.manager._get_dataset_path("test")
         info = DatasetInfo(self.labels, self.labeling[0:5])
         self.manager._recompile_dataset(path, info)
-        expected = _MockDataset(info.get_labeled_sources())
+        expected = _MockDataset(info.get_numbered_sources())
         try:
             with open(path, mode="rb") as file:
                 result = pickle.load(file)
@@ -348,7 +348,7 @@ class TestDatasetManager(
         self.setUpDatasetPickles()
         self.setUpDatasetInfoPickle()
 
-        expected = _MockDataset(TARGET.get_labeled_sources())
+        expected = _MockDataset(TARGET.get_numbered_sources())
         with self.manager as manager:
             old = manager.get_dataset(FROM)
             manager.update_dataset(FROM, TARGET)

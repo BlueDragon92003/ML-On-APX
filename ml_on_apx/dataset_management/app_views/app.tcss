@@ -1,0 +1,46 @@
+MainView {
+    layout: grid;
+    grid-size: 2 1;
+    grid-columns: 2fr 3fr;
+
+    & .container {
+        padding: 1;
+    }
+
+    & .title {
+        color: $primary;
+        text-style: bold;
+        padding: 1;
+        border: none;
+    }
+
+    & HorizontalGroup.control_buttons {
+        layout: grid;
+        grid-size: 3 1;
+
+        & Button{
+            width: 100%
+        }
+    }
+
+    & #navigation-panel {
+        border: vkey $primary;
+
+        & Button {
+            width: 100%;
+        }
+    }
+}
+
+.popup {
+    border: round $primary;
+    height: auto;
+    min-height: 18;
+    min-width: 60;
+    padding: 0;
+    width: 33%;
+}
+
+.bottom {
+    dock: bottom;
+}

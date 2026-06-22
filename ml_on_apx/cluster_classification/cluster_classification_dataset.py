@@ -6,7 +6,7 @@ import uproot
 import jaxtyping
 import jax
 import jax.numpy as jnp
-from torch.utils.data import Dataset
+from ml_on_apx.dataset_management.dataset import Dataset
 from uproot.behaviors.TBranch import TBranch
 
 from ml_on_apx.cleverlogger import CleverLogger

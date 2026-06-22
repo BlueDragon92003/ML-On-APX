@@ -1,4 +1,4 @@
-from typing import Dict, Iterable
+from typing import Dict, Iterable, Iterator
 
 
 class Label(str):
@@ -17,7 +17,10 @@ class Labels:
         for i in range(len(temp)):
             self._data[temp[i]] = i
 
-    def __contains__(self, label: Label):
+    def __iter__(self) -> Iterator[Label]:
+        return iter(self._data.keys())
+
+    def __contains__(self, label: Label) -> bool:
         return label in self._data.keys()
 
     def __getitem__(self, label: Label) -> int:

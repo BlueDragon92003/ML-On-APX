@@ -1,3 +1,6 @@
+from ml_on_apx.cluster_classification.cluster_classification_dataset import (
+    ClusterClassificationDataset,
+)
 from ml_on_apx.modes import Mode
 import ml_on_apx.dataset_management.app
 import ml_on_apx.cluster_classification.main
@@ -184,18 +187,23 @@ def main():
         case subcommand if subcommand == SUBCOMMAND_TRAIN:
             match mode:
                 case mode if mode is Mode.Classification:
-                    print("Not yet implemeneted")
+                    print("`train classification` not yet implemeneted")
                     return 0
                     ml_on_apx.cluster_classification.main.main(data_dir, model_dir)
                 case mode if mode is Mode.Identification:
-                    print("Not yet implemeneted")
+                    print("`train identification` not yet implemeneted")
                     return 0
         case subcommand if subcommand == SUBCOMMAND_MNG_DATA:
-            print("Not yet implemeneted")
+            match mode:
+                case m if m == Mode.Classification:
+                    DatasetClass = ClusterClassificationDataset
+                case m if m == Mode.Identification:
+                    print("`manage identification data` not yet implemented")
+                    return 0
+            ml_on_apx.dataset_management.app.main(data_dir, mode, DatasetClass)
             return 0
-            ml_on_apx.dataset_management.app.main(data_dir, mode)
         case subcommand if subcommand == SUBCOMMAND_MNG_MODEL:
-            print("Not yet implemeneted")
+            print("`manage ___ models` not yet implemeneted")
             return 0
             ml_on_apx.dataset_management.app.main(model_dir, mode)
         case _:

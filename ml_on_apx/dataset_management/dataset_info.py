@@ -19,10 +19,16 @@ class DatasetInfo:
     def get_sources(self) -> Set[Path]:
         return set(map(lambda x: x[0], self._sources))
 
-    def get_labeled_sources(self) -> Set[Tuple[Path, int]]:
-        labled_sources = set()
+    def get_numbered_sources(self) -> Set[Tuple[Path, int]]:
+        labled_sources: Set[Tuple[Path, int]] = set()
         for path, label in self._sources:
             labled_sources.add((path, self._labels[label]))
+        return labled_sources
+
+    def get_labeled_sources(self) -> Set[Tuple[Path, Label]]:
+        labled_sources: Set[Tuple[Path, Label]] = set()
+        for path, label in self._sources:
+            labled_sources.add((path, label))
         return labled_sources
 
     def __eq__(self, other: object) -> bool:

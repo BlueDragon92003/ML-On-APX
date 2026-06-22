@@ -54,4 +54,4 @@ class TestDatasetInfo(unittest.TestCase):
         ]
         dsinfo = DatasetInfo(labels, sources)
         expected = set([(Path("first"), 0), (Path("second"), 0), (Path("third"), 1)])
-        self.assertEqual(dsinfo.get_labeled_sources(), expected)
+        self.assertEqual(dsinfo.get_numbered_sources(), expected)

@@ -43,7 +43,7 @@ class DatasetManager(Generic[T]):
 
         if not self._root_dir_path.exists():
             # Create
-            self._root_dir_path.mkdir()
+            self._root_dir_path.mkdir(parents=True)
         elif not self._root_dir_path.is_dir():
             # Error
             # TODO LOG CRITICAL
@@ -53,7 +53,7 @@ class DatasetManager(Generic[T]):
 
         if not self._sets_dir_path.exists():
             # Create
-            self._sets_dir_path.mkdir()
+            self._sets_dir_path.mkdir(parents=True)
         elif not self._sets_dir_path.is_dir():
             # Error
             # TODO LOG CRITICAL
@@ -84,6 +84,9 @@ class DatasetManager(Generic[T]):
             # TODO LOG ERROR
             pass
         return False
+
+    def get_root_dir_path(self) -> Path:
+        return self._root_dir_path
 
     def get_sources(self) -> TreeNode:
         return self._sources
@@ -150,7 +153,7 @@ class DatasetManager(Generic[T]):
 
     def _recompile_dataset(self, path: Path, dataset_info: DatasetInfo):
         """(Re)create a dataset, pickle it, and save it to the path."""
-        to_pickle = self._dataset_class.create(dataset_info.get_labeled_sources())
+        to_pickle = self._dataset_class.create(dataset_info.get_numbered_sources())
         with open(path, mode="wb") as file:
             pickle.dump(to_pickle, file)
 
