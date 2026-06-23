@@ -73,10 +73,17 @@ class DatasetManager(Generic[T]):
         return self
 
     def __exit__(self, _exc_type, _exc_value, _exc_traceback) -> bool:
+        count_to_recompile = len(self._to_recompile)
+        if count_to_recompile > 0:
+            print("(Re)compiling datasets. Please wait.")
+            to_finish = 77.0 / count_to_recompile
+            done = 0
         for dataset_name in self._to_recompile:
+            print(f"[={'=' * int(done * to_finish)}]", end="\r")
             self._recompile_dataset(
                 self._get_dataset_path(dataset_name), self._set_info[dataset_name]
             )
+            done += 1
         if self._set_info_path.exists() and self._set_info_path.is_file():
             with open(self._set_info_path, mode="wb") as set_info:
                 pickle.dump(self._set_info, set_info)

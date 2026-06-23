@@ -1,17 +1,14 @@
-"""
+from ml_on_apx.dataset_management.dataset_manager import DatasetManager
+from ml_on_apx.dataset_management.dataset_info import DatasetInfo
 
 
-MainView(Window)
-RenameView(Popup, old_name: str)
-    RenameViewDone(new_name: str)
-ConfirmDialogueView(Popup; title: str, content: Widget)
-    ConfirmDialogViewDone(clicked_yes: bool)
-SetNameView(Popup)
-    SetNameViewDone(name: str)
-EditSourcesView(Window; sources: TreeNode, already_selected: set[str]|None)
-    EditSourcesViewDone(selected_sources: TreeNode)
-EditLabelsView(Window; already_there: Labels|None)
-    EditLabelsViewDone(labels: Labels)
-AssignLabelsView(Window; sources: TreeNode, labels: Labels, previous_labelling: Tuple[Labels,Set[Tuple[Path, int]]]|None)
-    AssignLabelsViewDone(assignment: Set[Tuple[Path, int]])
-"""
+def get_dataset_info_markdown(dsinfo: DatasetInfo, manager: DatasetManager) -> str:
+    markdown = "The dataset uses the following labels:\n"
+    for label in dsinfo.get_labels():
+        markdown += f"  - {label}\n"
+    markdown += "\nThe dataset uses the following sources:\n"
+    for source in dsinfo.get_labeled_sources():
+        markdown += (
+            f"  - {source[0].relative_to(manager.get_root_dir_path())} ({source[1]})\n"
+        )
+    return markdown
