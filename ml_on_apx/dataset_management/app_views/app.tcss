@@ -14,7 +14,7 @@ MainView {
         border: none;
     }
 
-    & HorizontalGroup.control_buttons {
+    & HorizontalGroup#control-buttons {
         layout: grid;
         grid-size: 3 1;
 
