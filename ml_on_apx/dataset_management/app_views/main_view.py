@@ -1,3 +1,4 @@
+from ml_on_apx.dataset_management.app_views.new_edit_view import NewEditView
 from ml_on_apx.dataset_management.app_views.binary_modal_question import (
     BinaryModalQuestion,
 )
@@ -120,7 +121,7 @@ class MainView(Screen[None]):
         message.stop()
 
     def action_new_dataset(self):
-        pass
+        self.app.push_screen(NewEditView(self._manager))
 
     def action_edit_dataset(self):
         pass

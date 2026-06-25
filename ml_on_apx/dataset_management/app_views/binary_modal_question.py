@@ -9,7 +9,7 @@ from textual.screen import ModalScreen
 
 
 class BinaryModalQuestion(ModalScreen[bool]):
-    BINDINGS = [("esc", "exit", "Exit")]
+    BINDINGS = [("escape", "exit", "Exit")]
 
     def __init__(
         self,
