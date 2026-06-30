@@ -32,23 +32,23 @@ class SourceTreeWidget(Tree["SourceTreeData"]):
 
     def get_labeled_sources_from_node(
         self, node: TreeNode["SourceTreeData"]
-    ) -> dict[Path, Label]:
+    ) -> set[tuple[Path, Label]]:
         assert node.data is not None
-        labeled_sources: dict[Path, Label] = {}
+        labeled_sources: set[tuple[Path, Label]] = set()
         if node.data.inclusion == node.data.InclusionType.DIRECTLY_INCLUDED:
             if node.data.is_directory():
                 for path in self.get_paths_from_node(node):
                     label = node.data.get_label()
                     if label is None:
                         raise ValueError(f"Label not set for source `{path}`!")
-                    labeled_sources.update({path: label})
+                    labeled_sources.add((path, label))
             else:
                 label = node.data.get_label()
                 if label is None:
                     raise ValueError(
                         f"Label not set for source `{node.data.get_path()}`!"
                     )
-                labeled_sources.update({node.data.get_path(): label})
+                labeled_sources.add((node.data.get_path(), label))
 
         return labeled_sources
 

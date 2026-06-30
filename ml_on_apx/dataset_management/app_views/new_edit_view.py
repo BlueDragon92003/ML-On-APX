@@ -29,12 +29,12 @@ from textual.screen import Screen
 
 
 class NewEditView(Screen[None]):
-    BINDINGS_ = [
+    BINDINGS = [
         ("I", "to_basic_info", "Basic info"),
         ("L", "to_labels", "Labels"),
         ("S", "to_sources", "Sources"),
-        ("a", "new_label", "Add label"),
-        ("d", "delete_label", "Delete label"),
+        ("backspace", "delete_label", "Delete selected label"),
+        ("r", "rename_label", "Rename selected label"),
         Binding("ctrl+D", "force_delete_label", show=False),  # without asking
         ("l", "set_source_label", "Set source label"),
     ]
@@ -45,7 +45,6 @@ class NewEditView(Screen[None]):
     # TODO consider popup on selection to get initial label?
     #   add label key would just be a "formality"
     #   then have a toggle label key?
-
     def __init__(
         self,
         manager: DatasetManager,
@@ -55,12 +54,12 @@ class NewEditView(Screen[None]):
         super().__init__()
         self._manager = manager
         self.dataset_name = template_name if template_name else ""
+        self.template_sources = {}
         if template is not None:
             for label in template.get_labels():
                 self.labels.append(label)
-            for source, label in template.get_labeled_sources():
-                # TODO
-                pass
+            for path, label in template.get_labeled_sources():
+                self.template_sources.update({path: label})
 
     def compose(self) -> ComposeResult:
         yield Header(
@@ -71,7 +70,7 @@ class NewEditView(Screen[None]):
             with TabPane("Basic Info", id="general-info-tab"):
                 with VerticalScroll():
                     with HorizontalGroup():
-                        yield Label("Name: ")
+                        yield Label("Name:", id="name-label")
                         yield Input(
                             value=self.dataset_name,
                             placeholder="Dataset name...",
@@ -79,9 +78,15 @@ class NewEditView(Screen[None]):
                         )
                     with HorizontalGroup(id="new-edit-control-buttons"):
                         yield Button("Cancel", variant="default")
-                        yield Button("Create", variant="success")
+                        yield Button("Create", variant="primary")
             with TabPane("Labels", id="labels-tab"):
                 yield ListView(id="labels-list")
+                with HorizontalGroup(id="new-label"):
+                    yield Input(
+                        placeholder="Label name...",
+                        id="name-input",
+                    )
+                    yield Button("New label", variant="primary")
             with TabPane("Sources", id="sources-tab"):
                 self._tree = SourceTreeWidget(
                     "/".join(self._manager.get_root_dir_path().parts) + "/",
@@ -89,6 +94,44 @@ class NewEditView(Screen[None]):
                 )
                 self._tree.auto_expand = False
                 yield self._tree
+
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+        tabs = self.get_child_by_id("new-edit-tabs")
+        assert type(tabs) is TabbedContent
+        match tabs.active:
+            case "general-info-tab":
+                match action:
+                    case "to_basic_info":
+                        return None
+                    case "to_labels":
+                        return True
+                    case "to_sources":
+                        return True
+            case "labels-tab":
+                match action:
+                    case "to_basic_info":
+                        return True
+                    case "to_labels":
+                        return None
+                    case "to_sources":
+                        return True
+                    case "delete_label":
+                        return True
+                    case "rename_label":
+                        return True
+                    case "force_delete_label":
+                        return True
+            case "sources-tab":
+                match action:
+                    case "to_basic_info":
+                        return True
+                    case "to_labels":
+                        return True
+                    case "to_sources":
+                        return None
+                    case "set_source_label":
+                        return True
+        return False
 
     def on_mount(self):
         self.append_nodes(
@@ -119,6 +162,29 @@ class NewEditView(Screen[None]):
                     self.include(child)
         self.update_source_tree_selections(message.node.tree.root)
         message.stop()
+
+    def action_to_basic_info(self):
+        tabs = self.get_child_by_id("new-edit-tabs")
+        assert type(tabs) is TabbedContent
+        tabs.active = "general-info-tab"
+        tabs.focus()
+
+    def action_to_labels(self):
+        tabs = self.get_child_by_id("new-edit-tabs")
+        assert type(tabs) is TabbedContent
+        tabs.active = "labels-tab"
+        tabs.focus()
+
+    def action_to_sources(self):
+        tabs = self.get_child_by_id("new-edit-tabs")
+        assert type(tabs) is TabbedContent
+        tabs.active = "sources-tab"
+        tabs.focus()
+
+    def action_delete_label(self):
+        labels_list = self.get_widget_by_id("labels-list")
+        assert type(labels_list) is ListView
+        labels_list.highlighted_child
 
     def watch_labels(
         self, new_labels: list[SourceLabel], old_labels: list[SourceLabel]
@@ -187,6 +253,15 @@ class NewEditView(Screen[None]):
                     f"{source_node.get_name()}",
                     data=SourceTreeData.new_directory_data(f"{source_node.get_name()}"),
                 )
+            if (
+                self.template_sources is not None
+                and this_path in self.template_sources.keys()
+            ):
+                assert new_tree_node.data is not None
+                new_tree_node.data.inclusion = (
+                    new_tree_node.data.InclusionType.DIRECTLY_INCLUDED
+                )
+                new_tree_node.data.set_label(self.template_sources[this_path])
             self.append_nodes(new_tree_node, source_node, this_path)
         dest_tree_node.expand()
 

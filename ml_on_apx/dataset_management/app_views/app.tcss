@@ -45,6 +45,26 @@ TabbedContent{
             width: 40%;
             min-width: 60;
         }
+
+        & #name-label {
+            padding: 1;
+        }
+
+        & HorizontalGroup#new-label {
+            layout: grid;
+            grid-size: 2 1;
+            grid-columns: 4fr 1fr;
+
+            & Input {
+                min-width: 48;
+            }
+
+            & Button {
+                min-width: 10;
+                width: 100%;
+                margin: 0 1;
+            }
+        }
     }
 }
 
