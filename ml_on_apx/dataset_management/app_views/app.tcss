@@ -8,7 +8,7 @@ MainView {
     }
 
     & .title {
-        color: $primary;
+        color: $text-primary;
         text-style: bold;
         padding: 1;
         border: none;
@@ -32,6 +32,21 @@ MainView {
     }
 }
 
+TabbedContent{
+    & Tab {
+        width: 1fr;
+        text-align: center;
+    }
+
+    & ContentSwitcher {
+        align-horizontal: center;
+
+        & > * {
+            width: 40%
+        }
+    }
+}
+
 BinaryModalQuestion{
     align: center middle;
 
@@ -39,11 +54,11 @@ BinaryModalQuestion{
         border: round $primary;
         border-title-align: center;
         border-title-background: $panel;
-        border-title-color: $accent;
+        border-title-color: $text-accent;
         border-title-style: bold;
         border-subtitle-align: center;
         border-subtitle-background: $panel;
-        border-subtitle-color: $accent;
+        border-subtitle-color: $text-accent;
         border-subtitle-style: bold;
         
         height: auto;
