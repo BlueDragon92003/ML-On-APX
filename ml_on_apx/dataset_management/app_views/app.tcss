@@ -42,7 +42,8 @@ TabbedContent{
         align-horizontal: center;
 
         & > * {
-            width: 40%
+            width: 40%;
+            min-width: 60;
         }
     }
 }

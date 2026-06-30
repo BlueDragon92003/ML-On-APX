@@ -1,4 +1,7 @@
-from ml_on_apx.dataset_management.app_views.source_tree_data import SourceTreeData
+from ml_on_apx.dataset_management.app_views.source_tree_widget import (
+    SourceTreeData,
+    SourceTreeWidget,
+)
 from textual import on
 from textual.widgets.tree import TreeNode
 from textual.binding import Binding
@@ -12,6 +15,8 @@ from textual.widgets import (
     ListView,
     ListItem,
     Tree,
+    Footer,
+    Header,
 )
 from textual.app import ComposeResult
 from pathlib import Path
@@ -36,7 +41,6 @@ class NewEditView(Screen[None]):
 
     dataset_name: reactive[str] = reactive("")
     labels: reactive[list[SourceLabel]] = reactive([])
-    sources: reactive[dict[Path, SourceLabel | None]] = reactive({})
 
     # TODO consider popup on selection to get initial label?
     #   add label key would just be a "formality"
@@ -55,9 +59,14 @@ class NewEditView(Screen[None]):
             for label in template.get_labels():
                 self.labels.append(label)
             for source, label in template.get_labeled_sources():
-                self.sources.update({source: label})
+                # TODO
+                pass
 
     def compose(self) -> ComposeResult:
+        yield Header(
+            name="New Dataset" if self.dataset_name else f"Edit {self.dataset_name}"
+        )
+        yield Footer()
         with TabbedContent(id="new-edit-tabs"):
             with TabPane("Basic Info", id="general-info-tab"):
                 with VerticalScroll():
@@ -74,9 +83,11 @@ class NewEditView(Screen[None]):
             with TabPane("Labels", id="labels-tab"):
                 yield ListView(id="labels-list")
             with TabPane("Sources", id="sources-tab"):
-                self._tree = Tree[SourceTreeData](
-                    "/".join(self._manager.get_root_dir_path().parts), id="source-tree"
+                self._tree = SourceTreeWidget(
+                    "/".join(self._manager.get_root_dir_path().parts) + "/",
+                    id="source-tree",
                 )
+                self._tree.auto_expand = False
                 yield self._tree
 
     def on_mount(self):
@@ -93,15 +104,21 @@ class NewEditView(Screen[None]):
             message.stop()
             return
         data = message.node.data
-        if data.included:
-            self.sources.pop(data.get_path())
-            data.included = False
-        else:
-            self.sources.update({data.get_path(): data.get_label()})
-            data.included = True
-        self.update_source_tree_selections(message.node, self.app.get_css_variables())
+        match data.inclusion:
+            case _inclusion if _inclusion == data.InclusionType.DIRECTLY_INCLUDED:
+                self.disinclude(message.node)
+            case _inclusion if _inclusion == data.InclusionType.ANCENSTOR_INCLUDED:
+                assert message.node.parent is not None
+                self.release_children(message.node.parent)
+                data.inclusion = data.InclusionType.NOT_INCLUDED
+                for child in message.node.children:
+                    self.disinclude(child)
+            case _inclusion if _inclusion == data.InclusionType.NOT_INCLUDED:
+                data.inclusion = data.InclusionType.DIRECTLY_INCLUDED
+                for child in message.node.children:
+                    self.include(child)
+        self.update_source_tree_selections(message.node.tree.root)
         message.stop()
-        # self.app.theme = "nord" if self.app.theme == "gruvbox" else "gruvbox"
 
     def watch_labels(
         self, new_labels: list[SourceLabel], old_labels: list[SourceLabel]
@@ -111,13 +128,13 @@ class NewEditView(Screen[None]):
         for label in old_labels:
             if label not in new_labels:
                 self.remove_label_from_tree(tree_node, label)
-        self.update_source_tree_selections(tree_node, self.app.get_css_variables())
+        self.update_source_tree_selections(tree_node)
 
     def watch_sources(self, new_sources: dict[Path, SourceLabel | None]):
         tree = self._tree
         tree_node: TreeNode[SourceTreeData] = tree.root
         print(f"Updating sources to {new_sources.items()}")
-        self.update_source_tree_selections(tree_node, self.app.get_css_variables())
+        self.update_source_tree_selections(tree_node)
 
     def remake_label_list(self, labels: list[SourceLabel]):
         labels_list = self.get_widget_by_id("labels-list")
@@ -125,29 +142,20 @@ class NewEditView(Screen[None]):
         for label in labels:
             labels_list.append(ListItem(Label(f"{label}"), name=f"{label}"))
 
-    def update_source_tree_selections(
-        self, tree_node: TreeNode[SourceTreeData], theme: dict[str, str]
-    ):
-        # TODO recursive for each node:
-        #   Change color of text (hidden if unselected, green & bold if selected, red & bold if selected without label)
-        #   Change label to "name (label)"
+    def update_source_tree_selections(self, tree_node: TreeNode[SourceTreeData]):
         root = tree_node.tree.root
         if tree_node == root:
             for child in tree_node.children:
-                self.update_source_tree_selections(child, theme)
+                self.update_source_tree_selections(child)
             return
         assert tree_node.data is not None
-        tree_node.data.decendant_included = False
-        tree_node.data.decendant_error = False
+        tree_node.data.reset_descendant_error()
         for child in tree_node.children:
-            self.update_source_tree_selections(child, theme)
-            child_data = child.data
-            assert child_data is not None
-            if child_data.included:
-                tree_node.data.decendant_included = True
-                if child_data.has_error():
-                    tree_node.data.decendant_error = True
-        tree_node.label = tree_node.data.get_text(theme)
+            self.update_source_tree_selections(child)
+            assert child.data is not None
+            if child.data.has_error():
+                tree_node.data.set_descendant_has_error()
+        tree_node.refresh()
 
     def remove_label_from_tree(
         self, tree_node: TreeNode[SourceTreeData], label_to_remove: SourceLabel
@@ -168,12 +176,46 @@ class NewEditView(Screen[None]):
         for source_node in source_tree.get_children():
             this_path = path_so_far / source_node.get_name()
             if len(source_node.get_children()) == 0:
-                data = SourceTreeData.new_leaf_data(
-                    f"{source_node.get_name()}", this_path
+                new_tree_node = dest_tree_node.add_leaf(
+                    f"{source_node.get_name()}",
+                    data=SourceTreeData.new_leaf_data(
+                        f"{source_node.get_name()}", this_path
+                    ),
                 )
             else:
-                data = SourceTreeData.new_directory_data(f"{source_node.get_name()}")
-            new_tree_node = dest_tree_node.add_leaf(
-                f"{source_node.get_name()}", data=data
-            )
+                new_tree_node = dest_tree_node.add(
+                    f"{source_node.get_name()}",
+                    data=SourceTreeData.new_directory_data(f"{source_node.get_name()}"),
+                )
             self.append_nodes(new_tree_node, source_node, this_path)
+        dest_tree_node.expand()
+
+    def release_children(self, node: TreeNode[SourceTreeData]):
+        """Inform root ancestor to include its children, not itself directly"""
+        assert node.data is not None
+        if node.data.inclusion == node.data.InclusionType.ANCENSTOR_INCLUDED:
+            assert node.parent is not None
+            self.release_children(node.parent)
+        elif node.data.inclusion == node.data.InclusionType.DIRECTLY_INCLUDED:
+            node.data.inclusion = node.data.InclusionType.NOT_INCLUDED
+        for child in node.children:
+            assert child.data is not None
+            child.data.inclusion = child.data.InclusionType.DIRECTLY_INCLUDED
+            child.data.set_label(node.data.get_label())
+        node.data.set_label(None)
+
+    def include(self, node: TreeNode[SourceTreeData]):
+        """Include this node ancestraly"""
+        assert node.data is not None
+        node.data.inclusion = node.data.InclusionType.ANCENSTOR_INCLUDED
+        node.data.set_label(None)
+        for child in node.children:
+            self.include(child)
+
+    def disinclude(self, node: TreeNode[SourceTreeData]):
+        """This nodes inclusion ancestor was disincluded"""
+        assert node.data is not None
+        node.data.inclusion = node.data.InclusionType.NOT_INCLUDED
+        node.data.set_label(None)
+        for child in node.children:
+            self.disinclude(child)
