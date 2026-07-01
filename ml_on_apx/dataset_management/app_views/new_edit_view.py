@@ -1,3 +1,6 @@
+from ml_on_apx.dataset_management.app_views.binary_modal_question import (
+    BinaryModalQuestion,
+)
 from ml_on_apx.dataset_management.app_views.source_tree_widget import (
     SourceTreeData,
     SourceTreeWidget,
@@ -34,8 +37,7 @@ class NewEditView(Screen[None]):
         ("L", "to_labels", "Labels"),
         ("S", "to_sources", "Sources"),
         ("backspace", "delete_label", "Delete selected label"),
-        ("r", "rename_label", "Rename selected label"),
-        Binding("ctrl+D", "force_delete_label", show=False),  # without asking
+        Binding("ctrl+delete", "force_delete_label", show=False),  # without asking
         ("l", "set_source_label", "Set source label"),
     ]
 
@@ -57,7 +59,7 @@ class NewEditView(Screen[None]):
         self.template_sources = {}
         if template is not None:
             for label in template.get_labels():
-                self.labels.append(label)
+                self.labels = self.labels + [label]
             for path, label in template.get_labeled_sources():
                 self.template_sources.update({path: label})
 
@@ -74,19 +76,23 @@ class NewEditView(Screen[None]):
                         yield Input(
                             value=self.dataset_name,
                             placeholder="Dataset name...",
-                            id="name-input",
+                            id="dataset-name-input",
                         )
                     with HorizontalGroup(id="new-edit-control-buttons"):
-                        yield Button("Cancel", variant="default")
-                        yield Button("Create", variant="primary")
+                        yield Button(
+                            "Cancel", variant="default", id="dataset-create-button"
+                        )
+                        yield Button("Create", variant="primary", id="cancel-button")
             with TabPane("Labels", id="labels-tab"):
                 yield ListView(id="labels-list")
                 with HorizontalGroup(id="new-label"):
                     yield Input(
                         placeholder="Label name...",
-                        id="name-input",
+                        id="label-name-input",
                     )
-                    yield Button("New label", variant="primary")
+                    yield Button(
+                        "New Label", variant="primary", id="label-create-button"
+                    )
             with TabPane("Sources", id="sources-tab"):
                 self._tree = SourceTreeWidget(
                     "/".join(self._manager.get_root_dir_path().parts) + "/",
@@ -117,8 +123,6 @@ class NewEditView(Screen[None]):
                         return True
                     case "delete_label":
                         return True
-                    case "rename_label":
-                        return True
                     case "force_delete_label":
                         return True
             case "sources-tab":
@@ -139,7 +143,7 @@ class NewEditView(Screen[None]):
             self._manager.get_sources(),
             Path(self._manager.ROOT_DIR_NAME),
         )
-        self.remake_label_list(self.labels)
+        self.remake_label_list()
 
     @on(Tree.NodeSelected)
     def handle_source_selection(self, message: Tree.NodeSelected[SourceTreeData]):
@@ -163,6 +167,18 @@ class NewEditView(Screen[None]):
         self.update_source_tree_selections(message.node.tree.root)
         message.stop()
 
+    @on(Button.Pressed)
+    def handle_button_press(self, message: Button.Pressed):
+        match message.button.id:
+            case "label-create-button":
+                self.create_label()
+
+    @on(Input.Submitted)
+    def handle_input_submission(self, message: Input.Submitted):
+        match message.input.id:
+            case "label-name-input":
+                self.create_label()
+
     def action_to_basic_info(self):
         tabs = self.get_child_by_id("new-edit-tabs")
         assert type(tabs) is TabbedContent
@@ -184,12 +200,36 @@ class NewEditView(Screen[None]):
     def action_delete_label(self):
         labels_list = self.get_widget_by_id("labels-list")
         assert type(labels_list) is ListView
-        labels_list.highlighted_child
+        if labels_list.highlighted_child is not None:
+            name = labels_list.highlighted_child.name
+
+            def delete_label(delete: bool | None):
+                if not delete:
+                    return
+                assert name is not None
+                idx = self.labels.index(SourceLabel(name))
+                self.labels = self.labels[:idx] + self.labels[idx + 1 :]
+
+            self.app.push_screen(
+                BinaryModalQuestion(Label(f"Delete label `{name}`?")), delete_label
+            )
+
+    def action_force_delete_label(self):
+        labels_list = self.get_widget_by_id("labels-list")
+        assert type(labels_list) is ListView
+        if labels_list.highlighted_child is not None:
+            name = labels_list.highlighted_child.name
+            assert name is not None
+            idx = self.labels.index(SourceLabel(name))
+            self.labels = self.labels[:idx] + self.labels[idx + 1 :]
+
+    def action_set_source_label(self):
+        pass
 
     def watch_labels(
         self, new_labels: list[SourceLabel], old_labels: list[SourceLabel]
     ):
-        self.remake_label_list(new_labels)
+        self.remake_label_list()
         tree_node: TreeNode[SourceTreeData] = self._tree.root
         for label in old_labels:
             if label not in new_labels:
@@ -202,10 +242,11 @@ class NewEditView(Screen[None]):
         print(f"Updating sources to {new_sources.items()}")
         self.update_source_tree_selections(tree_node)
 
-    def remake_label_list(self, labels: list[SourceLabel]):
+    def remake_label_list(self):
         labels_list = self.get_widget_by_id("labels-list")
         assert type(labels_list) is ListView
-        for label in labels:
+        labels_list.clear()
+        for label in self.labels:
             labels_list.append(ListItem(Label(f"{label}"), name=f"{label}"))
 
     def update_source_tree_selections(self, tree_node: TreeNode[SourceTreeData]):
@@ -294,3 +335,22 @@ class NewEditView(Screen[None]):
         node.data.set_label(None)
         for child in node.children:
             self.disinclude(child)
+
+    def create_label(self):
+        input = self.get_widget_by_id("label-name-input")
+        assert type(input) is Input
+        label_name = input.value
+        if not label_name:
+            self.app.notify("Please input a label name.", severity="warning")
+            input.focus()
+            return
+        label = SourceLabel(label_name)
+        if label in self.labels:
+            self.app.notify(f"Label `{label_name}` already exists.", severity="error")
+            input.focus()
+            return
+        # self.labels.append(label)
+        self.labels = self.labels + [label]
+        # self.watch_labels()
+        input.clear()
+        input.focus()
