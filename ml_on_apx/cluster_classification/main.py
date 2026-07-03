@@ -1,3 +1,5 @@
+"""Implements the training loop for a cluster classification model."""
+
 import os
 
 import numpy as np
@@ -8,22 +10,29 @@ from ml_on_apx.cleverlogger import CleverLogger
 from ml_on_apx.cluster_classification.model import Model
 from ml_on_apx.cluster_classification.test import test_loop
 from ml_on_apx.cluster_classification.train import train_loop
-from ml_on_apx.cluster_classification.data import get_data, DatasourceType
 
 
-def main():
+def main() -> None:
+    """Trains a cluster classification model.
+
+    Raises:
+        NotImplementedError: We're not done rebuilding it yet.
+
+    """
     raise NotImplementedError("Must be redone")
     logger = CleverLogger(__name__)
     # After how many epochs should a checkpoint be made?
-    CHECKPOINT_RATE = 10
+    # CHECKPOINT_RATE = 10
     # If accuracy growth falls below this value, stop training early
-    GROWTH_THRESHOLD = [0.0001 for _ in range(3)]
+    # GROWTH_THRESHOLD = [0.0001 for _ in range(3)]
     # If accuracy reaches this this threshold, then stop training.
-    STOP_THRESHOLD = 0.85
+    # STOP_THRESHOLD = 0.85
     # Learning rate of the model.
-    LEARNING_RATE = 1e-4
+    # LEARNING_RATE = 1e-4
     # How many data points to analyze in a batch.
-    BATCH_SIZE = 1
+    # BATCH_SIZE = 1
+
+    temp = 2
 
     # Instantiate a Model object:
     model = Model()
@@ -39,13 +48,17 @@ def main():
 
     # Collect data
     logger.log_start_major_process("load_training_data")
-    training_data, weights = get_data(
-        DatasourceType.TRAINING, current_device, BATCH_SIZE
-    )
+    training_data, weights = temp, temp
+    # get_data(
+    #     DatasourceType.TRAINING, current_device, BATCH_SIZE
+    # )
     logger.log_end_major_process("load_training_data")
 
     logger.log_start_major_process("load_testing_data")
-    testing_data, _ = get_data(DatasourceType.TESTING, current_device, BATCH_SIZE)
+    testing_data, _ = (
+        temp,
+        temp,
+    )  # get_data(DatasourceType.TESTING, current_device, BATCH_SIZE)
     logger.log_end_major_process("load_testing_data")
 
     # Set loss function
@@ -53,10 +66,10 @@ def main():
     loss_fn.to(device)
 
     # Stochastic Gradient Descent
-    optimizer = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE)
+    optimizer = torch.optim.SGD(model.parameters(), lr=temp)  # Learn rate
 
     last_acc = 0.0
-    growth = [np.inf for _ in range(len(GROWTH_THRESHOLD))]
+    growth = [np.inf for _ in range(len(temp))]  # Growth thresh
     sentinal = True
     epoch = 0
     # Epoch loop
@@ -75,25 +88,26 @@ def main():
         logger.log_end_minor_process("testing")
 
         # If the epoch is a checpoint epoch,
-        if epoch % CHECKPOINT_RATE == 0:
+        if epoch % temp == 0:  # checkpoint rate
             logger.log_notice(
                 "Checkpoint reached",
-                checkpoint=(epoch // CHECKPOINT_RATE),
+                checkpoint=(epoch // temp),  # chkpt rate
                 status=string,
             )
             # save the model as a checkpoint
             torch.save(
                 model,
-                f"./models/classification/checkpoint-{(epoch // CHECKPOINT_RATE):>05d}.pth",
+                # checkpoint rate
+                f"./models/classification/checkpoint-{(epoch // temp):>05d}.pth",
             )
-            if acc > STOP_THRESHOLD:
+            if acc > temp:  # stop thresh
                 # If the accuracy is hight enough, exit training
                 logger.log_notice(f"Accuracy threshold reached: {acc}")
                 sentinal = False
 
             growth.pop()
             growth.append(acc - last_acc)
-            if np.all(np.array(growth) < GROWTH_THRESHOLD):
+            if np.all(np.array(growth) < temp):  # growth thresh
                 # If the accuacy has not grown appreciably since last test, exit
                 # training
                 logger.log_notice(f"Accuracy growth limit reached: {acc - last_acc}")
@@ -107,6 +121,6 @@ def main():
 
     # Softlink the last checkpoint
     os.symlink(
-        f"checkpoint-{(epoch // CHECKPOINT_RATE):>05d}-classification.pth",
+        f"checkpoint-{(epoch // temp):>05d}-classification.pth",  # checkpoint rate
         "current-classification.pth",
     )

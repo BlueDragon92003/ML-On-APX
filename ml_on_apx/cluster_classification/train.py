@@ -1,3 +1,5 @@
+"""Trains a model."""
+
 import torch
 from torch import nn
 
@@ -10,21 +12,22 @@ def train_loop(
     model: nn.Module,
     loss_fn: nn.Module,
     optimizer: torch.optim.Optimizer,
-):
-    """Evaluates the capabilities of the current model.
+) -> None:
+    """Improve the capabilities of the model.
 
     Arguments:
-    - `device`: The device this model will be training on
-    - `dataloader`: The data source to test the model in
-    - `model`: The model being tested
-    - `loss_fn`: The function used to evaluate the model.
-    - `optimizer`: The method used to optimize the model at each step.
+        device (torch.device): The device this model will be training on
+        dataloader (torch.utils.data.DataLoader): The data source to test the model in
+        model (nn.Module): The model being tested
+        loss_fn (nn.Modul): The function used to evaluate the model.
+        optimizer (torch.optim.Optimizer): The method used to optimize the model at each
+            step.
 
     Returns:
     - A ratio of correctly-classified clusters to all clusters considered.
     - A formatted string for user display messages.
-    """
 
+    """
     logger = CleverLogger(__name__)
     logger.log_enter_function(
         "train_loop_fn",

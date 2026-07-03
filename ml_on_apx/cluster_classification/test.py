@@ -1,3 +1,5 @@
+"""Tests a model's training progess."""
+
 from typing import Tuple
 
 import torch
@@ -11,19 +13,19 @@ def test_loop(
     model: torch.nn.Module,
     loss_fn: torch.nn.Module,
 ) -> Tuple[float, str]:
-    """Evaluates the capabilities of the current model.
+    """Evaluate the capabilities of the model.
 
     Arguments:
-    - `device`: The device this model will be training on
-    - `dataloader`: The data source to test the model in
-    - `model`: The model being tested
-    - `loss_fn`: The function used to evaluate the model.
+        device (torch.device): The device this model will be training on
+        dataloader (torch.utils.data.DataLoader): The data source to test the model in
+        model (torch.nn.Module): The model being tested
+        loss_fn (torch.nn.Model): The function used to evaluate the model.
 
     Returns:
-    - A ratio of correctly-classified clusters to all clusters considered.
-    - A formatted string for user display messages.
-    """
+        tuple[float, str]: A ratio of correctly-classified clusters to all clusters
+            considered, and a formatted string for user display messages.
 
+    """
     logger = CleverLogger(__name__)
     logger.log_enter_function(
         "test_loop_fn",

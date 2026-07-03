@@ -1,6 +1,6 @@
-from torch import nn
+"""Model implementation for cluster classification."""
 
-from ml_on_apx.cleverlogger import CleverLogger
+from torch import nn
 
 
 class Model(nn.Module):
@@ -9,10 +9,9 @@ class Model(nn.Module):
     Extends: `torch.nn.Module`
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Create a new model."""
         super().__init__()
-        self.logger = CleverLogger(__name__)
-        self.logger.log_enter_function("model_constructor")
         # Other layers to try: Dropout and batch normalization,
         # if they make any sense. It's a small model though, so likely not
         self.stack = nn.Sequential(
@@ -24,11 +23,16 @@ class Model(nn.Module):
             nn.Linear(8, 2),
             # em similarity, tau similarity
         )
-        self.logger.log_exit_function("model_constructor")
 
-    def forward(self, x):
-        self.logger.log_enter_function("model_forward")
+    def forward(self, x):  # noqa: ANN201 ANN001
+        """Execute the forward pass.
+
+        Args:
+            x: The input vector for the model to process..
+
+        Returns:
+            _type_: The certainty of the model for each label.
+
+        """
         certainties = self.stack(x)
-        self.logger.log_function_exit_type("return", retval=certainties)
-        self.logger.log_exit_function("model_forward")
         return certainties

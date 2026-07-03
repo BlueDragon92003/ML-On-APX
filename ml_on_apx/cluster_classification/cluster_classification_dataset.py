@@ -1,4 +1,5 @@
-# from collections.abc import Callable
+"""The dataset used by cluster classification models."""
+
 from pathlib import Path
 
 import numpy as np
@@ -9,8 +10,6 @@ import jax.numpy as jnp
 from ml_on_apx.dataset_management.dataset import Dataset
 from uproot.behaviors.TBranch import TBranch
 
-from ml_on_apx.cleverlogger import CleverLogger
-
 
 class ClusterClassificationDataset(Dataset):
     """Implements a PyTorch dataset to train the cluster classifier.
@@ -20,24 +19,21 @@ class ClusterClassificationDataset(Dataset):
 
     size_per_label: dict[int, int]
 
-    def __init__(self, components: set[tuple[Path, int]]):
-        self.logger = CleverLogger(__name__)
+    def __init__(self, components: set[tuple[Path, int]]) -> None:
         """Generate a CCD using the provided file names and signal types.
 
         Arguments:
-        - `components`: A set of (str, SignaTypes) that specify the paths to the
-                        `.root` files this CCD reads from, and the signal type
-                        each root file is associated with.
+        components: A set of (str, SignaTypes) that specify the paths to the `.root`
+            files this CCD reads from, and the signal type each root file is
+            associated with.
+
         """
         super(ClusterClassificationDataset, self).__init__()
-        self.logger.log_enter_function("ccd_init", components=components)
         data_parts = []
-        self.size_per_label = dict()
+        self.size_per_label = {}
 
         # Data structure: data [cluster][features]
-        self.logger.log_preloop("init_for_loop")
         for filepath, label in components:
-            self.logger.log_iteration_head(filepath=filepath, label=label)
             with uproot.open(filepath) as file:
                 tree: uproot.ReadOnlyDirectory = file["l1NtupleProducer/linkTree;1"]
                 localdata_parts = []
@@ -108,8 +104,6 @@ class ClusterClassificationDataset(Dataset):
                 )
                 self.size_per_label.update({label: curr_len + len(localdata)})
                 data_parts.append(localdata)
-            self.logger.log_iteration_tail()
-        self.logger.log_postloop("init_for_loop")
         # # General data structure:
         # # data [ SLR/link + feature ][ event ][ card ]
         """
@@ -131,39 +125,75 @@ class ClusterClassificationDataset(Dataset):
         """
         data = np.concatenate(data_parts)
         self.__data = data  # .reshape(-1, data.shape[-1])
-        self.logger.log_exit_function("ccd_init")
 
-    def __getitem__(self, index: int):
+    def __getitem__(self, index: int) -> np.ndarray:
+        """Return the item at index index.
+
+        Arguments:
+            index (int): The index to get from.
+
+        Returns:
+            np.ndarray : A 19-item array of integers.
+
+        """
         out = self.__data[index]
-        self.logger.log_micro_function("ccd_get_item", "return", retval=out)
         return out
 
-    def __len__(self):
+    def __len__(self) -> int:
+        """Return the length of the dataset.
+
+        Returns:
+            int: The length of the dataset.
+
+        """
         out = len(self.__data)
-        self.logger.log_micro_function("ccd_len", "return", retval=out)
         return out
 
     @classmethod
     def create(cls, components: set[tuple[Path, int]]) -> "Dataset":
+        """Create a new ClusterClassificationDataset.
+
+        Args:
+            components (set[tuple[Path, int]]): A set of paths to ROOT files paired with
+                integer labeles that the dataset will draw from.
+
+        Returns:
+            Dataset: The ClusterClassificationDataset built from the specified
+            components.
+
+        """
         return ClusterClassificationDataset(components)
 
 
 def mostly_flatten(branch: TBranch) -> jax.Array:
+    """Flatten all except the last dimension of a uproot TBranch.
+
+    Args:
+        branch (TBranch): _description_
+
+    Returns:
+        jax.Array: _description_
+
+    """
     arr = branch.array()
     return jnp.array(np.array(arr.tolist()).reshape(-1, len(arr[0][0])))
 
 
 @jax.jit
 def get_ecal_tower(slr: int, i_eta: int, i_phi: int) -> int:
-    """Calculates the index needed to extract the proper ECALUnclustered data.
-
-    Arguments:
-    - `slr`: The SLR on the RCT card being accessed.
-    - `i_eta`: The rotational position accessed, in towers, in RCT coordinates.
-    - `i_phi`: The horizontal position accessed, in towers, in RCT coordinates.
+    """Calculate the index needed to extract the proper ECALUnclustered data.
 
     `i_eta` is correlated with slr and all inputs must respect these brackets.
     This will be changed in the future.
+
+    Arguments:
+        slr (int): The SLR on the RCT card being accessed.
+        i_eta (int): The rotational position accessed, in towers, in RCT coordinates.
+        i_phi (int): The horizontal position accessed, in towers, in RCT coordinates.
+
+    Returns:
+        int: The index where the specified position is stored.
+
     """
     # logger.log_enter_function("get_ecal_tower", slr=slr, i_eta=i_eta, i_phi=i_phi)
     tower = 6 * i_eta + i_phi
@@ -196,14 +226,19 @@ def get_ecal_tower(slr: int, i_eta: int, i_phi: int) -> int:
 
 @jax.jit
 def get_hcal_location(card: int, i_eta: int, i_phi: int) -> tuple[int, int]:
-    """Calculates the index to extract the proper HCAL data.
+    """Calculate the index to extract the proper HCAL data.
 
     Arguments:
-    - `card`: The RCT card number being accessed.
-    - `i_eta`: The rotational position accessed, in towers, in RCT coordinates.
-    - `i_phi`: The horizontal position accessed, in towers, in RCT coordinates.
+        card (int): The RCT card number being accessed.
+        i_eta (int): The rotational position accessed, in towers, in RCT coordinates.
+        i_phi (int): The horizontal position accessed, in towers, in RCT coordinates.
+
+    Returns:
+        tuple[int,int]: The HCAL link and index where the specified position is stored.
+
     """
-    # logger.log_enter_function("get_hcal_location", card=card, i_eta=i_eta, i_phi=i_phi)
+    # logger.log_enter_function("get_hcal_location", card=card, i_eta=i_eta,
+    # i_phi=i_phi)
     high_link = i_phi + 6 * ((card % 4 - 1) // 2 % 2)
     # 1(True) if Links 5/6 start with 2, 0(False) otherwise
     # it's only ever actually used times 6 plus i_phi, so may as well do it here
@@ -231,7 +266,7 @@ def get_hcal_location(card: int, i_eta: int, i_phi: int) -> tuple[int, int]:
     | True      | L7 i2     | L7 i3 | L5 i0 | L5 i1 | L5 i2 | L5 i3 |
 
     The formula `(i_phi + 6 * high_link) % 4` perfectly calculates the index (i)
-    
+
     The formula `(i_phi + 6 * high_link) // 4 % 2 * 2` calculates the link
         offset (L-5)
     """
@@ -267,6 +302,41 @@ def process_clusters(
     hcal8_fbs: jaxtyping.Int[jax.Array, " htower"],  # noqa: F722
     label: int,
 ) -> jax.Array:
+    """Process the possible cluster into a form useable by the trainer.
+
+    Args:
+        slr (int): The SLR number where the cluster is being processed.
+        event (int): The event number the cluster occured in.
+        card (int): The FPGA card where the cluster is being processed.
+        cluster_eta (int): The card-relative ECAL crystal ieta position where the
+            cluster is.
+        cluster_phi (int): The card-relative ECAL crystal iphi position where the
+            cluster is.
+        cluster_energy (int): The total energy of the cluster.
+        cluster_seed_energy (int): The seed energy of the cluster.
+        cluster_et5x5 (int): The total energy of the cluster in a smaller are.
+        cluster_et2x5 (int): The shaped energy of the cluster in a small area.
+        cluster_timing (int): The timing information of the cluster.
+        cluster_spike (int): The spike information of the cluster.
+        cluster_brems (int): The Bremsstrahlung information of the cluster.
+        cluster_satur (int): The saturation information of the cluster
+        unclustered_ets (jaxtyping.Int): Array of total unclustered energies.
+        unclustered_timings (jaxtyping.Int): Array of unclustered timing information.
+        unclustered_spikes (jaxtyping.Int): Array of unclustered spike information.
+        hcal5_ets (jaxtyping.Int): Array of HCAL energies in link 5.
+        hcal5_fbs (jaxtyping.Int): Array of HCAL feature bits in link 5.
+        hcal6_ets (jaxtyping.Int): Array of HCAL energies in link 6.
+        hcal6_fbs (jaxtyping.Int): Array of HCAL feature bits in link 6.
+        hcal7_ets (jaxtyping.Int): Array of HCAL energies in link 7.
+        hcal7_fbs (jaxtyping.Int): Array of HCAL feature bits in link 7.
+        hcal8_ets (jaxtyping.Int): Array of HCAL energies in link 8.
+        hcal8_fbs (jaxtyping.Int): Array of HCAL feature bits in link 8.
+        label (int): The label this cluster will be marked with for training.
+
+    Returns:
+        jax.Array: A 14-item array that includes the cluster data and its label.
+
+    """
     i_eta = cluster_eta // 5
     i_phi = cluster_phi // 5
     ecal_tower = get_ecal_tower(slr, i_eta, i_phi)
