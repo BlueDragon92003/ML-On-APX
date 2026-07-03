@@ -76,13 +76,15 @@ class MainView(Screen[None]):
         if new_name is None:
             self.no_selection_view()
         else:
-            dataset_info_view = self.get_child_by_id("dataset-info-view")
-            dataset_info_view.display = True
+            control_buttons = self.get_widget_by_id("control-buttons")
+            recomp_button = self.get_widget_by_id("force-recompile-dataset-button")
+            control_buttons.display = True
+            recomp_button.display = True
 
-            title_label = self.get_child_by_id("dataset-name")
+            title_label = self.get_widget_by_id("dataset-name")
             assert type(title_label) is Label
 
-            content_markdown = self.get_child_by_id("dataset-info-box")
+            content_markdown = self.get_widget_by_id("dataset-info-box")
             assert type(content_markdown) is Markdown
             dataset_info = self._manager.get_dataset_info(new_name)
 
@@ -91,16 +93,16 @@ class MainView(Screen[None]):
                 get_dataset_info_markdown(dataset_info, self._manager)
             )
 
-    def on_mount(self):
-        self.remake_dataset_list()
+    async def on_mount(self):
+        await self.remake_dataset_list()
         self.no_selection_view()
 
     @on(Button.Pressed)
-    def handle_button_press(self, message: Button.Pressed):
+    async def handle_button_press(self, message: Button.Pressed):
         button_id = message.button.id
         match button_id:
             case "new-dataset-button":
-                self.action_new_dataset()
+                await self.action_new_dataset()
                 pass
             case "edit-dataset-button":
                 self.action_edit_dataset()
@@ -121,7 +123,10 @@ class MainView(Screen[None]):
         message.stop()
 
     def action_new_dataset(self):
-        self.app.push_screen(NewEditView(self._manager))
+        async def callback(_):
+            await self.remake_dataset_list()
+
+        self.app.push_screen(NewEditView(self._manager), callback=callback)
 
     def action_edit_dataset(self):
         pass
@@ -130,10 +135,11 @@ class MainView(Screen[None]):
         pass
 
     def action_delete_dataset(self):
-        def check_delete(delete: bool | None):
+        async def check_delete(delete: bool | None):
             if delete:
                 assert self.dataset_name is not None
                 self._manager.delete_dataset(self.dataset_name)
+                await self.remake_dataset_list()
                 self.dataset_name = None
 
         self.app.push_screen(
@@ -151,10 +157,10 @@ class MainView(Screen[None]):
         info = self._manager.get_dataset_info(self.dataset_name)
         self._manager.update_dataset(self.dataset_name, info)
 
-    def remake_dataset_list(self):
+    async def remake_dataset_list(self):
         dataset_list = self.get_widget_by_id("dataset-list")
         assert type(dataset_list) is ListView
-
+        await dataset_list.clear()
         for dataset_name in self._manager.get_dataset_names():
             dataset_list.append(ListItem(Label(dataset_name), name=dataset_name))
 

@@ -75,7 +75,7 @@ class NewEditView(Screen[None]):
         yield Footer()
         with TabbedContent(id="new-edit-tabs"):
             with TabPane("Basic Info", id="general-info-tab"):
-                with VerticalScroll():
+                with VerticalScroll(id="general-info-scroll"):
                     with HorizontalGroup():
                         yield Label("Name:", id="name-label")
                         yield Input(
@@ -148,7 +148,7 @@ class NewEditView(Screen[None]):
         self.append_nodes(
             self._tree.root,
             self._manager.get_sources(),
-            Path(self._manager.ROOT_DIR_NAME),
+            Path(self._manager.get_root_dir_path()),
         )
         self.remake_label_list()
 
@@ -278,7 +278,7 @@ class NewEditView(Screen[None]):
         tabs = self.get_child_by_id("new-edit-tabs")
         assert type(tabs) is TabbedContent
         tabs.active = "general-info-tab"
-        tabs.get_pane("general-info-tab").focus()
+        self.get_widget_by_id("general-info-scroll").focus()
 
     def action_to_labels(self):
         tabs = self.get_child_by_id("new-edit-tabs")
@@ -373,7 +373,7 @@ class NewEditView(Screen[None]):
         path_so_far: Path,
     ):
         for source_node in source_tree.get_children():
-            this_path = path_so_far / source_node.get_name()
+            this_path = path_so_far / (source_node.get_name() + ".root")
             if len(source_node.get_children()) == 0:
                 new_tree_node = dest_tree_node.add_leaf(
                     f"{source_node.get_name()}",
@@ -460,12 +460,24 @@ class NewEditView(Screen[None]):
         name = name_wdgt.value
         labels = Labels(self.labels)
 
+        if len(labels) == 0:
+            self.app.notify(
+                "Datasets need a non-zero number of labels.", severity="error"
+            )
+            return
+
         try:
             labeled_sources: list[tuple[Path, SourceLabel]] = list(
                 self._tree.get_labeled_sources()
             )
         except SourceTreeWidget.MissingLabelExeption as mle:
             self.app.notify(f"Source at {mle.path} has no label.", severity="error")
+            return
+
+        if len(labeled_sources) == 0:
+            self.app.notify(
+                "Datasets need a non-zero number of sources.", severity="error"
+            )
             return
 
         name = re.sub(r"\s+", "-", name)

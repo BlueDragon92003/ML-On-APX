@@ -20,6 +20,9 @@ class Labels:
     def __iter__(self) -> Iterator[Label]:
         return iter(self._data.keys())
 
+    def __len__(self) -> int:
+        return len(self._data)
+
     def __contains__(self, label: Label) -> bool:
         return label in self._data.keys()
 

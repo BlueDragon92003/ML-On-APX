@@ -1,5 +1,5 @@
 # from collections.abc import Callable
-from typing import Set, Tuple, Dict  # , List, Iterator
+from pathlib import Path
 
 import numpy as np
 import uproot
@@ -10,7 +10,6 @@ from ml_on_apx.dataset_management.dataset import Dataset
 from uproot.behaviors.TBranch import TBranch
 
 from ml_on_apx.cleverlogger import CleverLogger
-from ml_on_apx.cluster_classification.signal_type import SignalType
 
 
 class ClusterClassificationDataset(Dataset):
@@ -19,9 +18,9 @@ class ClusterClassificationDataset(Dataset):
     Extends: `torch.utils.data.IterableDataset`
     """
 
-    labels: Dict[int, Tuple[SignalType, int]]
+    size_per_label: dict[int, int]
 
-    def __init__(self, components: Set[Tuple[str, SignalType]]):
+    def __init__(self, components: set[tuple[Path, int]]):
         self.logger = CleverLogger(__name__)
         """Generate a CCD using the provided file names and signal types.
 
@@ -33,14 +32,12 @@ class ClusterClassificationDataset(Dataset):
         super(ClusterClassificationDataset, self).__init__()
         self.logger.log_enter_function("ccd_init", components=components)
         data_parts = []
-
-        signal_to_label, self.labels = get_labels(components)
+        self.size_per_label = dict()
 
         # Data structure: data [cluster][features]
         self.logger.log_preloop("init_for_loop")
-        for filepath, cluster_type in components:
-            self.logger.log_iteration_head(filepath=filepath, cluster_type=cluster_type)
-            local_label = signal_to_label[cluster_type]
+        for filepath, label in components:
+            self.logger.log_iteration_head(filepath=filepath, label=label)
             with uproot.open(filepath) as file:
                 tree: uproot.ReadOnlyDirectory = file["l1NtupleProducer/linkTree;1"]
                 localdata_parts = []
@@ -96,9 +93,7 @@ class ClusterClassificationDataset(Dataset):
                             hcal7_fbs,
                             hcal8_ets,
                             hcal8_fbs,
-                            jnp.array(
-                                [local_label for _ in range(num_events * 9 * 24)]
-                            ),
+                            jnp.array([label for _ in range(num_events * 9 * 24)]),
                         )
                     )
                 localdata = np.concatenate(
@@ -106,11 +101,12 @@ class ClusterClassificationDataset(Dataset):
                 )  # sync up with jax execution
                 localdata = localdata[localdata[:, 5] > 0]  # index 5 is cluster_energy
                 # increase size
-                curr_len = self.labels[signal_to_label[cluster_type]][1]
-                self.labels[signal_to_label[cluster_type]] = (
-                    cluster_type,
-                    curr_len + len(localdata),
+                curr_len = (
+                    self.size_per_label[label]
+                    if label in self.size_per_label.keys()
+                    else 0
                 )
+                self.size_per_label.update({label: curr_len + len(localdata)})
                 data_parts.append(localdata)
             self.logger.log_iteration_tail()
         self.logger.log_postloop("init_for_loop")
@@ -146,6 +142,10 @@ class ClusterClassificationDataset(Dataset):
         out = len(self.__data)
         self.logger.log_micro_function("ccd_len", "return", retval=out)
         return out
+
+    @classmethod
+    def create(cls, components: set[tuple[Path, int]]) -> "Dataset":
+        return ClusterClassificationDataset(components)
 
 
 def mostly_flatten(branch: TBranch) -> jax.Array:
@@ -195,7 +195,7 @@ def get_ecal_tower(slr: int, i_eta: int, i_phi: int) -> int:
 
 
 @jax.jit
-def get_hcal_location(card: int, i_eta: int, i_phi: int) -> Tuple[int, int]:
+def get_hcal_location(card: int, i_eta: int, i_phi: int) -> tuple[int, int]:
     """Calculates the index to extract the proper HCAL data.
 
     Arguments:
@@ -324,26 +324,3 @@ def process_clusters(
             label,
         ]
     )
-
-
-def get_labels(
-    components: Set[Tuple[str, SignalType]],
-) -> Tuple[Dict[SignalType, int], Dict[int, Tuple[SignalType, int]]]:
-    """Create a set of contiguous integer labels for each signal type, with additional data storage."""
-    logger = CleverLogger(__name__)
-    logger.log_enter_function("get_lables", components=components)
-    signal_to_label: Dict[SignalType, int] = dict()
-    labels: Dict[int, Tuple[SignalType, int]] = dict()
-    next_label = 0
-    logger.log_preloop("labeling_for_loop")
-    for _, signal_type in components:
-        logger.log_iteration_head(signal_type=signal_type)
-        if signal_type not in signal_to_label.keys():
-            signal_to_label[signal_type] = next_label
-            labels[next_label] = (signal_type, 0)
-            next_label += 1
-        logger.log_iteration_tail()
-    logger.log_postloop("labeling_for_loop")
-    logger.log_function_exit_type("return", retval=(signal_to_label, labels))
-    logger.log_exit_function("get_labels")
-    return signal_to_label, labels
