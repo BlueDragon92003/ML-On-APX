@@ -1,9 +1,9 @@
 import re
 from typing import Literal
-from ml_on_apx.dataset_management.app_views.list_select_question import (
+from ml_on_apx.tui_common.list_select_question import (
     ListSelectQuestion,
 )
-from ml_on_apx.dataset_management.app_views.binary_modal_question import (
+from ml_on_apx.tui_common.binary_modal_question import (
     BinaryModalQuestion,
 )
 from ml_on_apx.dataset_management.app_views.source_tree_widget import (

@@ -1,8 +1,8 @@
 from ml_on_apx.dataset_management.dataset_info import DATASET_NAME_REGEX
 import re
-from ml_on_apx.dataset_management.app_views.get_string_question import GetStringQuestion
+from ml_on_apx.tui_common.get_string_question import GetStringQuestion
 from ml_on_apx.dataset_management.app_views.new_edit_view import NewEditView
-from ml_on_apx.dataset_management.app_views.binary_modal_question import (
+from ml_on_apx.tui_common.binary_modal_question import (
     BinaryModalQuestion,
 )
 from textual.reactive import reactive

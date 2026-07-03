@@ -1,5 +1,5 @@
 from textual.widgets import Label
-from ml_on_apx.dataset_management.app_views.binary_modal_question import (
+from ml_on_apx.tui_common.binary_modal_question import (
     BinaryModalQuestion,
 )
 import textual.widgets
