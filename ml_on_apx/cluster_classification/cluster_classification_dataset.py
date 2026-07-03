@@ -2,13 +2,14 @@
 
 from pathlib import Path
 
-import numpy as np
-import uproot
-import jaxtyping
 import jax
 import jax.numpy as jnp
-from ml_on_apx.dataset_management.dataset import Dataset
+import jaxtyping
+import numpy as np
+import uproot
 from uproot.behaviors.TBranch import TBranch
+
+from ml_on_apx.dataset_management.dataset import Dataset
 
 
 class ClusterClassificationDataset(Dataset):
@@ -20,7 +21,7 @@ class ClusterClassificationDataset(Dataset):
     size_per_label: dict[int, int]
 
     def __init__(self, components: set[tuple[Path, int]]) -> None:
-        """Generate a CCD using the provided file names and signal types.
+        """Generate a CCD using the provided file names and ml labels.
 
         Arguments:
         components: A set of (str, SignaTypes) that specify the paths to the `.root`

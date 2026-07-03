@@ -1,38 +1,62 @@
+"""Manages the dataset pickles and which datasets are available."""
+
 import pickle
-from ml_on_apx.modes import Mode
 from pathlib import Path
-from typing import List, Generic, TypeVar, Dict, Type, Set
-from ml_on_apx.dataset_management.dataset_info import DatasetInfo
+from typing import ClassVar, Dict, Generic, List, Set, Type, TypeVar
+
 from ml_on_apx.dataset_management.dataset import Dataset
+from ml_on_apx.dataset_management.dataset_info import DatasetInfo
 from ml_on_apx.dataset_management.tree import TreeNode
+from ml_on_apx.modes import Mode
 
-T = TypeVar("T", bound=Dataset)
+ManagedDataset = TypeVar("ManagedDataset", bound=Dataset)
 
 
-class DatasetManager(Generic[T]):
+class DatasetManager(Generic[ManagedDataset]):
     """Manages a collection of datasets stored in a location."""
 
     ROOT_DIR_NAME = "root"
     SETS_DIR_NAME = "sets"
     PICKLE_SUFFIX = ".pckl"
     SET_INFO_NAME = "_set_info"
-    DATASET_PICKLE_SUFFIXES = [".dataset", PICKLE_SUFFIX]
+    DATASET_PICKLE_SUFFIXES: ClassVar[list[str]] = [".dataset", PICKLE_SUFFIX]
 
-    def __init__(self, dataset_dir: Path, mode: Mode, dataset_class: Type[T]):
+    def __init__(
+        self, dataset_dir: Path, mode: Mode, dataset_class: Type[ManagedDataset]
+    ) -> None:
+        """Create a new dataset manager for use in an environment.
+
+        Args:
+            dataset_dir (Path): The directory all dataset information is stored under.
+            mode (Mode): The mode of datasets the manager is managing.
+            dataset_class (Type[T]): The class that should be used for datasets.
+
+        """
         self._root_dir_path = dataset_dir / mode.value / DatasetManager.ROOT_DIR_NAME
         self._sets_dir_path = dataset_dir / mode.value / DatasetManager.SETS_DIR_NAME
-        self._set_info_path = (
-            dataset_dir
-            / f"{mode.value}{DatasetManager.SET_INFO_NAME}{DatasetManager.PICKLE_SUFFIX}"
+        self._set_info_path = dataset_dir / (
+            str(mode.value)
+            + DatasetManager.SET_INFO_NAME
+            + DatasetManager.PICKLE_SUFFIX
         )
-        self._dataset_class: Type[T] = dataset_class
+        self._dataset_class: Type[ManagedDataset] = dataset_class
 
-    def __enter__(self) -> "DatasetManager[T]":
+    def __enter__(self) -> "DatasetManager[ManagedDataset]":
+        """Initialize the environment.
+
+        Raises:
+            NotADirectoryError: If files exist with the names of directories the manager
+                expects.
+
+        Returns:
+            DatasetManager[T]: The fully-initialized dataset manager.
+
+        """
         self._to_recompile: List[str] = []
         self._set_info: Dict[str, DatasetInfo]
         self._sources: TreeNode
 
-        self._set_info: Dict[str, DatasetInfo] = dict()
+        self._set_info: Dict[str, DatasetInfo] = {}
 
         if self._set_info_path.exists() and self._set_info_path.is_file():
             with open(self._set_info_path, mode="rb") as set_info:
@@ -72,7 +96,19 @@ class DatasetManager(Generic[T]):
 
         return self
 
-    def __exit__(self, _exc_type, _exc_value, _exc_traceback) -> bool:
+    def __exit__(self, _exc_type, _exc_value, _exc_traceback) -> bool:  # noqa: ANN001
+        """Safely leave a managed environment.
+
+        Args:
+            _exc_type (_type_): The type of the exception that occured in this
+                environment, if any.
+            _exc_value (_type_): The exception that occured in this environment, if any.
+            _exc_traceback (_type_): The traceback of the exception.
+
+        Returns:
+            bool: If the exception was handled (always False)
+
+        """
         count_to_recompile = len(self._to_recompile)
         done = 0
         if count_to_recompile > 0:
@@ -88,10 +124,8 @@ class DatasetManager(Generic[T]):
             print(f"[={'=' * eqls}{' ' * (77 - eqls)}]", end="\r")
         if done:
             print()
-        if (
-            not self._set_info_path.exists()
-            or self._set_info_path.exists()
-            and self._set_info_path.is_file()
+        if not self._set_info_path.exists() or (
+            self._set_info_path.exists() and self._set_info_path.is_file()
         ):
             with open(self._set_info_path, mode="wb") as set_info:
                 pickle.dump(self._set_info, set_info)
@@ -101,13 +135,25 @@ class DatasetManager(Generic[T]):
         return False
 
     def get_root_dir_path(self) -> Path:
+        """Get the path to the ROOT file directory."""
         return self._root_dir_path
 
     def get_sources(self) -> TreeNode:
+        """Get the possible ROOT sources as a tree."""
         return self._sources
 
-    def create_dataset(self, name: str, dataset: DatasetInfo):
-        """Create a new dataset."""
+    def create_dataset(self, name: str, dataset: DatasetInfo) -> None:
+        """Create a new dataset.
+
+        Args:
+            name (str): The name of the dataset to create.
+            dataset (DatasetInfo): The information for the dataset.
+
+        Raises:
+            ValueError: If a dataset with that name already exists.
+
+        """
+        # TODO better exception for this?
         if name in self._set_info.keys():
             # TODO LOG WARN
             raise ValueError("Set already exists!")
@@ -115,17 +161,39 @@ class DatasetManager(Generic[T]):
         self._to_recompile.append(name)
 
     def get_dataset_names(self) -> Set[str]:
-        """List all datasets."""
+        """List all datasets this manager is aware of."""
         return set(self._set_info.keys())
 
     def get_dataset_info(self, dataset_name: str) -> DatasetInfo:
-        """Retrieve information for a dataset."""
+        """Retrieve information for a dataset.
+
+        Args:
+            dataset_name (str): The name of the dataset data is to be retrieved for.
+
+        Raises:
+            ValueError: If the provided dataset name is not tied to a dataset.
+
+        Returns:
+            DatasetInfo: The information for the dataset.
+
+        """
         if dataset_name not in self._set_info.keys():
             raise ValueError("No such set!")
         return self._set_info[dataset_name]
 
-    def get_dataset(self, dataset_name: str) -> T:
-        """Retrieve a dataset object."""
+    def get_dataset(self, dataset_name: str) -> ManagedDataset:
+        """Retrieve a dataset object.
+
+        Args:
+            dataset_name (str): The name of the dataset to be retrieved.
+
+        Raises:
+            ValueError: If the provided dataset name is not associated with a dataset.
+
+        Returns:
+            ManagedDataset: The dataset object.
+
+        """
         if dataset_name not in self._set_info.keys():
             raise ValueError("No such set!")
         set_path = self._get_dataset_path(dataset_name)
@@ -135,15 +203,34 @@ class DatasetManager(Generic[T]):
         with open(set_path, mode="rb") as file:
             return pickle.load(file)
 
-    def update_dataset(self, dataset_name: str, dataset_info: DatasetInfo):
-        """Update a dataset's information."""
+    def update_dataset(self, dataset_name: str, dataset_info: DatasetInfo) -> None:
+        """Update the information for the provided dataset's name.
+
+        Args:
+            dataset_name (str): The name of the dataset to update.
+            dataset_info (DatasetInfo): The information it is being updated to.
+
+        Raises:
+            ValueError: If the provided dataset name is not associated with a dataset.
+
+        """
         if dataset_name not in self._set_info.keys():
             raise ValueError("No such set!")
         self._to_recompile.append(dataset_name)
         self._set_info[dataset_name] = dataset_info
 
-    def rename_dataset(self, dataset_name: str, new_name: str):
-        """Rename a dataset."""
+    def rename_dataset(self, dataset_name: str, new_name: str) -> None:
+        """Rename a dataset.
+
+        Args:
+            dataset_name (str): The name of the dataset to update.
+            new_name (str): The new name for the dataset.
+
+        Raises:
+            ValueError: If the provided dataset name is not associated with a dataset,
+                or if the new name matches an existing dataset.
+
+        """
         if dataset_name not in self._set_info.keys():
             raise ValueError(f"No such set `{dataset_name}`!")
         if new_name in self._set_info.keys():
@@ -157,8 +244,16 @@ class DatasetManager(Generic[T]):
             self._to_recompile.remove(dataset_name)
             self._to_recompile.append(new_name)
 
-    def delete_dataset(self, dataset_name: str):
-        """Delete a dataset."""
+    def delete_dataset(self, dataset_name: str) -> None:
+        """Delete a dataset.
+
+        Args:
+            dataset_name (str): The dataset to delete.
+
+        Raises:
+            ValueError: If the dataset does not exist.
+
+        """
         if dataset_name not in self._set_info.keys():
             raise ValueError(f"No such set `{dataset_name}`!")
         path = self._get_dataset_path(dataset_name)
@@ -168,19 +263,43 @@ class DatasetManager(Generic[T]):
         if dataset_name in self._to_recompile:
             self._to_recompile.remove(dataset_name)
 
-    def _recompile_dataset(self, path: Path, dataset_info: DatasetInfo):
-        """(Re)create a dataset, pickle it, and save it to the path."""
+    def _recompile_dataset(self, path: Path, dataset_info: DatasetInfo) -> None:
+        """Create and pickle a dataset based on the provided information.
+
+        Args:
+            path (Path): The path to save the dataset to.
+            dataset_info (DatasetInfo): The information to compile the dataset with.
+
+        """
         to_pickle = self._dataset_class.create(dataset_info.get_numbered_sources())
         with open(path, mode="wb") as file:
             pickle.dump(to_pickle, file)
 
     def _get_dataset_path(self, dataset_name: str) -> Path:
+        """Get the path to a dataset.
+
+        Args:
+            dataset_name (str): The name of the hypothetical dataset.
+
+        Returns:
+            Path: The path where that dataset would be stored.
+
+        """
         return (
             self._sets_dir_path
             / f"{dataset_name}{''.join(DatasetManager.DATASET_PICKLE_SUFFIXES)}"
         )
 
     def _datasets_in_dir(self, dir: Path) -> List[str]:
+        """Return a list of datasets pickled to files.
+
+        Args:
+            dir (Path): The directory to look under.
+
+        Returns:
+            List[str]: A list of dataset names in the path.
+
+        """
         options = dir.iterdir()
         correct_type_and_extention = filter(
             lambda path: (
@@ -189,10 +308,8 @@ class DatasetManager(Generic[T]):
             ),
             options,
         )
-        just_the_name = map(
-            lambda path: path.name.removesuffix(
-                "".join(DatasetManager.DATASET_PICKLE_SUFFIXES)
-            ),
-            correct_type_and_extention,
+        just_the_name = (
+            path.name.removesuffix("".join(DatasetManager.DATASET_PICKLE_SUFFIXES))
+            for path in correct_type_and_extention
         )
         return list(just_the_name)

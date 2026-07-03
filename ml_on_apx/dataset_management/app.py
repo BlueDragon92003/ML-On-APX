@@ -1,34 +1,62 @@
+"""The TUI app the user uses to manage datasets, plus the way to run it."""
+
+from pathlib import Path
+from typing import ClassVar, Type
+
+import textual.widgets
+from textual.app import App, ComposeResult
+from textual.binding import Binding
 from textual.widgets import Label
+
+from ml_on_apx.dataset_management.app_views.main_view import MainView
+from ml_on_apx.dataset_management.dataset import Dataset
+from ml_on_apx.dataset_management.dataset_manager import DatasetManager
+from ml_on_apx.modes import Mode
 from ml_on_apx.tui_common.binary_modal_question import (
     BinaryModalQuestion,
 )
-import textual.widgets
-from ml_on_apx.dataset_management.app_views.main_view import MainView
-from typing import Type
-from ml_on_apx.dataset_management.dataset import Dataset
-from ml_on_apx.modes import Mode
-from pathlib import Path
-from ml_on_apx.dataset_management.dataset_manager import DatasetManager
-from textual.app import App, ComposeResult
 
 
 class DatasetManagerApp(App):
-    BINDINGS = [("q", "show_quit_screen", "Quit")]
+    """The TUI app used to manage datasets."""
+
+    BINDINGS: ClassVar[list[tuple[str, str, str] | Binding]] = [
+        ("q", "show_quit_screen", "Quit")
+    ]
     CSS_PATH = "./app_views/app.tcss"
 
-    def __init__(self, active_dataset_manager: DatasetManager):
+    def __init__(self, active_dataset_manager: DatasetManager) -> None:
+        """Create a new Dataset Manager App.
+
+        Args:
+            active_dataset_manager (DatasetManager): The dataset manager this app will
+                use to manage datasets.
+
+        """
         super().__init__()
         self._manager = active_dataset_manager
 
     def compose(self) -> ComposeResult:
+        """Build the screen from its component widgets.
+
+        Returns:
+            ComposeResult: An iterator of widgets this screen incorporates.
+
+        Yields:
+            Iterator[ComposeResult]: A widget to incorporated.
+
+        """
         yield textual.widgets.LoadingIndicator()
 
-    async def on_mount(self):
+    async def on_mount(self) -> None:
+        """Finish setup of the screen once it is attached to the DOM."""
         self.theme = "gruvbox"
         self.push_screen(MainView(self._manager))
 
-    def action_show_quit_screen(self):
-        def check_quit(sentinal: bool | None):
+    def action_show_quit_screen(self) -> None:
+        """Process the action `show_quit_screen`."""
+
+        def check_quit(sentinal: bool | None) -> None:
             if sentinal:
                 self.exit()
 
@@ -37,7 +65,15 @@ class DatasetManagerApp(App):
         )
 
 
-def main(dataset_dir: Path, mode: Mode, dataset_class: Type[Dataset]):
+def main(dataset_dir: Path, mode: Mode, dataset_class: Type[Dataset]) -> None:
+    """Run the dataset manager app.
+
+    Args:
+        dataset_dir (Path): The directory all dataset information is stored under.
+        mode (Mode): The mode of datasets this app is managing.
+        dataset_class (Type[Dataset]): The class that should be used for datasets.
+
+    """
     errors: Exception | None = None
     with DatasetManager(dataset_dir, mode, dataset_class) as manager:
         app = DatasetManagerApp(manager)

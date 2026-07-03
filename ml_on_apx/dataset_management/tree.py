@@ -1,22 +1,50 @@
+"""A tree representing a directory structure of sources."""
+
 from pathlib import Path
 from typing import Iterable, List
 
 
 class TreeNode:
-    def __init__(self, name: str):
+    """A tree representing a directory structure of sources."""
+
+    def __init__(self, name: str) -> None:
+        """Create a new nodw.
+
+        Args:
+            name (str): The name of this node.
+
+        """
         self._name: str = name
         self._children: List["TreeNode"] = []
 
     def get_name(self) -> str:
+        """Get the name for this node."""
         return self._name
 
     def get_children(self) -> List["TreeNode"]:
+        """Get this node's children."""
         return self._children
 
-    def add_child(self, child: "TreeNode"):
+    def add_child(self, child: "TreeNode") -> None:
+        """Add a child node to this node.
+
+        Args:
+            child (TreeNode): The child node to add.
+
+        """
         self._children.append(child)
 
     def __eq__(self, other: object) -> bool:
+        """Compare this tree with another object.
+
+        Args:
+            other (object): Another object to compare to.
+
+        Returns:
+            bool: If the other object is a tree AND stores the same hierarchy as this
+                tree.
+
+        """
         if type(other) is not TreeNode:
             return False
         if self.get_name() != other.get_name():
@@ -36,12 +64,26 @@ class TreeNode:
 
     @staticmethod
     def from_filesystem(name: str, sources: Iterable[Path]) -> "TreeNode":
+        """Produce a tree of ROOT files and parent directories.
+
+        The name of each node is the name of the directory, or the stem of the root
+        file.
+
+        Args:
+            name (str): The name the root node of this tree should have
+            sources (Iterable[Path]): A list of paths this node contains that should be
+                checked.
+
+        Returns:
+            TreeNode: A tree representing root files within their directory structure.
+
+        """
         out = TreeNode(name)
         for source in sources:
             if not source.exists():
                 continue
             elif source.is_dir():
-                out.add_child(TreeNode.from_filesystem(source.stem, source.iterdir()))
+                out.add_child(TreeNode.from_filesystem(source.name, source.iterdir()))
             elif source.suffix == ".root":
                 out.add_child(TreeNode(source.stem))
         return out

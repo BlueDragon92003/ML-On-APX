@@ -1,6 +1,9 @@
-from ml_on_apx.labelling import Label, Labels
+"""Stores informaiton relating to a dataset."""
+
 from pathlib import Path
-from typing import Tuple, Set, Iterable
+from typing import Iterable, Set, Tuple
+
+from ml_on_apx.labelling import Label, Labels
 
 DATASET_NAME_REGEX = r"[\w]([\w\s-]*[\w-])?"
 
@@ -8,7 +11,19 @@ DATASET_NAME_REGEX = r"[\w]([\w\s-]*[\w-])?"
 class DatasetInfo:
     """Stores information relating to a dataset."""
 
-    def __init__(self, labels: Labels, sources: Iterable[Tuple[Path, Label]]):
+    def __init__(self, labels: Labels, sources: Iterable[Tuple[Path, Label]]) -> None:
+        """Create a new DatasetInfo object.
+
+        Args:
+            labels (Labels): The labels the dataset uses.
+            sources (Iterable[Tuple[Path, Label]]): The sources, paired with their
+                labels, this dataset uses.
+
+        Raises:
+            ValueError: If a label for a source is not in this dataset's labels.
+
+        """
+        # TODO update value error to a more apt error type
         self._labels = labels
         self._sources = set(sources)
         for source in self._sources:
@@ -16,24 +31,38 @@ class DatasetInfo:
                 raise ValueError(f"Label {source[1]} not found in provided labels!")
 
     def get_labels(self) -> Labels:
+        """Get the labels this dataset uses."""
         return self._labels
 
     def get_sources(self) -> Set[Path]:
-        return set(map(lambda x: x[0], self._sources))
+        """Get the unlabled sources this dataset uses."""
+        return {x[0] for x in self._sources}
 
     def get_numbered_sources(self) -> Set[Tuple[Path, int]]:
+        """Get the sources this dataset uses with ml-safe integer labels."""
         labled_sources: Set[Tuple[Path, int]] = set()
         for path, label in self._sources:
             labled_sources.add((path, self._labels[label]))
         return labled_sources
 
     def get_labeled_sources(self) -> Set[Tuple[Path, Label]]:
+        """Get the sources this dataset uses with human-readable labels."""
         labled_sources: Set[Tuple[Path, Label]] = set()
         for path, label in self._sources:
             labled_sources.add((path, label))
         return labled_sources
 
     def __eq__(self, other: object) -> bool:
+        """Compare this dataset to another object.
+
+        Args:
+            other (object): The other object to compare to.
+
+        Returns:
+            bool: True if the other object is a DatasetInfo object with the same
+                information.
+
+        """
         if type(other) is not DatasetInfo:
             return False
         return self._labels == other._labels and self._sources == other._sources
