@@ -38,6 +38,12 @@ class DatasetManagerApp(App):
 
 
 def main(dataset_dir: Path, mode: Mode, dataset_class: Type[Dataset]):
+    errors: Exception | None = None
     with DatasetManager(dataset_dir, mode, dataset_class) as manager:
         app = DatasetManagerApp(manager)
-        app.run()
+        try:
+            app.run()
+        except Exception as e:
+            errors = e
+    if errors:
+        print(f"App exited with exceptions! {errors}")

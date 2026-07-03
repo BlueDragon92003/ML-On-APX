@@ -112,7 +112,7 @@ BinaryModalQuestion {
     }
 }
 
-ListSelectQuestion {
+ListSelectQuestion, GetStringQuestion {
     align: center middle;
 
     & .container {

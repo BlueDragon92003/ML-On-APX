@@ -30,7 +30,7 @@ from textual.app import ComposeResult
 from pathlib import Path
 from ml_on_apx.labelling import Label as SourceLabel, Labels
 from textual.reactive import reactive
-from ml_on_apx.dataset_management.dataset_info import DatasetInfo
+from ml_on_apx.dataset_management.dataset_info import DatasetInfo, DATASET_NAME_REGEX
 from ml_on_apx.dataset_management.dataset_manager import DatasetManager
 from ml_on_apx.dataset_management.tree import TreeNode as SourceTreeNode
 from textual.screen import Screen
@@ -60,13 +60,9 @@ class NewEditView(Screen[None]):
         super().__init__()
         self._manager = manager
         self.dataset_name = template_name if template_name else ""
-        self.template_sources = {}
+        self._template = template
+        self.template_sources: dict[Path, SourceLabel] = {}
         self._highlighted_node: None | NodeID = None
-        if template is not None:
-            for label in template.get_labels():
-                self.labels = self.labels + [label]
-            for path, label in template.get_labeled_sources():
-                self.template_sources.update({path: label})
 
     def compose(self) -> ComposeResult:
         yield Header(
@@ -82,13 +78,16 @@ class NewEditView(Screen[None]):
                             value=self.dataset_name,
                             placeholder="Dataset name...",
                             id="dataset-name-input",
+                            disabled=self._template is not None,
                         )
                     with HorizontalGroup(id="new-edit-control-buttons"):
                         yield Button(
                             "Cancel", variant="default", id="dataset-cancel-button"
                         )
                         yield Button(
-                            "Create", variant="primary", id="dataset-create-button"
+                            "Create" if self._template is None else "Save",
+                            variant="primary",
+                            id="dataset-create-button",
                         )
             with TabPane("Labels", id="labels-tab"):
                 yield ListView(id="labels-list")
@@ -145,12 +144,18 @@ class NewEditView(Screen[None]):
         return False
 
     def on_mount(self):
+        if self._template is not None:
+            labels = []
+            for label in self._template.get_labels():
+                labels.append(label)
+            self.labels = labels
+            for path, label in self._template.get_labeled_sources():
+                self.template_sources.update({path: label})
         self.append_nodes(
             self._tree.root,
             self._manager.get_sources(),
             Path(self._manager.get_root_dir_path()),
         )
-        self.remake_label_list()
 
     @on(Tree.NodeHighlighted)
     def track_highlighted(self, message: Tree.NodeHighlighted[SourceTreeData]):
@@ -480,11 +485,15 @@ class NewEditView(Screen[None]):
             )
             return
 
-        name = re.sub(r"\s+", "-", name)
-        if not re.fullmatch(r"([\w-][\w\s-]*)?[\w-]", name):
-            self.app.notify("Invalid dataset name.", severity="error")
-            return
-
         dataset_info = DatasetInfo(labels, labeled_sources)
-        self._manager.create_dataset(name, dataset_info)
+
+        if self._template is None:
+            name = re.sub(r"\s+", "-", name)
+            if not re.fullmatch(DATASET_NAME_REGEX, name):
+                self.app.notify("Invalid dataset name.", severity="error")
+                return
+            self._manager.create_dataset(name, dataset_info)
+        else:
+            self._manager.update_dataset(name, dataset_info)
+
         self.dismiss()

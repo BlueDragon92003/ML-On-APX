@@ -1,3 +1,6 @@
+from ml_on_apx.dataset_management.dataset_info import DATASET_NAME_REGEX
+import re
+from ml_on_apx.dataset_management.app_views.get_string_question import GetStringQuestion
 from ml_on_apx.dataset_management.app_views.new_edit_view import NewEditView
 from ml_on_apx.dataset_management.app_views.binary_modal_question import (
     BinaryModalQuestion,
@@ -103,16 +106,12 @@ class MainView(Screen[None]):
         match button_id:
             case "new-dataset-button":
                 await self.action_new_dataset()
-                pass
             case "edit-dataset-button":
                 self.action_edit_dataset()
-                pass
             case "rename-dataset-button":
                 self.action_rename_dataset()
-                pass
             case "delete-dataset-button":
                 self.action_delete_dataset()
-                pass
             case "force-recompile-dataset-button":
                 self.action_recompile_dataset()
 
@@ -129,10 +128,44 @@ class MainView(Screen[None]):
         self.app.push_screen(NewEditView(self._manager), callback=callback)
 
     def action_edit_dataset(self):
-        pass
+        async def callback(_):
+            await self.remake_dataset_list()
+
+        template_name = self.dataset_name
+        assert template_name is not None
+        template = self._manager.get_dataset_info(template_name)
+
+        self.app.push_screen(
+            NewEditView(self._manager, template=template, template_name=template_name),
+            callback=callback,
+        )
 
     def action_rename_dataset(self):
-        pass
+        async def callback(new_name: str | None):
+            if new_name == self.dataset_name:
+                self.app.notify("The dataset is already named that.")
+                return
+            if new_name:
+                assert self.dataset_name is not None
+                try:
+                    self._manager.rename_dataset(self.dataset_name, new_name)
+                except ValueError:
+                    self.app.notify(
+                        f"A dataset with the name `{new_name}` already exists",
+                        severity="error",
+                    )
+                else:
+                    await self.remake_dataset_list()
+                    self.dataset_name = new_name
+
+        self.app.push_screen(
+            GetStringQuestion(
+                lambda name: re.fullmatch(DATASET_NAME_REGEX, name) is not None,
+                title=f"Rename dataset `{self.dataset_name}` to?",
+                subtitle="Press escape to cancel.",
+            ),
+            callback=callback,
+        )
 
     def action_delete_dataset(self):
         async def check_delete(delete: bool | None):
@@ -161,7 +194,9 @@ class MainView(Screen[None]):
         dataset_list = self.get_widget_by_id("dataset-list")
         assert type(dataset_list) is ListView
         await dataset_list.clear()
-        for dataset_name in self._manager.get_dataset_names():
+        dataset_names = list(self._manager.get_dataset_names())
+        dataset_names.sort()
+        for dataset_name in dataset_names:
             dataset_list.append(ListItem(Label(dataset_name), name=dataset_name))
 
     def no_selection_view(self):

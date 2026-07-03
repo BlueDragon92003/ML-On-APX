@@ -149,7 +149,8 @@ class DatasetManager(Generic[T]):
         if new_name in self._set_info.keys():
             raise ValueError(f"Set `{new_name}` already exists!")
         path = self._get_dataset_path(dataset_name)
-        path.move(self._get_dataset_path(new_name))
+        if path.exists():
+            path.move(self._get_dataset_path(new_name))
         info = self._set_info.pop(dataset_name)
         self._set_info[new_name] = info
         if dataset_name in self._to_recompile:

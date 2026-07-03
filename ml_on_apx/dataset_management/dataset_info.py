@@ -2,6 +2,8 @@ from ml_on_apx.labelling import Label, Labels
 from pathlib import Path
 from typing import Tuple, Set, Iterable
 
+DATASET_NAME_REGEX = r"[\w]([\w\s-]*[\w-])?"
+
 
 class DatasetInfo:
     """Stores information relating to a dataset."""

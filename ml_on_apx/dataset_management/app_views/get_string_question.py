@@ -1,31 +1,28 @@
-from textual.types import NoSelection
-from typing import TypeVar
+from typing import Callable
 from textual import on
-from textual.widgets import Select
+from textual.widgets import Input
 from textual.containers import VerticalGroup
 from textual.app import ComposeResult
 from textual.screen import ModalScreen
 
-ListItem = TypeVar("ListItem")
 
-
-class ListSelectQuestion(ModalScreen[ListItem]):
+class GetStringQuestion(ModalScreen[str]):
     BINDINGS = [("escape", "exit", "Cancel")]
 
     def __init__(
         self,
-        options: list[tuple[str, ListItem]],
+        validator: Callable[[str], bool] = lambda x: True,
         title: str | None = None,
         subtitle: str | None = None,
     ):
         super().__init__()
-        self._options = options
+        self._validator = validator
         self._title = title
         self._subtitle = subtitle
 
     def compose(self) -> ComposeResult:
         with VerticalGroup(classes="container", id="container"):
-            yield Select[ListItem](self._options, id="slist-list")
+            yield Input(id="slist-list")
 
     def on_mount(self):
         container = self.get_child_by_id("container")
@@ -36,11 +33,9 @@ class ListSelectQuestion(ModalScreen[ListItem]):
     def action_exit(self):
         self.dismiss(None)
 
-    @on(Select.Changed)
-    def handle_selection(self, message: Select.Changed):
-        assert type(message) is Select[ListItem].Changed
-        value: ListItem | NoSelection = message.value  # ty: ignore[invalid-assignment]
-        if type(value) is not NoSelection:
-            self.dismiss(value)  # ty: ignore[invalid-argument-type]
+    @on(Input.Submitted)
+    def handle_input_submission(self, message: Input.Submitted):
+        if self._validator(message.value):
+            self.dismiss(message.value)
         else:
-            self.dismiss(None)
+            self.app.notify("Not a valid input!")
