@@ -1,4 +1,4 @@
-"""Implements the training loop for a cluster classification model."""
+"""Implements the testing-training loop for a cluster classification model."""
 
 import os
 

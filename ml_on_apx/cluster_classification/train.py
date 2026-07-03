@@ -1,4 +1,4 @@
-"""Trains a model."""
+"""Trains a cluster classification model."""
 
 import torch
 from torch import nn

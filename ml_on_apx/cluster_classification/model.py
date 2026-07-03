@@ -4,10 +4,7 @@ from torch import nn
 
 
 class Model(nn.Module):
-    """The structure of the classification model.
-
-    Extends: `torch.nn.Module`
-    """
+    """The structure of the classification model."""
 
     def __init__(self) -> None:
         """Create a new model."""
