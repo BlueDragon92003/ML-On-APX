@@ -1,3 +1,7 @@
+from typing import Literal
+from ml_on_apx.dataset_management.app_views.list_select_question import (
+    ListSelectQuestion,
+)
 from ml_on_apx.dataset_management.app_views.binary_modal_question import (
     BinaryModalQuestion,
 )
@@ -6,7 +10,7 @@ from ml_on_apx.dataset_management.app_views.source_tree_widget import (
     SourceTreeWidget,
 )
 from textual import on
-from textual.widgets.tree import TreeNode
+from textual.widgets.tree import TreeNode, NodeID
 from textual.binding import Binding
 from textual.containers import VerticalScroll, HorizontalGroup
 from textual.widgets import (
@@ -33,12 +37,11 @@ from textual.screen import Screen
 
 class NewEditView(Screen[None]):
     BINDINGS = [
-        ("I", "to_basic_info", "Basic info"),
-        ("L", "to_labels", "Labels"),
-        ("S", "to_sources", "Sources"),
+        ("ctrl+b", "to_basic_info", "Basic info"),
+        ("ctrl+l", "to_labels", "Labels"),
+        ("ctrl+s", "to_sources", "Sources"),
         ("backspace", "delete_label", "Delete selected label"),
         Binding("ctrl+delete", "force_delete_label", show=False),  # without asking
-        ("l", "set_source_label", "Set source label"),
     ]
 
     dataset_name: reactive[str] = reactive("")
@@ -57,6 +60,7 @@ class NewEditView(Screen[None]):
         self._manager = manager
         self.dataset_name = template_name if template_name else ""
         self.template_sources = {}
+        self._highlighted_node: None | NodeID = None
         if template is not None:
             for label in template.get_labels():
                 self.labels = self.labels + [label]
@@ -145,26 +149,110 @@ class NewEditView(Screen[None]):
         )
         self.remake_label_list()
 
+    @on(Tree.NodeHighlighted)
+    def track_highlighted(self, message: Tree.NodeHighlighted[SourceTreeData]):
+        self._highlighted_node = message.node.id
+        message.stop()
+
     @on(Tree.NodeSelected)
     def handle_source_selection(self, message: Tree.NodeSelected[SourceTreeData]):
         if message.node.data is None:
             message.stop()
             return
+        if message.node.parent is None:
+            message.stop()
+            return
+        node = message.node
         data = message.node.data
+
+        # self.release_children(message.node.parent)
+        # or child in message.node.children:
+        #             self.disinclude(child)
+
+        #
         match data.inclusion:
             case _inclusion if _inclusion == data.InclusionType.DIRECTLY_INCLUDED:
-                self.disinclude(message.node)
+
+                def included_node(selected: SourceLabel | Literal[False] | None):
+                    if not selected:
+                        if selected is None:
+                            return
+                        else:
+                            self.disinclude(node)
+                    else:
+                        data.set_label(selected)
+                        for child in node.children:
+                            self.include(child)
+                    self.update_source_tree_selections(self._tree.root)
+
+                options: list[tuple[str, SourceLabel | Literal[False]]] = list()
+                for label in self.labels:
+                    options.append((str(label), label))
+                options.append((f"> Remove {data.get_name()} from the dataset.", False))
+
+                self.app.push_screen(
+                    ListSelectQuestion(
+                        options,
+                        title=f"Which label should be used for `{data.get_name()}`?",
+                    ),
+                    callback=included_node,
+                )
             case _inclusion if _inclusion == data.InclusionType.ANCENSTOR_INCLUDED:
-                assert message.node.parent is not None
-                self.release_children(message.node.parent)
-                data.inclusion = data.InclusionType.NOT_INCLUDED
-                for child in message.node.children:
-                    self.disinclude(child)
+
+                def ancestrally_included_node(
+                    selected: SourceLabel | Literal[False] | None,
+                ):
+                    if selected is None:
+                        return
+                    else:
+                        assert node.parent is not None
+                        self.release_children(node.parent)
+                        if selected:
+                            data.set_label(selected)
+                            data.inclusion = data.InclusionType.DIRECTLY_INCLUDED
+                            for child in node.children:
+                                self.include(child)
+                        else:
+                            self.disinclude(node)
+                    self.update_source_tree_selections(self._tree.root)
+
+                options: list[tuple[str, SourceLabel | Literal[False]]] = list()
+                for label in self.labels:
+                    options.append((str(label), label))
+                options.append((f"> Remove {data.get_name()} from the dataset.", False))
+
+                self.app.push_screen(
+                    ListSelectQuestion(
+                        options,
+                        title=f"Which label should be used for `{data.get_name()}`?",
+                        subtitle="Press escape to cancel.",
+                    ),
+                    callback=ancestrally_included_node,
+                )
             case _inclusion if _inclusion == data.InclusionType.NOT_INCLUDED:
-                data.inclusion = data.InclusionType.DIRECTLY_INCLUDED
-                for child in message.node.children:
-                    self.include(child)
-        self.update_source_tree_selections(message.node.tree.root)
+
+                def not_included_node(selected: SourceLabel | None):
+                    if not selected:
+                        return
+                    else:
+                        data.set_label(selected)
+                        data.inclusion = data.InclusionType.DIRECTLY_INCLUDED
+                        for child in node.children:
+                            self.include(child)
+                    self.update_source_tree_selections(self._tree.root)
+
+                options: list[tuple[str, SourceLabel]] = list()
+                for label in self.labels:
+                    options.append((str(label), label))
+
+                self.app.push_screen(
+                    ListSelectQuestion(
+                        options,
+                        title=f"Which label should be used for `{data.get_name()}`?",
+                    ),
+                    callback=not_included_node,
+                )
+
         message.stop()
 
     @on(Button.Pressed)
@@ -183,19 +271,19 @@ class NewEditView(Screen[None]):
         tabs = self.get_child_by_id("new-edit-tabs")
         assert type(tabs) is TabbedContent
         tabs.active = "general-info-tab"
-        tabs.focus()
+        tabs.get_pane(tabs.active).focus()
 
     def action_to_labels(self):
         tabs = self.get_child_by_id("new-edit-tabs")
         assert type(tabs) is TabbedContent
         tabs.active = "labels-tab"
-        tabs.focus()
+        self.get_widget_by_id("labels-list").focus()
 
     def action_to_sources(self):
         tabs = self.get_child_by_id("new-edit-tabs")
         assert type(tabs) is TabbedContent
         tabs.active = "sources-tab"
-        tabs.focus()
+        self.get_widget_by_id("source-tree").focus()
 
     def action_delete_label(self):
         labels_list = self.get_widget_by_id("labels-list")
@@ -223,11 +311,8 @@ class NewEditView(Screen[None]):
             idx = self.labels.index(SourceLabel(name))
             self.labels = self.labels[:idx] + self.labels[idx + 1 :]
 
-    def action_set_source_label(self):
-        pass
-
     def watch_labels(
-        self, new_labels: list[SourceLabel], old_labels: list[SourceLabel]
+        self, old_labels: list[SourceLabel], new_labels: list[SourceLabel]
     ):
         self.remake_label_list()
         tree_node: TreeNode[SourceTreeData] = self._tree.root
@@ -312,6 +397,8 @@ class NewEditView(Screen[None]):
         if node.data.inclusion == node.data.InclusionType.ANCENSTOR_INCLUDED:
             assert node.parent is not None
             self.release_children(node.parent)
+            node.data.inclusion = node.data.InclusionType.NOT_INCLUDED
+            node.data.set_label(None)
         elif node.data.inclusion == node.data.InclusionType.DIRECTLY_INCLUDED:
             node.data.inclusion = node.data.InclusionType.NOT_INCLUDED
         for child in node.children:

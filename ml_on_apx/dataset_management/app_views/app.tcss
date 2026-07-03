@@ -73,7 +73,7 @@ TabbedContent{
     }
 }
 
-BinaryModalQuestion{
+BinaryModalQuestion {
     align: center middle;
 
     & .container {
@@ -109,6 +109,28 @@ BinaryModalQuestion{
         & Button{
             width: 1fr;
         }
+    }
+}
+
+ListSelectQuestion {
+    align: center middle;
+
+    & .container {
+        border: round $primary;
+        border-title-align: center;
+        border-title-background: $panel;
+        border-title-color: $text-accent;
+        border-title-style: bold;
+        border-subtitle-align: center;
+        border-subtitle-background: $panel;
+        border-subtitle-color: $text-accent;
+        border-subtitle-style: bold;
+        
+        height: auto;
+        max-height: 80%;
+        min-width: 60;
+        width: 33%;
+        padding: 1 2;
     }
 }
 

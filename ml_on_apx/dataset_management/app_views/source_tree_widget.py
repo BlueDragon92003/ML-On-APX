@@ -12,14 +12,14 @@ class SourceTreeWidget(Tree["SourceTreeData"]):
         self, node: TreeNode["SourceTreeData"], base_style: Style, style: Style
     ) -> Text:
         if node.data is not None:
-            text = Text(node.data._name)
+            text = Text(node.data.get_name())
             if node.data._is_directory:
                 text = Text.assemble(text, "/")
             if (
                 node.data.inclusion == node.data.InclusionType.DIRECTLY_INCLUDED
                 and node.data._label is not None
             ):
-                text = Text.assemble(text, f" [{node._label}]")
+                text = Text.assemble(text, f" [{node.data.get_label()}]")
             node._label = text
             style = style + node.data.get_style(self.app.get_css_variables())
         return super().render_label(node, base_style, style)
@@ -132,6 +132,9 @@ class SourceTreeData(object):
 
     def is_directory(self) -> bool:
         return self._is_directory
+
+    def get_name(self) -> str:
+        return self._name
 
     def get_path(self) -> Path:
         if self._is_directory:

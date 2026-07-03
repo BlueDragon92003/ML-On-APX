@@ -39,7 +39,7 @@ class BinaryModalQuestion(ModalScreen[bool]):
         container.get_child_by_id("bmodal-true").focus()
 
     def action_exit(self):
-        self.dismiss(False)
+        self.dismiss(None)
 
     @on(Button.Pressed)
     def handle_button_press(self, message: Button.Pressed):
