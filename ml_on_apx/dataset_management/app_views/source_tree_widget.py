@@ -8,6 +8,11 @@ from pathlib import Path
 
 
 class SourceTreeWidget(Tree["SourceTreeData"]):
+    class MissingLabelExeption(Exception):
+        def __init__(self, path: Path, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.path = path
+
     def render_label(
         self, node: TreeNode["SourceTreeData"], base_style: Style, style: Style
     ) -> Text:
@@ -24,8 +29,8 @@ class SourceTreeWidget(Tree["SourceTreeData"]):
             style = style + node.data.get_style(self.app.get_css_variables())
         return super().render_label(node, base_style, style)
 
-    def get_labeled_sources(self) -> dict[Path, Label]:
-        labeled_sources: dict[Path, Label] = {}
+    def get_labeled_sources(self) -> set[tuple[Path, Label]]:
+        labeled_sources: set[tuple[Path, Label]] = set()
         for child in self.root.children:
             labeled_sources.update(self.get_labeled_sources_from_node(child))
         return labeled_sources
@@ -40,15 +45,18 @@ class SourceTreeWidget(Tree["SourceTreeData"]):
                 for path in self.get_paths_from_node(node):
                     label = node.data.get_label()
                     if label is None:
-                        raise ValueError(f"Label not set for source `{path}`!")
+                        raise self.MissingLabelExeption(
+                            path, f"Label not set for source `{path}`!"
+                        )
                     labeled_sources.add((path, label))
             else:
                 label = node.data.get_label()
+                path = node.data.get_path()
                 if label is None:
-                    raise ValueError(
-                        f"Label not set for source `{node.data.get_path()}`!"
+                    raise self.MissingLabelExeption(
+                        path, f"Label not set for source `{path}`!"
                     )
-                labeled_sources.add((node.data.get_path(), label))
+                labeled_sources.add((path, label))
 
         return labeled_sources
 
@@ -65,9 +73,6 @@ class SourceTreeWidget(Tree["SourceTreeData"]):
 
 class SourceTreeData(object):
     class NotASourceException(Exception):
-        pass
-
-    class NotADirectoryException(Exception):
         pass
 
     class InclusionType(enum.Enum):

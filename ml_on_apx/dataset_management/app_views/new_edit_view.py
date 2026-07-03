@@ -1,3 +1,4 @@
+import re
 from typing import Literal
 from ml_on_apx.dataset_management.app_views.list_select_question import (
     ListSelectQuestion,
@@ -27,7 +28,7 @@ from textual.widgets import (
 )
 from textual.app import ComposeResult
 from pathlib import Path
-from ml_on_apx.labelling import Label as SourceLabel
+from ml_on_apx.labelling import Label as SourceLabel, Labels
 from textual.reactive import reactive
 from ml_on_apx.dataset_management.dataset_info import DatasetInfo
 from ml_on_apx.dataset_management.dataset_manager import DatasetManager
@@ -84,9 +85,11 @@ class NewEditView(Screen[None]):
                         )
                     with HorizontalGroup(id="new-edit-control-buttons"):
                         yield Button(
-                            "Cancel", variant="default", id="dataset-create-button"
+                            "Cancel", variant="default", id="dataset-cancel-button"
                         )
-                        yield Button("Create", variant="primary", id="cancel-button")
+                        yield Button(
+                            "Create", variant="primary", id="dataset-create-button"
+                        )
             with TabPane("Labels", id="labels-tab"):
                 yield ListView(id="labels-list")
                 with HorizontalGroup(id="new-label"):
@@ -260,6 +263,10 @@ class NewEditView(Screen[None]):
         match message.button.id:
             case "label-create-button":
                 self.create_label()
+            case "dataset-cancel-button":
+                self.dismiss()
+            case "dataset-create-button":
+                self.validate()
 
     @on(Input.Submitted)
     def handle_input_submission(self, message: Input.Submitted):
@@ -271,7 +278,7 @@ class NewEditView(Screen[None]):
         tabs = self.get_child_by_id("new-edit-tabs")
         assert type(tabs) is TabbedContent
         tabs.active = "general-info-tab"
-        tabs.get_pane(tabs.active).focus()
+        tabs.get_pane("general-info-tab").focus()
 
     def action_to_labels(self):
         tabs = self.get_child_by_id("new-edit-tabs")
@@ -428,7 +435,12 @@ class NewEditView(Screen[None]):
         assert type(input) is Input
         label_name = input.value
         if not label_name:
-            self.app.notify("Please input a label name.", severity="warning")
+            self.app.notify("Please input a label name.")
+            input.focus()
+            return
+        label_name = re.sub(r"\s+", "-", label_name.lower())
+        if not re.fullmatch(r"[\w-]+", label_name):
+            self.app.notify("Label name is invalid.", severity="error")
             input.focus()
             return
         label = SourceLabel(label_name)
@@ -441,3 +453,26 @@ class NewEditView(Screen[None]):
         # self.watch_labels()
         input.clear()
         input.focus()
+
+    def validate(self):
+        name_wdgt = self.get_widget_by_id("dataset-name-input")
+        assert type(name_wdgt) is Input
+        name = name_wdgt.value
+        labels = Labels(self.labels)
+
+        try:
+            labeled_sources: list[tuple[Path, SourceLabel]] = list(
+                self._tree.get_labeled_sources()
+            )
+        except SourceTreeWidget.MissingLabelExeption as mle:
+            self.app.notify(f"Source at {mle.path} has no label.", severity="error")
+            return
+
+        name = re.sub(r"\s+", "-", name)
+        if not re.fullmatch(r"([\w-][\w\s-]*)?[\w-]", name):
+            self.app.notify("Invalid dataset name.", severity="error")
+            return
+
+        dataset_info = DatasetInfo(labels, labeled_sources)
+        self._manager.create_dataset(name, dataset_info)
+        self.dismiss()
