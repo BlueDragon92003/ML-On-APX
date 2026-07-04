@@ -1,3 +1,6 @@
+# ruff: noqa
+# TODO Will be replaced later by the eliot package.
+
 import sys
 import pathlib
 from datetime import datetime, date

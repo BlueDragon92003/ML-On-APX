@@ -1,14 +1,17 @@
+"""The entry point for the application."""
+
+import argparse
+import os
+from pathlib import Path
+from typing import LiteralString
+
+import ml_on_apx.cluster_classification.main
+import ml_on_apx.dataset_management.app
+from ml_on_apx.cleverlogger import CleverLogger
 from ml_on_apx.cluster_classification.cluster_classification_dataset import (
     ClusterClassificationDataset,
 )
 from ml_on_apx.modes import Mode
-import ml_on_apx.dataset_management.app
-import ml_on_apx.cluster_classification.main
-from ml_on_apx.cleverlogger import CleverLogger
-from typing import LiteralString
-import os
-from pathlib import Path
-import argparse
 
 LOG_LEVELS = ["TRACE", "DEBUG", "INFO", "WARN", "ERROR", "CRITICAL", "FATAL", "SILENT"]
 
@@ -22,6 +25,12 @@ SUBCOMMAND_MNG_MODEL: str = "manage model"
 
 
 def get_parser() -> argparse.ArgumentParser:
+    """Get the argument parser.
+
+    Returns:
+        argparse.ArgumentParser: The argument parser.
+
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--application-dir",
@@ -31,13 +40,15 @@ def get_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--data-dir",
-        help="Specify a different directiory to store data in than `{application-dir}/data/`",
+        help="Specify a different directiory to store data in than \
+            `{application-dir}/data/`",
         type=Path,
         default=None,
     )
     parser.add_argument(
         "--model-dir",
-        help="Specify a different directiory to store models in than `{application-dir}/models/`",
+        help="Specify a different directiory to store models in than \
+            `{application-dir}/models/`",
         type=Path,
         default=None,
     )
@@ -100,41 +111,39 @@ def get_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main():
-    """
-    Parse args:
-    - manage_datasets
-    - manage_models
-    - train model
+#     Parse args:
+#     - manage_datasets
+#     - manage_models
+#     - train model
 
-    Manage datasets:
-        Load dataset index
-        Show list of datasets
-        - Create
-        - Readdata
-        - Update
-        - Delete
+#     Manage datasets:
+#         Load dataset index
+#         Show list of datasets
+#         - Create
+#         - Readdata
+#         - Update
+#         - Delete
 
-    Manage models:
-        Load model index
-        Show list of models & checkpoints
-        - Save checkpoints
-        - Delete models
-        - Test models
-        - Define model
-            - Datasets & labels
-            - Inputs
-            - Hyperparemeters
-        - Create model training job
-            - Stop conditions (n epochs, min accuracy, min accuracy growth rate)
+#     Manage models:
+#         Load model index
+#         Show list of models & checkpoints
+#         - Save checkpoints
+#         - Delete models
+#         - Test models
+#         - Define model
+#             - Datasets & labels
+#             - Inputs
+#             - Hyperparemeters
+#         - Create model training job
+#             - Stop conditions (n epochs, min accuracy, min accuracy growth rate)
 
-    Train model:
-        Fork for each job
-        Load relavant information
-        Train until stop conditions
 
-    """
-
+#     Train model:
+#         Fork for each job
+#         Load relavant information
+#         Train until stop conditions
+def main() -> int:
+    """Start the application."""
     argparser = get_parser()
     args = argparser.parse_args()
 
@@ -196,11 +205,11 @@ def main():
         case subcommand if subcommand == SUBCOMMAND_MNG_DATA:
             match mode:
                 case m if m == Mode.Classification:
-                    DatasetClass = ClusterClassificationDataset
+                    dataset_class = ClusterClassificationDataset
                 case m if m == Mode.Identification:
                     print("`manage identification data` not yet implemented")
                     return 0
-            ml_on_apx.dataset_management.app.main(data_dir, mode, DatasetClass)
+            ml_on_apx.dataset_management.app.main(data_dir, mode, dataset_class)
             return 0
         case subcommand if subcommand == SUBCOMMAND_MNG_MODEL:
             print("`manage ___ models` not yet implemeneted")
