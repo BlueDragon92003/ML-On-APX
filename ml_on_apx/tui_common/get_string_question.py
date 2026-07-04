@@ -1,40 +1,75 @@
-from typing import Callable
+"""A question where the user provides a string."""
+
+from typing import Callable, ClassVar
+
 from textual import on
-from textual.widgets import Input
-from textual.containers import VerticalGroup
 from textual.app import ComposeResult
+from textual.binding import Binding
+from textual.containers import VerticalGroup
 from textual.screen import ModalScreen
+from textual.widgets import Input
 
 
 class GetStringQuestion(ModalScreen[str]):
-    BINDINGS = [("escape", "exit", "Cancel")]
+    """A question with a text answer."""
+
+    BINDINGS: ClassVar[list[tuple[str, str, str] | Binding]] = [
+        ("escape", "exit", "Cancel")
+    ]
 
     def __init__(
         self,
-        validator: Callable[[str], bool] = lambda x: True,
+        validator: Callable[[str], bool] = lambda _: True,
         title: str | None = None,
         subtitle: str | None = None,
-    ):
+    ) -> None:
+        """Initialize a new GetStringQuestion.
+
+        Args:
+            validator (Callable[[str], bool], optional): A validator for the string
+                input. Defaults to `lambda _: True`.
+            title (str | None, optional): The title of the box. Defaults to None.
+            subtitle (str | None, optional): The subtitle around the box. Defaults to
+                None.
+
+        """
         super().__init__()
         self._validator = validator
         self._title = title
         self._subtitle = subtitle
 
     def compose(self) -> ComposeResult:
+        """Build the screen from its component widgets.
+
+        Returns:
+            ComposeResult: An iterator of widgets this screen incorporates.
+
+        Yields:
+            Iterator[ComposeResult]: A widget to incorporated.
+
+        """
         with VerticalGroup(classes="container", id="container"):
             yield Input(id="slist-list")
 
-    def on_mount(self):
+    def on_mount(self) -> None:
+        """Finish setup of the screen once it is attached to the DOM."""
         container = self.get_child_by_id("container")
         container.border_title = self._title
         container.border_subtitle = self._subtitle
         container.get_child_by_id("slist-list").focus()
 
-    def action_exit(self):
+    def action_exit(self) -> None:
+        """Process the action `exit`."""
         self.dismiss(None)
 
     @on(Input.Submitted)
-    def handle_input_submission(self, message: Input.Submitted):
+    def handle_input_submission(self, message: Input.Submitted) -> None:
+        """Handle the Submitted event from a descendant Input widget.
+
+        Args:
+            message (Button.Pressed): The event to handle.
+
+        """
         if self._validator(message.value):
             self.dismiss(message.value)
         else:
