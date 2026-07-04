@@ -46,14 +46,21 @@ class TrainingJob:
                 from.
 
         """
-        pass
+        self._group_name = group_name
+        self._dataset = dataset
+        self._stop_function = stop_function
+        self._lookback_distance = lookback_distance
+        self._batch_size = batch_size
+        self._checkpoint_rate = checkpoint_rate
+        self._learning_rate = learning_rate
+        self._testing_dataset = testing_dataset
+        self._base_model_name = base_model_name
 
     # Group to train
     # Starting model (or 'None' to create new)
     # Dataset to test on
     # Training hyperparameters
     # Stop condition(s)
-    pass
 
 
 class TrainingJobBuilder:
@@ -194,18 +201,19 @@ class TrainingJobBuilder:
         """Build a training job from this builder.
 
         Raises:
-            ValueError: If a required component was not provided.
+            TypeError: If a required component was not provided.
+            ValueError: If an improper value for a component was provided.
 
         Returns:
             TrainingJob: The built training job.
 
         """
         if self._group_name is None:
-            raise ValueError("A group name must be set.")
+            raise TypeError("A group name must be set.")
         if self._dataset is None:
-            raise ValueError("A dataset must be set.")
+            raise TypeError("A dataset must be set.")
         if self._stop_function is None:
-            raise ValueError("A stop function must be set.")
+            raise TypeError("A stop function must be set.")
         if self._lookback_distance < 0:
             raise ValueError("Lookback distance must be non-negative.")
         if self._batch_size < 1:

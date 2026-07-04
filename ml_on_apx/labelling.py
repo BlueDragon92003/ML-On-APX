@@ -23,7 +23,7 @@ class Labels:
             temp.append(label)
         temp.sort()
         for i in range(len(temp)):
-            self._data[temp[i]] = i
+            self._data.update({temp[i]: i})
 
     def __iter__(self) -> Iterator[Label]:
         """Iterate over all labels.
@@ -61,6 +61,9 @@ class Labels:
         Args:
             label (Label): The label to get the representation from.
 
+        Raises:
+            KeyError: If the label does not exist in this set.
+
         Returns:
             int: The ML-safe integer lable associated with this label.
 
@@ -81,6 +84,9 @@ class Labels:
         if type(other) is not Labels:
             return False
         for label, value in self._data.items():
-            if other[label] != value:
+            try:
+                if other[label] != value:
+                    return False
+            except KeyError:
                 return False
         return True

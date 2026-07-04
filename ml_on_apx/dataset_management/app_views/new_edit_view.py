@@ -55,9 +55,6 @@ class NewEditView(Screen[None]):
     dataset_name: reactive[str] = reactive("")
     labels: reactive[list[SourceLabel]] = reactive([])
 
-    # TODO consider popup on selection to get initial label?
-    #   add label key would just be a "formality"
-    #   then have a toggle label key?
     def __init__(
         self,
         manager: DatasetManager,
@@ -387,8 +384,7 @@ class NewEditView(Screen[None]):
 
     def action_force_delete_label(self) -> None:
         """Process the `force_delete_label` action."""
-        labels_list = self.get_widget_by_id("labels-list")
-        assert type(labels_list) is ListView
+        labels_list = self.get_widget_by_id("labels-list", ListView)
         if labels_list.highlighted_child is not None:
             name = labels_list.highlighted_child.name
             assert name is not None
@@ -421,13 +417,11 @@ class NewEditView(Screen[None]):
         """
         tree = self._tree
         tree_node: TreeNode[SourceTreeData] = tree.root
-        print(f"Updating sources to {new_sources.items()}")
         self.update_source_tree_selections(tree_node)
 
     def remake_label_list(self) -> None:
         """Remake and display the list of labels shown to the user."""
-        labels_list = self.get_widget_by_id("labels-list")
-        assert type(labels_list) is ListView
+        labels_list = self.get_widget_by_id("labels-list", ListView)
         labels_list.clear()
         for label in self.labels:
             labels_list.append(ListItem(Label(f"{label}"), name=f"{label}"))
@@ -552,8 +546,7 @@ class NewEditView(Screen[None]):
 
     def create_label(self) -> None:
         """Create a new label from the user string in the view."""
-        input = self.get_widget_by_id("label-name-input")
-        assert type(input) is Input
+        input = self.get_widget_by_id("label-name-input", Input)
         label_name = input.value
         if not label_name:
             self.app.notify("Please input a label name.")
@@ -576,9 +569,12 @@ class NewEditView(Screen[None]):
         input.focus()
 
     def finalize(self) -> None:
-        """Validate and then create or update the dataset as specified by the user."""
-        name_wdgt = self.get_widget_by_id("dataset-name-input")
-        assert type(name_wdgt) is Input
+        """Validate and then create or update the dataset as specified by the user.
+
+        Propogates:
+            LookupError: From `update_dataset`.
+        """
+        name_wdgt = self.get_widget_by_id("dataset-name-input", Input)
         name = name_wdgt.value
         labels = Labels(self.labels)
 
@@ -609,7 +605,10 @@ class NewEditView(Screen[None]):
             if not re.fullmatch(DATASET_NAME_REGEX, name):
                 self.app.notify("Invalid dataset name.", severity="error")
                 return
-            self._manager.create_dataset(name, dataset_info)
+            try:
+                self._manager.create_dataset(name, dataset_info)
+            except ValueError:
+                self.app.notify("That dataset name is taken.", severity="error")
         else:
             self._manager.update_dataset(name, dataset_info)
 

@@ -49,14 +49,14 @@ class GetStringQuestion(ModalScreen[str]):
 
         """
         with VerticalGroup(classes="container", id="container"):
-            yield Input(id="slist-list")
+            yield Input(id="getstr-input")
 
     def on_mount(self) -> None:
         """Finish setup of the screen once it is attached to the DOM."""
         container = self.get_child_by_id("container")
         container.border_title = self._title
         container.border_subtitle = self._subtitle
-        container.get_child_by_id("slist-list").focus()
+        container.get_child_by_id("getstr-input").focus()
 
     def action_exit(self) -> None:
         """Process the action `exit`."""
@@ -65,6 +65,9 @@ class GetStringQuestion(ModalScreen[str]):
     @on(Input.Submitted)
     def handle_input_submission(self, message: Input.Submitted) -> None:
         """Handle the Submitted event from a descendant Input widget.
+
+        Propogates:
+            Whatever the validator can raise.
 
         Args:
             message (Button.Pressed): The event to handle.

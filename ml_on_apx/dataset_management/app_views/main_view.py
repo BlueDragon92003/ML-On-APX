@@ -133,11 +133,9 @@ class MainView(Screen[None]):
             control_buttons.display = True
             recomp_button.display = True
 
-            title_label = self.get_widget_by_id("dataset-name")
-            assert type(title_label) is Label
+            title_label = self.get_widget_by_id("dataset-name", Label)
 
-            content_markdown = self.get_widget_by_id("dataset-info-box")
-            assert type(content_markdown) is Markdown
+            content_markdown = self.get_widget_by_id("dataset-info-box", Markdown)
             dataset_info = self._manager.get_dataset_info(new_name)
 
             title_label.content = new_name
@@ -255,14 +253,13 @@ class MainView(Screen[None]):
     def action_recompile_dataset(self) -> None:
         """Process the action `recompile_dataset`."""
         if self.dataset_name is None:
-            raise ValueError("Button somehow pressed with no selected dataset!")
+            return
         info = self._manager.get_dataset_info(self.dataset_name)
         self._manager.update_dataset(self.dataset_name, info)
 
     async def remake_dataset_list(self) -> None:
         """Remake and display the list of datasets shown to the user."""
-        dataset_list = self.get_widget_by_id("dataset-list")
-        assert type(dataset_list) is ListView
+        dataset_list = self.get_widget_by_id("dataset-list", ListView)
         await dataset_list.clear()
         dataset_names = list(self._manager.get_dataset_names())
         dataset_names.sort()
@@ -271,16 +268,13 @@ class MainView(Screen[None]):
 
     def no_selection_view(self) -> None:
         """Set up the screen when no dataset is selected."""
-        title = self.get_widget_by_id("dataset-name")
+        title = self.get_widget_by_id("dataset-name", Label)
         button_group = self.get_widget_by_id("control-buttons")
-        markdown = self.get_widget_by_id("dataset-info-box")
+        markdown = self.get_widget_by_id("dataset-info-box", Markdown)
         recomp_button = self.get_widget_by_id("force-recompile-dataset-button")
 
         button_group.display = False
         recomp_button.display = False
-
-        assert type(title) is Label
-        assert type(markdown) is Markdown
 
         title.content = "Dataset Management"
         markdown.update(DEFAULT_MESSAGE)

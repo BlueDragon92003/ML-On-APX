@@ -79,7 +79,7 @@ class SourceTreeWidget(Tree["SourceTreeData"]):
             node (TreeNode[SourceTreeData]): The node to get labeled sources from.
 
         Raises:
-            self.MissingLabelError: If the node or an included descendant do not have a
+            MissingLabelError: If the node or an included descendant do not have a
                 label set.
 
         Returns:
@@ -246,7 +246,7 @@ class SourceTreeData(object):
         """Get the name of the node with this data.
 
         Raises:
-            self.NotASourceError: If the node with this data is a directory,
+            NotASourceError: If the node with this data is a directory,
                 not a source.
 
         Returns:

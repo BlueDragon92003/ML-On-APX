@@ -74,12 +74,6 @@ def main(dataset_dir: Path, mode: Mode, dataset_class: Type[Dataset]) -> None:
         dataset_class (Type[Dataset]): The class that should be used for datasets.
 
     """
-    errors: Exception | None = None
     with DatasetManager(dataset_dir, mode, dataset_class) as manager:
         app = DatasetManagerApp(manager)
-        try:
-            app.run()
-        except Exception as e:
-            errors = e
-    if errors:
-        print(f"App exited with exceptions! {errors}")
+        app.run()

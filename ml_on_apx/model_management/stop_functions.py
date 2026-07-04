@@ -35,11 +35,14 @@ class StopFunction:
     class MissingFunctionError(EvaluationError):
         """If a function does not exist."""
 
-    class UnevaluateableTokenError(EvaluationError):
+    class UnevaluateableError(EvaluationError):
         """If a function does not exist."""
 
     def __init__(self, code: str) -> None:
         """Create a new stop function.
+
+        Propogates:
+            IndexError: From `parse`.
 
         Args:
             code (str): The lisp code underneath the stop function.
@@ -53,6 +56,9 @@ class StopFunction:
 
         Args:
             kwargs (float): Variables the stop function has access to.
+
+        Propogates:
+            UnevaluatableError: From `eval`.
 
         Returns:
             bool: Whether or not the training job should stop.
@@ -68,6 +74,10 @@ class StopFunction:
         Args:
             code (str): The stop function to execute.
             kwargs (float): Variables the stop function has access to.
+
+        Propogates:
+            UnevaluatableError: From `eval`.
+            IndexError: From `parse`.
 
         Returns:
             bool: The result of the stop function.
@@ -117,6 +127,9 @@ class StopFunction:
 
         Args:
             tokens (List[str]): The tokens to parse.
+
+        Raises:
+            IndexError if the list of tokens to parse is empty.
 
         Returns:
             LispType: The AST to execute.
@@ -214,6 +227,8 @@ class StopFunction:
         Raises:
             EvaluationError: If the arguments are incorrect or if the function does not
                 exist.
+            ValueError: If, during log evaluation, the base is non-positive.
+            ZeroDivisionError: If, during division, the denominator is 0.
 
         Returns:
             LispType: The result of the function.
@@ -331,6 +346,9 @@ class StopFunction:
             x (List[List[LispType]]): A list of lisp conditions branches.
             local_vars (LispVars): The local variables available.
 
+        Propogates:
+            UnevaluatableError: From `eval`.
+
         Returns:
             LispType: The result of the evaluated second element of the first condition
                 branch where the second element evaluates to non-nil.
@@ -350,6 +368,9 @@ class StopFunction:
         Args:
             x (List[LispType]): The arguments provided to the function
             local_vars (LispVars): The local variables available.
+
+        Propogates:
+            UnevaluateableTokenError: From `eval`.
 
         Returns:
             List[LispType]: The results from evaluating the arguments.
@@ -385,6 +406,9 @@ class StopFunction:
             x (LispType): The token to evaluate.
             local_vars (LispVars): The local variable available.
 
+        Raises:
+            UnevaluateableError: If the AST node cannot be evaluated.
+
         Returns:
             LispType: The value of the evaluted token.
 
@@ -407,4 +431,4 @@ class StopFunction:
                 x[0], StopFunction.evlis(x[1:], local_vars), local_vars
             )
         else:
-            raise StopFunction.UnevaluateableTokenError(x)
+            raise StopFunction.UnevaluateableError(x)

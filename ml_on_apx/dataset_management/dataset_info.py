@@ -23,7 +23,6 @@ class DatasetInfo:
             ValueError: If a label for a source is not in this dataset's labels.
 
         """
-        # TODO update value error to a more apt error type
         self._labels = labels
         self._sources = set(sources)
         for source in self._sources:

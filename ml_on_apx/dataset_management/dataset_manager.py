@@ -105,6 +105,9 @@ class DatasetManager(Generic[ManagedDataset]):
             _exc_value: The exception that occured in this environment, if any.
             _exc_traceback: The traceback of the exception.
 
+        Propogates:
+            Any errors from dataset creation.
+
         Returns:
             bool: If the exception was handled (always False)
 
@@ -171,14 +174,14 @@ class DatasetManager(Generic[ManagedDataset]):
             dataset_name (str): The name of the dataset data is to be retrieved for.
 
         Raises:
-            ValueError: If the provided dataset name is not tied to a dataset.
+            LookupError: If the provided dataset name is not tied to a dataset.
 
         Returns:
             DatasetInfo: The information for the dataset.
 
         """
         if dataset_name not in self._set_info.keys():
-            raise ValueError("No such set!")
+            raise LookupError("No such set!")
         return self._set_info[dataset_name]
 
     def get_dataset(self, dataset_name: str) -> ManagedDataset:
@@ -188,14 +191,14 @@ class DatasetManager(Generic[ManagedDataset]):
             dataset_name (str): The name of the dataset to be retrieved.
 
         Raises:
-            ValueError: If the provided dataset name is not associated with a dataset.
+            LookupError: If the provided dataset name is not associated with a dataset.
 
         Returns:
             ManagedDataset: The dataset object.
 
         """
         if dataset_name not in self._set_info.keys():
-            raise ValueError("No such set!")
+            raise LookupError("No such set!")
         set_path = self._get_dataset_path(dataset_name)
         if dataset_name in self._to_recompile:
             self._recompile_dataset(set_path, self._set_info[dataset_name])
@@ -211,11 +214,11 @@ class DatasetManager(Generic[ManagedDataset]):
             dataset_info (DatasetInfo): The information it is being updated to.
 
         Raises:
-            ValueError: If the provided dataset name is not associated with a dataset.
+            LookupError: If the provided dataset name is not associated with a dataset.
 
         """
         if dataset_name not in self._set_info.keys():
-            raise ValueError("No such set!")
+            raise LookupError("No such set!")
         self._to_recompile.append(dataset_name)
         self._set_info[dataset_name] = dataset_info
 
@@ -227,12 +230,12 @@ class DatasetManager(Generic[ManagedDataset]):
             new_name (str): The new name for the dataset.
 
         Raises:
-            ValueError: If the provided dataset name is not associated with a dataset,
-                or if the new name matches an existing dataset.
+            LookupError: If the provided dataset name is not associated with a dataset.
+            ValueError: If the new name matches an existing dataset.
 
         """
         if dataset_name not in self._set_info.keys():
-            raise ValueError(f"No such set `{dataset_name}`!")
+            raise LookupError(f"No such set `{dataset_name}`!")
         if new_name in self._set_info.keys():
             raise ValueError(f"Set `{new_name}` already exists!")
         path = self._get_dataset_path(dataset_name)
@@ -251,11 +254,11 @@ class DatasetManager(Generic[ManagedDataset]):
             dataset_name (str): The dataset to delete.
 
         Raises:
-            ValueError: If the dataset does not exist.
+            LookupError: If the dataset does not exist.
 
         """
         if dataset_name not in self._set_info.keys():
-            raise ValueError(f"No such set `{dataset_name}`!")
+            raise LookupError(f"No such set `{dataset_name}`!")
         path = self._get_dataset_path(dataset_name)
         if path.exists():
             path.unlink()
@@ -265,6 +268,9 @@ class DatasetManager(Generic[ManagedDataset]):
 
     def _recompile_dataset(self, path: Path, dataset_info: DatasetInfo) -> None:
         """Create and pickle a dataset based on the provided information.
+
+        Propogates:
+            Any errors from dataset creation.
 
         Args:
             path (Path): The path to save the dataset to.
@@ -300,12 +306,16 @@ class DatasetManager(Generic[ManagedDataset]):
             List[str]: A list of dataset names in the path.
 
         """
-        options = dir.iterdir()
-        correct_type_and_extention = filter(
-            lambda path: (
+
+        def _filter(path: Path) -> bool:
+            return (
                 path.is_file()
                 and path.suffixes == DatasetManager.DATASET_PICKLE_SUFFIXES
-            ),
+            )
+
+        options = dir.iterdir()
+        correct_type_and_extention = filter(
+            _filter,
             options,
         )
         just_the_name = (
