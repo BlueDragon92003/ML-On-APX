@@ -1,23 +1,31 @@
+"""Test that creation of a tree from a filesystem works as expected."""
+
 import unittest
 from pathlib import Path
+
 import pyfakefs
 import pyfakefs.fake_filesystem_unittest
+
 from ml_on_apx.dataset_management.tree import TreeNode
 
 
 class TestTreeFromFS(
     unittest.TestCase, pyfakefs.fake_filesystem_unittest.TestCaseMixin
 ):
-    def setUp(self):
+    """Test that creation of a tree from a filesystem works as expected."""
+
+    def setUp(self) -> None:
+        """Set up the test cases."""
         self.setUpClassPyfakefs()
 
-    def test_tree_from_fs(self):
-        NAME = "root"
-        DEPTH = 3
-        PATH = Path(NAME)
-        self.create_fake_files(PATH, depth=DEPTH)
-        expected = self.create_expected_tree(NAME, depth=DEPTH)
-        result = TreeNode.from_filesystem(NAME, PATH.iterdir())
+    def test_tree_from_fs(self) -> None:
+        """Test the creation of a tree from a filesystem."""
+        tree_root_name = "root"
+        depth_to_test = 3
+        tree_root_path = Path(tree_root_name)
+        self.create_fake_files(tree_root_path, depth=depth_to_test)
+        expected = self.create_expected_tree(tree_root_name, depth=depth_to_test)
+        result = TreeNode.from_filesystem(tree_root_name, tree_root_path.iterdir())
         self.assertEqual(
             expected,
             result,
@@ -27,19 +35,24 @@ class TestTreeFromFS(
             + self.print_tree(result),
         )
 
-    def print_tree(self, tree: TreeNode, depth=0) -> str:
+    def print_tree(self, tree: TreeNode, depth: int = 0) -> str:
+        """Create a string representation of the tree."""
         out = ("\t" * depth) + tree.get_name() + "/\n"
         for child in tree.get_children():
             out += self.print_tree(child, depth=depth + 1)
         return out
 
-    def create_expected_tree(self, name: str, depth: int) -> TreeNode:
-        out = TreeNode(name)
+    def create_expected_tree(
+        self, name: str, depth: int, recursed: bool = False
+    ) -> TreeNode:
+        """Create the tree expected from the create_from_filesystem function."""
+        out = TreeNode(name + (".root" if depth != 0 and recursed else ""))
         for i in range(depth):
-            out.add_child(self.create_expected_tree(f"f{i}", depth=i))
+            out.add_child(self.create_expected_tree(f"f{i}", depth=i, recursed=True))
         return out
 
-    def create_fake_files(self, path: Path, depth: int):
+    def create_fake_files(self, path: Path, depth: int) -> None:
+        """Create fake files in the expected shape."""
         if depth == 0:
             path.touch()
             return

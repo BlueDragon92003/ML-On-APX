@@ -1,25 +1,35 @@
-from ml_on_apx.dataset_management.tree import TreeNode
+"""Most tests for the TreeNode class."""
+
 import unittest
+
+from ml_on_apx.dataset_management.tree import TreeNode
 
 
 class TestTree(unittest.TestCase):
-    def test_tree__instantiation(self):
+    """Most tests for the TreeNode class."""
+
+    def test_tree__instantiation(self) -> None:
+        """Test there are no errors on tree creation."""
         TreeNode("test")
 
-    def test_tree__get_name(self):
-        NAME = "name"
-        node = TreeNode(NAME)
-        self.assertEqual(node.get_name(), NAME)
+    def test_tree__get_name(self) -> None:
+        """Test the get_name function."""
+        name = "name"
+        node = TreeNode(name)
+        self.assertEqual(node.get_name(), name)
 
-    def test_tree__get_no_children(self):
+    def test_tree__get_no_children(self) -> None:
+        """Test that the get_children works as expected without children."""
         node = TreeNode("NAME")
         self.assertEqual(node.get_children(), [])
 
-    def test_tree__add_child(self):
+    def test_tree__add_child(self) -> None:
+        """Test adding a child to the tree does not error."""
         node = TreeNode("1")
         node.add_child(TreeNode("2"))
 
-    def test_tree__get_children(self):
+    def test_tree__get_children(self) -> None:
+        """Test that getting a child from the tree functions."""
         node = TreeNode("root")
         for i in range(5):
             node.add_child(TreeNode(str(i)))

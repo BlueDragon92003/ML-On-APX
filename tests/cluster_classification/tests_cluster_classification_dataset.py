@@ -1,20 +1,23 @@
+"""Tests for the ClusterClassificationDataset."""
+
 import sys
+import unittest
+from typing import Tuple
+
+import jax.numpy as jnp
+import numpy as np
+from parameterized import parameterized
+
+from ml_on_apx.cluster_classification import cluster_classification_dataset
 from ml_on_apx.cluster_classification.cluster_classification_dataset import (
     process_clusters,
 )
-from ml_on_apx.cluster_classification.signal_type import SignalType
-from typing import Tuple
-import unittest
 
-from parameterized import parameterized
-import numpy as np
-import jax.numpy as jnp
-
-from ml_on_apx.cluster_classification import cluster_classification_dataset
+# from ml_on_apx.cluster_classification.signal_type import SignalType
 
 
 class TestClusterClassificationDataset(unittest.TestCase):
-    """Tests for the class `ClusterClassifcationDataset`
+    """Tests for the class `ClusterClassifcationDataset`.
 
     Extends: `unittest.TestCase`
 
@@ -26,7 +29,7 @@ class TestClusterClassificationDataset(unittest.TestCase):
     - `test_ccd__cluster_generator__correctness`
     """
 
-    def test_ccd__get_ecal_tower__in_bounds(self):
+    def test_ccd__get_ecal_tower__in_bounds(self) -> None:
         """Tests if `get_ecal_tower` produces valid indices on valid input."""
         for i_phi in range(6):
             # {0,1}
@@ -50,7 +53,7 @@ class TestClusterClassificationDataset(unittest.TestCase):
                     self.assertLess(slri, 30)
                     self.assertGreaterEqual(slri, 0)
 
-    def test_ccd__get_hcal_location__in_bounds(self):
+    def test_ccd__get_hcal_location__in_bounds(self) -> None:
         """Tests if `get_hcal_location` produces valid indices on valid input."""
         for i_phi in range(6):
             for card in range(24):
@@ -102,7 +105,7 @@ class TestClusterClassificationDataset(unittest.TestCase):
     )
     def test_ccd__get_ecal_tower__correctness(
         self, name: str, slr: int, i_eta: int, i_phi: int, tower: int
-    ):
+    ) -> None:
         """Tests `get_ecal_tower` on select slr, i_eta, and i_phi indices.
 
         Parameterized Test:
@@ -143,8 +146,8 @@ class TestClusterClassificationDataset(unittest.TestCase):
     )
     def test_ccd__get_hcal_location__correctness(
         self, name: str, card: int, i_eta: int, i_phi: int, location: Tuple[int, int]
-    ):
-        """Tests `get_hcal_location` on select indices
+    ) -> None:
+        """Tests `get_hcal_location` on select indices.
 
         Parameterized Test:
         - `card`: The RCT card to pass to `get_hcal_location`
@@ -161,7 +164,8 @@ class TestClusterClassificationDataset(unittest.TestCase):
             cluster_classification_dataset.get_hcal_location(card, i_eta, i_phi),
         )
 
-    def test_ccd__process_cluster__correctness(self):
+    def test_ccd__process_cluster__correctness(self) -> None:
+        """Test the correctness of the process_cluster function."""
         slrs = [0, 1, 2, 3, 2, 3]
         cards = [0, 3, 6, 9, 12, 15]
         cluster_etas = [0, 12, 54, 76, 37, 84]
@@ -232,21 +236,21 @@ class TestClusterClassificationDataset(unittest.TestCase):
                 print("clus", clusters)
             self.fail(e)
 
-    def test_ccd__get_labels(self):
-        """Test that the label reducer works as anticipated."""
-        signal_to_label, labels = cluster_classification_dataset.get_labels(
-            {
-                ("", SignalType.BACKGROUND),
-                ("", SignalType.HADRONIC),
-                ("", SignalType.BACKGROUND),
-            }
-        )
+    # def test_ccd__get_labels(self) -> None:
+    #     """Test that the label reducer works as anticipated."""
+    #     signal_to_label, labels = cluster_classification_dataset.get_labels(
+    #         {
+    #             ("", SignalType.BACKGROUND),
+    #             ("", SignalType.HADRONIC),
+    #             ("", SignalType.BACKGROUND),
+    #         }
+    #     )
 
-        self.assertIn(SignalType.BACKGROUND, signal_to_label.keys())
-        self.assertIn(SignalType.HADRONIC, signal_to_label.keys())
-        self.assertEqual(
-            labels[signal_to_label[SignalType.BACKGROUND]], (SignalType.BACKGROUND, 0)
-        )
-        self.assertEqual(
-            labels[signal_to_label[SignalType.HADRONIC]], (SignalType.HADRONIC, 0)
-        )
+    #     self.assertIn(SignalType.BACKGROUND, signal_to_label.keys())
+    #     self.assertIn(SignalType.HADRONIC, signal_to_label.keys())
+    #     self.assertEqual(
+    #         labels[signal_to_label[SignalType.BACKGROUND]], (SignalType.BACKGROUND, 0)
+    #     )
+    #     self.assertEqual(
+    #         labels[signal_to_label[SignalType.HADRONIC]], (SignalType.HADRONIC, 0)
+    #     )

@@ -1,1 +1,1 @@
-"""Contains the test cases for the `cluster_classification` package"""
+"""Contains the test cases for the `cluster_classification` package."""

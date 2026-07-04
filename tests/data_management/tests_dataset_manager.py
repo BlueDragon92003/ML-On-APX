@@ -1,18 +1,22 @@
-from ml_on_apx.dataset_management.tree import TreeNode
-from ml_on_apx.labelling import Labels, Label
-from ml_on_apx.dataset_management.dataset_info import DatasetInfo
+"""Tests for the DatasetManager."""
+
 import pickle
-from ml_on_apx.modes import Mode
-from ml_on_apx.dataset_management.dataset_manager import DatasetManager
-from typing import Tuple, Set, List
-from pathlib import Path
-from ml_on_apx.dataset_management.dataset import Dataset
-import pyfakefs.fake_filesystem_unittest
 import unittest
+from pathlib import Path
+from typing import List, Set, Tuple
+
+import pyfakefs.fake_filesystem_unittest
+
+from ml_on_apx.dataset_management.dataset import Dataset
+from ml_on_apx.dataset_management.dataset_info import DatasetInfo
+from ml_on_apx.dataset_management.dataset_manager import DatasetManager
+from ml_on_apx.dataset_management.tree import TreeNode
+from ml_on_apx.labelling import Label, Labels
+from ml_on_apx.modes import Mode
 
 
 class _MockDataset(Dataset):
-    def __init__(self, components: Set[Tuple[Path, int]]):
+    def __init__(self, components: Set[Tuple[Path, int]]) -> None:
         self._components = components
 
     def __eq__(self, other: object) -> bool:
@@ -28,15 +32,19 @@ class _MockDataset(Dataset):
 class TestDatasetManager(
     unittest.TestCase, pyfakefs.fake_filesystem_unittest.TestCaseMixin
 ):
-    def setUp(self):
+    """Tests for the DatasetManager."""
+
+    def setUp(self) -> None:
+        """Set up each test case."""
         self.setUpPyfakefs()
         self.data_path = Path("data")
         self.mode_path = self.data_path / Mode.Testing.value
         self.root_file_path = self.mode_path / DatasetManager.ROOT_DIR_NAME
         self.sets_path = self.mode_path / DatasetManager.SETS_DIR_NAME
-        self.set_info_path = (
-            self.data_path
-            / f"{Mode.Testing.value}{DatasetManager.SET_INFO_NAME}{DatasetManager.PICKLE_SUFFIX}"
+        self.set_info_path = self.data_path / (
+            Mode.Testing.value
+            + DatasetManager.SET_INFO_NAME
+            + DatasetManager.PICKLE_SUFFIX
         )
 
         self.manager = DatasetManager(self.data_path, Mode.Testing, _MockDataset)
@@ -73,18 +81,21 @@ class TestDatasetManager(
 
         self.mode_path.mkdir(parents=True)
 
-    def setUpSources(self):
+    def set_up_sources(self) -> None:
+        """Set up the sources in a valid way."""
         self.root_file_path.mkdir(parents=True)
         (self.root_file_path / "group_a").mkdir()
         (self.root_file_path / "group_b").mkdir()
         for source in self.sources:
             (self.root_file_path / source).touch()
 
-    def setUpDatasetInfoPickle(self):
+    def set_up_dataset_info_pickle(self) -> None:
+        """Set up the sources in a valid way."""
         with open(self.set_info_path, mode="wb") as target:
             pickle.dump(self.dataset_infos, target)
 
-    def setUpDatasetPickles(self):
+    def set_up_dataset_pickles(self) -> None:
+        """Set up valid dataset pickles."""
         self.sets_path.mkdir(parents=True)
         for name, set_info in self.dataset_infos.items():
             path = self.manager._get_dataset_path(name)
@@ -95,19 +106,19 @@ class TestDatasetManager(
     #                                 HELPERS
     # ========================================================================
 
-    def test_dataset_manager__datasets_in_dir(self):
+    def test_dataset_manager__datasets_in_dir(self) -> None:
         """Test that the helper method produces the proper dataset list."""
-        self.setUpDatasetInfoPickle()
-        self.setUpDatasetPickles()
+        self.set_up_dataset_info_pickle()
+        self.set_up_dataset_pickles()
         for i in range(5):
             (self.sets_path / f"{i}.filetype")
         expected = list(self.dataset_infos.keys())
         result = self.manager._datasets_in_dir(self.sets_path)
         self.assertEqual(expected, result)
 
-    def test_dataset_manager__recompile_dataset(self):
+    def test_dataset_manager__recompile_dataset(self) -> None:
         """Test that the helper method properly remakes and repickles the dataset."""
-        self.setUpDatasetPickles()
+        self.set_up_dataset_pickles()
         path = self.manager._get_dataset_path("test")
         info = DatasetInfo(self.labels, self.labeling[0:5])
         self.manager._recompile_dataset(path, info)
@@ -123,39 +134,39 @@ class TestDatasetManager(
     #                                 ENTERING
     # ========================================================================
 
-    def test_dataset_manager__enter_missing_root_dir(self):
+    def test_dataset_manager__enter_missing_root_dir(self) -> None:
         """Test that the manager creates a directory for ROOT files."""
         self.sets_path.mkdir()
-        self.setUpDatasetInfoPickle()
+        self.set_up_dataset_info_pickle()
         with self.manager as _:
             self.assertTrue(
                 self.root_file_path.exists() and self.root_file_path.is_dir()
             )
 
-    def test_dataset_manager__enter_missing_sets_dir(self):
+    def test_dataset_manager__enter_missing_sets_dir(self) -> None:
         """Test that the manager creates a directory for datasets files."""
         self.root_file_path.mkdir()
-        self.setUpDatasetInfoPickle()
+        self.set_up_dataset_info_pickle()
         with self.manager as _:
             self.assertTrue(self.sets_path.exists() and self.sets_path.is_dir())
 
-    def test_dataset_manager__enter_file_at_root_dir(self):
+    def test_dataset_manager__enter_file_at_root_dir(self) -> None:
         """Test that the manager errors if the ROOT file directory path is a file."""
-        self.setUpDatasetInfoPickle()
+        self.set_up_dataset_info_pickle()
         self.root_file_path.touch()
         with self.assertRaises(NotADirectoryError):
             with self.manager as _:
                 pass
 
-    def test_dataset_manager__enter_file_at_sets_dir(self):
+    def test_dataset_manager__enter_file_at_sets_dir(self) -> None:
         """Test that the manager errors if the dataset file directory path is a file."""
-        self.setUpDatasetInfoPickle()
+        self.set_up_dataset_info_pickle()
         self.sets_path.touch()
         with self.assertRaises(NotADirectoryError):
             with self.manager as _:
                 pass
 
-    def test_dataset_manager__enters_and_exits_fine(self):
+    def test_dataset_manager__enters_and_exits_fine(self) -> None:
         """Test that the manager successfully operates in a normal scenario."""
         with self.manager as _:
             pass
@@ -164,9 +175,9 @@ class TestDatasetManager(
     #                                 SOURCES
     # ========================================================================
 
-    def test_dataset_manager__get_sources(self):
+    def test_dataset_manager__get_sources(self) -> None:
         """Test that the manager returns the correct tree of available sources."""
-        self.setUpSources()
+        self.set_up_sources()
         expected = TreeNode(Mode.Testing.value)
         expected.add_child(TreeNode("source_1"))
         expected.add_child(TreeNode("source_2"))
@@ -188,19 +199,19 @@ class TestDatasetManager(
     #                              CREATE DATASET
     # ========================================================================
 
-    def test_dataset_manager__create(self):
+    def test_dataset_manager__create(self) -> None:
         """Test that the manager can create a new dataset."""
-        NAME = "new"
-        self.setUpDatasetPickles()
-        self.assertFalse(self.manager._get_dataset_path(NAME).exists())
+        set_name = "new"
+        self.set_up_dataset_pickles()
+        self.assertFalse(self.manager._get_dataset_path(set_name).exists())
         with self.manager as manager:
-            manager.create_dataset(NAME, self.dataset_infos["full"])
-        self.assertTrue(self.manager._get_dataset_path(NAME).exists())
+            manager.create_dataset(set_name, self.dataset_infos["full"])
+        self.assertTrue(self.manager._get_dataset_path(set_name).exists())
 
-    def test_dataset_manager__create_existing(self):
+    def test_dataset_manager__create_existing(self) -> None:
         """Test that the manager errors when a dataset with that name already exists."""
-        self.setUpDatasetPickles()
-        self.setUpDatasetInfoPickle()
+        self.set_up_dataset_pickles()
+        self.set_up_dataset_info_pickle()
         with self.assertRaises(ValueError):
             with self.manager as manager:
                 manager.create_dataset("full", self.dataset_infos["full"])
@@ -209,59 +220,59 @@ class TestDatasetManager(
     #                              READ DATASETS
     # ========================================================================
 
-    def test_dataset_manager__names(self):
+    def test_dataset_manager__names(self) -> None:
         """Test that the manager delivers the correct list of available datasets."""
-        self.setUpDatasetPickles()
-        self.setUpDatasetInfoPickle()
+        self.set_up_dataset_pickles()
+        self.set_up_dataset_info_pickle()
         expected = set(self.dataset_infos.keys())
         with self.manager as manager:
             result = manager.get_dataset_names()
         self.assertEqual(expected, result)
 
-    def test_dataset_manager__get_dataset_info(self):
+    def test_dataset_manager__get_dataset_info(self) -> None:
         """Test that the manager delivers the correct dataset_info object."""
-        SET = "group_a"
-        self.setUpDatasetInfoPickle()
-        self.setUpDatasetPickles()
-        expected = self.dataset_infos[SET]
+        set_name = "group_a"
+        self.set_up_dataset_info_pickle()
+        self.set_up_dataset_pickles()
+        expected = self.dataset_infos[set_name]
         with self.manager as manager:
-            result = manager.get_dataset_info(SET)
+            result = manager.get_dataset_info(set_name)
         self.assertEqual(expected, result)
 
-    def test_dataset_manager__get_dataset_info_missing(self):
+    def test_dataset_manager__get_dataset_info_missing(self) -> None:
         """Test that the manager errors when there is no dataset_info object."""
-        self.setUpDatasetInfoPickle()
-        self.setUpDatasetPickles()
+        self.set_up_dataset_info_pickle()
+        self.set_up_dataset_pickles()
         with self.assertRaises(ValueError):
             with self.manager as manager:
                 manager.get_dataset_info("absolutely positively does not exist")
 
-    def test_dataset_manager__get_dataset(self):
+    def test_dataset_manager__get_dataset(self) -> None:
         """Test that the manager delivers the correct dataset object."""
-        SET = "individual"
-        self.setUpDatasetInfoPickle()
-        self.setUpDatasetPickles()
-        with open(self.manager._get_dataset_path(SET), mode="rb") as file:
+        set_name = "individual"
+        self.set_up_dataset_info_pickle()
+        self.set_up_dataset_pickles()
+        with open(self.manager._get_dataset_path(set_name), mode="rb") as file:
             expected: _MockDataset = pickle.load(file)
         with self.manager as manager:
-            result = manager.get_dataset(SET)
+            result = manager.get_dataset(set_name)
         self.assertEqual(expected, result)
 
-    def test_dataset_manager__get_dataset_group(self):
+    def test_dataset_manager__get_dataset_group(self) -> None:
         """Test that the manager delivers the correct dataset object."""
-        SET = "group_a"
-        self.setUpDatasetInfoPickle()
-        self.setUpDatasetPickles()
-        with open(self.manager._get_dataset_path(SET), mode="rb") as file:
+        set_name = "group_a"
+        self.set_up_dataset_info_pickle()
+        self.set_up_dataset_pickles()
+        with open(self.manager._get_dataset_path(set_name), mode="rb") as file:
             expected: _MockDataset = pickle.load(file)
         with self.manager as manager:
-            result = manager.get_dataset(SET)
+            result = manager.get_dataset(set_name)
         self.assertEqual(expected, result)
 
-    def test_dataset_manager__get_dataset_missing(self):
+    def test_dataset_manager__get_dataset_missing(self) -> None:
         """Test that the manager errors when there is no dataset object."""
-        self.setUpDatasetInfoPickle()
-        self.setUpDatasetPickles()
+        self.set_up_dataset_info_pickle()
+        self.set_up_dataset_pickles()
         with self.assertRaises(ValueError):
             with self.manager as manager:
                 manager.get_dataset_info("absolutely positively does not exist")
@@ -270,91 +281,95 @@ class TestDatasetManager(
     #                             UPDATE DATASETS
     # ========================================================================
 
-    def test_dataset_manager__update(self):
+    def test_dataset_manager__update(self) -> None:
         """Test that the manager correctly updates a dataset's information."""
-        NEW = "group_b"
-        OLD = "group_a"
-        self.setUpDatasetInfoPickle()
-        self.setUpDatasetPickles()
-        expected = self.dataset_infos[NEW]
+        new_set_name = "group_b"
+        old_set_name = "group_a"
+        self.set_up_dataset_info_pickle()
+        self.set_up_dataset_pickles()
+        expected = self.dataset_infos[new_set_name]
         with self.manager as manager:
-            manager.update_dataset(OLD, expected)
-            result = manager.get_dataset_info(OLD)
+            manager.update_dataset(old_set_name, expected)
+            result = manager.get_dataset_info(old_set_name)
         self.assertEqual(expected, result)
 
-    def test_dataset_manager__update_missing(self):
+    def test_dataset_manager__update_missing(self) -> None:
         """Test that the manager errors when there is no dataset to update."""
-        DUMMY = self.dataset_infos["full"]
-        self.setUpDatasetInfoPickle()
-        self.setUpDatasetPickles()
+        dummy_set_name = self.dataset_infos["full"]
+        self.set_up_dataset_info_pickle()
+        self.set_up_dataset_pickles()
         with self.assertRaises(ValueError):
             with self.manager as manager:
-                manager.update_dataset("absolutely positively does not exist", DUMMY)
+                manager.update_dataset(
+                    "absolutely positively does not exist", dummy_set_name
+                )
 
-    def test_dataset_manager__rename_mv_file(self):
+    def test_dataset_manager__rename_mv_file(self) -> None:
         """Test that the manager correctly renames a dataset file."""
-        FROM = "full"
-        TO = "complete"
-        self.setUpDatasetPickles()
-        self.setUpDatasetInfoPickle()
+        set_name_from = "full"
+        set_name_to = "complete"
+        self.set_up_dataset_pickles()
+        self.set_up_dataset_info_pickle()
 
-        self.assertTrue(self.manager._get_dataset_path(FROM).exists())
-        self.assertFalse(self.manager._get_dataset_path(TO).exists())
+        self.assertTrue(self.manager._get_dataset_path(set_name_from).exists())
+        self.assertFalse(self.manager._get_dataset_path(set_name_to).exists())
         with self.manager as manager:
-            manager.rename_dataset(FROM, TO)
-        self.assertTrue(self.manager._get_dataset_path(TO).exists())
-        self.assertFalse(self.manager._get_dataset_path(FROM).exists())
+            manager.rename_dataset(set_name_from, set_name_to)
+        self.assertTrue(self.manager._get_dataset_path(set_name_to).exists())
+        self.assertFalse(self.manager._get_dataset_path(set_name_from).exists())
 
-    def test_dataset_manager__rename_update_key(self):
+    def test_dataset_manager__rename_update_key(self) -> None:
         """Test that the manager correctly changes the dataset key."""
-        FROM = "full"
-        TO = "complete"
-        self.setUpDatasetPickles()
-        self.setUpDatasetInfoPickle()
+        set_name_from = "full"
+        set_name_to = "complete"
+        self.set_up_dataset_pickles()
+        self.set_up_dataset_info_pickle()
         with self.manager as manager:
-            expected = manager.get_dataset_info(FROM)
+            expected = manager.get_dataset_info(set_name_from)
             with self.assertRaises(ValueError):
-                manager.get_dataset_info(TO)
-            manager.rename_dataset(FROM, TO)
-            result = manager.get_dataset_info(TO)
+                manager.get_dataset_info(set_name_to)
+            manager.rename_dataset(set_name_from, set_name_to)
+            result = manager.get_dataset_info(set_name_to)
             with self.assertRaises(ValueError):
-                manager.get_dataset_info(FROM)
+                manager.get_dataset_info(set_name_from)
         self.assertEqual(expected, result)
 
-    def test_dataset_manager__rename_missing(self):
+    def test_dataset_manager__rename_missing(self) -> None:
         """Test that the manager errors when there is no dataset to rename."""
-        DUMMY = "definitely does not exist"
-        self.setUpDatasetInfoPickle()
-        self.setUpDatasetPickles()
+        dummy_set_name = "definitely does not exist"
+        self.set_up_dataset_info_pickle()
+        self.set_up_dataset_pickles()
         with self.assertRaises(ValueError):
             with self.manager as manager:
-                manager.rename_dataset("absolutely positively does not exist", DUMMY)
+                manager.rename_dataset(
+                    "absolutely positively does not exist", dummy_set_name
+                )
 
-    def test_dataset_manager__rename_to_existing(self):
+    def test_dataset_manager__rename_to_existing(self) -> None:
         """Test that the manager errors when the target already exists."""
-        FROM = "full"
-        TO = "group_b"
-        self.setUpDatasetPickles()
-        self.setUpDatasetInfoPickle()
+        set_name_from = "full"
+        set_name_to = "group_b"
+        self.set_up_dataset_pickles()
+        self.set_up_dataset_info_pickle()
         with self.assertRaises(ValueError):
             with self.manager as manager:
-                manager.rename_dataset(FROM, TO)
+                manager.rename_dataset(set_name_from, set_name_to)
 
-    def test_dataset_manager__rename_recompile(self):
+    def test_dataset_manager__rename_recompile(self) -> None:
         """Test that the manager correctly moves a recompilation request."""
-        FROM = "full"
-        TO = "complete"
-        TARGET = self.dataset_infos["group_a"]
-        self.setUpDatasetPickles()
-        self.setUpDatasetInfoPickle()
+        set_name_from = "full"
+        set_name_to = "complete"
+        set_name_target = self.dataset_infos["group_a"]
+        self.set_up_dataset_pickles()
+        self.set_up_dataset_info_pickle()
 
-        expected = _MockDataset(TARGET.get_numbered_sources())
+        expected = _MockDataset(set_name_target.get_numbered_sources())
         with self.manager as manager:
-            old = manager.get_dataset(FROM)
-            manager.update_dataset(FROM, TARGET)
-            manager.rename_dataset(FROM, TO)
+            old = manager.get_dataset(set_name_from)
+            manager.update_dataset(set_name_from, set_name_target)
+            manager.rename_dataset(set_name_from, set_name_to)
         with self.manager as manager:
-            new = manager.get_dataset(TO)
+            new = manager.get_dataset(set_name_to)
 
         self.assertNotEqual(old, new)
         self.assertEqual(expected, new)
@@ -363,32 +378,32 @@ class TestDatasetManager(
     #                             DELETE DATASETS
     # ========================================================================
 
-    def test_dataset_manager__delete_file(self):
+    def test_dataset_manager__delete_file(self) -> None:
         """Test that the manager correctly deletes a dataset pickle."""
-        TO_DELETE = "full"
-        self.setUpDatasetPickles()
-        self.setUpDatasetInfoPickle()
+        set_to_delete = "full"
+        self.set_up_dataset_pickles()
+        self.set_up_dataset_info_pickle()
 
-        self.assertTrue(self.manager._get_dataset_path(TO_DELETE).exists())
+        self.assertTrue(self.manager._get_dataset_path(set_to_delete).exists())
         with self.manager as manager:
-            manager.delete_dataset(TO_DELETE)
-        self.assertFalse(self.manager._get_dataset_path(TO_DELETE).exists())
+            manager.delete_dataset(set_to_delete)
+        self.assertFalse(self.manager._get_dataset_path(set_to_delete).exists())
 
-    def test_dataset_manager__delete_info(self):
+    def test_dataset_manager__delete_info(self) -> None:
         """Test that the manager correctly deletes a dataset info entry."""
-        TO_DELETE = "full"
-        self.setUpDatasetPickles()
-        self.setUpDatasetInfoPickle()
+        set_to_delete = "full"
+        self.set_up_dataset_pickles()
+        self.set_up_dataset_info_pickle()
         with self.manager as manager:
-            manager.get_dataset_info(TO_DELETE)
-            manager.delete_dataset(TO_DELETE)
+            manager.get_dataset_info(set_to_delete)
+            manager.delete_dataset(set_to_delete)
             with self.assertRaises(ValueError):
-                manager.get_dataset_info(TO_DELETE)
+                manager.get_dataset_info(set_to_delete)
 
-    def test_dataset_manager__delete_missing(self):
+    def test_dataset_manager__delete_missing(self) -> None:
         """Test that the manager errors when there is no dataset to delete."""
-        self.setUpDatasetInfoPickle()
-        self.setUpDatasetPickles()
+        self.set_up_dataset_info_pickle()
+        self.set_up_dataset_pickles()
         with self.assertRaises(ValueError):
             with self.manager as manager:
                 manager.delete_dataset("absolutely positively does not exist")

@@ -1,6 +1,9 @@
-from pathlib import Path
+"""The entry point for running the tests."""
+
 import pathlib
 import unittest
+from pathlib import Path
+
 from colour_runner.runner import ColourTextTestRunner
 
 from ml_on_apx.cleverlogger import CleverLogger
@@ -10,7 +13,7 @@ if __name__ == "__main__":
     if not log_path.exists():
         log_path.mkdir()
     elif not log_path.is_dir():
-        raise NotADirectoryError(f"Expected a directory at `{str(log_path)}`.")
+        raise NotADirectoryError(f"Expected a directory at `{log_path!s}`.")
 
     for file in log_path.iterdir():
         file.unlink()
