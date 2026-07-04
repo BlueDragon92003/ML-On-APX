@@ -100,10 +100,10 @@ class DatasetManager(Generic[ManagedDataset]):
         """Safely leave a managed environment.
 
         Args:
-            _exc_type (_type_): The type of the exception that occured in this
+            _exc_type: The type of the exception that occured in this
                 environment, if any.
-            _exc_value (_type_): The exception that occured in this environment, if any.
-            _exc_traceback (_type_): The traceback of the exception.
+            _exc_value: The exception that occured in this environment, if any.
+            _exc_traceback: The traceback of the exception.
 
         Returns:
             bool: If the exception was handled (always False)

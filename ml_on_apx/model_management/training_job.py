@@ -1,6 +1,7 @@
-from ml_on_apx.model_management.stop_functions import StopFunction
-from typing import List, Callable
+"""A job to train a model."""
+
 from ml_on_apx.dataset_management.dataset_info import DatasetInfo
+from ml_on_apx.model_management.stop_functions import StopFunction
 
 
 class TrainingJob:
@@ -8,9 +9,11 @@ class TrainingJob:
 
     @staticmethod
     def new() -> "TrainingJobBuilder":
+        """Create a new training job builder."""
         return TrainingJobBuilder()
 
-    # Stop function: accuracy[lookback_distance], average loss[lookback_distance], this_epoch,
+    # Stop function: accuracy[lookback_distance], average loss[lookback_distance],
+    # this_epoch,
     def __init__(
         self,
         group_name: str,
@@ -22,7 +25,27 @@ class TrainingJob:
         learning_rate: float,
         testing_dataset: DatasetInfo | None,
         base_model_name: str | None,
-    ):
+    ) -> None:
+        """Initialize a new training job.
+
+        This method should not be directly called. Use `new` to build a job.
+
+        Args:
+            group_name (str): The model group to train around.
+            dataset (DatasetInfo): The dataset to train against.
+            stop_function (StopFunction): The function the job uses to determine whether
+                to stop.
+            lookback_distance (int): The length of history to provide to the stop
+                function.
+            batch_size (int): Hyperparameter: The batch size to train with.
+            checkpoint_rate (int): Hyperparameter: How often to make a checkpoint.
+            learning_rate (float): Hyperparameter: The learning rate for the model.
+            testing_dataset (DatasetInfo | None): The dataset to test against, or None
+                if the same dataset used for training is to be used.
+            base_model_name (str | None): A model in the group to pull staring weights
+                from.
+
+        """
         pass
 
     # Group to train
@@ -36,7 +59,8 @@ class TrainingJob:
 class TrainingJobBuilder:
     """Constructs a training job."""
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialize the builder."""
         self._group_name: str | None = None
         self._dataset: DatasetInfo | None = None
         self._stop_function: StopFunction | None = None
@@ -48,48 +72,134 @@ class TrainingJobBuilder:
         self._base_model_name: str | None = None
 
     def group_name(self, group_name: str) -> "TrainingJobBuilder":
-        """Specifies the group name for the training job."""
+        """Specify the group name for the training job.
+
+        Args:
+            group_name (str): The name of the group.
+
+        Returns:
+            TrainingJobBuilder: The builder.
+
+        """
         self._group_name = group_name
         return self
 
     def dataset(self, dataset: DatasetInfo) -> "TrainingJobBuilder":
-        """Specifies the dataset for the training job."""
+        """Specify the dataset for the training job.
+
+        Args:
+            dataset (str): The dataset to use.
+
+        Returns:
+            TrainingJobBuilder: The builder.
+
+        """
         self._dataset = dataset
         return self
 
-    def stop_function(
-        self, stop_function: Callable[[List[float], List[float], int], bool]
-    ) -> "TrainingJobBuilder":
+    def stop_function(self, stop_function: StopFunction) -> "TrainingJobBuilder":
+        """Specify the stop function for the training job.
+
+        Args:
+            stop_function (StopFunction): The stop function.
+
+        Returns:
+            TrainingJobBuilder: The builder.
+
+        """
         self._stop_function = stop_function
         return self
 
-    def lookback_distance(self, lookback_distance: int):
+    def lookback_distance(self, lookback_distance: int) -> "TrainingJobBuilder":
+        """Specify the lookback distance for the training job.
+
+        Args:
+            lookback_distance (int): The lookback distance.
+
+        Returns:
+            TrainingJobBuilder: The builder.
+
+        """
         self._lookback_distance = lookback_distance
         return self
 
     def batch_size(self, batch_size: int) -> "TrainingJobBuilder":
+        """Specify the batch size for the training job.
+
+        Args:
+            batch_size (int): The batch size.
+
+        Returns:
+            TrainingJobBuilder: The builder.
+
+        """
         self._batch_size = batch_size
         return self
 
     def checkpoint_rate(self, checkpoint_rate: int) -> "TrainingJobBuilder":
+        """Specify the checkpoint rate for the training job.
+
+        Args:
+            checkpoint_rate (int): The checkpoint rate.
+
+        Returns:
+            TrainingJobBuilder: The builder.
+
+        """
         self._checkpoint_rate = checkpoint_rate
         return self
 
     def learning_rate(self, learning_rate: float) -> "TrainingJobBuilder":
+        """Specify the learning rate for the training job.
+
+        Args:
+            learning_rate (float): The learning rate.
+
+        Returns:
+            TrainingJobBuilder: The builder.
+
+        """
         self._learning_rate = learning_rate
         return self
 
     def testing_dataset(
         self, testing_dataset: DatasetInfo | None
     ) -> "TrainingJobBuilder":
+        """Specify the testing dataset for the training job.
+
+        Args:
+            testing_dataset (DatasetInfo | None): The testing dataset.
+
+        Returns:
+            TrainingJobBuilder: The builder.
+
+        """
         self._testing_dataset = testing_dataset
         return self
 
     def base_model_name(self, base_model_name: str | None) -> "TrainingJobBuilder":
+        """Specify the base model for the training job.
+
+        Args:
+            base_model_name (str | None): The name of the base model.
+
+        Returns:
+            TrainingJobBuilder: The builder.
+
+        """
         self._base_model_name = base_model_name
         return self
 
     def build(self) -> TrainingJob:
+        """Build a training job from this builder.
+
+        Raises:
+            ValueError: If a required component was not provided.
+
+        Returns:
+            TrainingJob: The built training job.
+
+        """
         if self._group_name is None:
             raise ValueError("A group name must be set.")
         if self._dataset is None:
