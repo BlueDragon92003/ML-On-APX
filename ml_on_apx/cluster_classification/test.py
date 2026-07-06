@@ -4,8 +4,6 @@ from typing import Tuple
 
 import torch
 
-from ml_on_apx.cleverlogger import CleverLogger
-
 
 def test_loop(
     device: torch.device,
@@ -26,14 +24,13 @@ def test_loop(
             considered, and a formatted string for user display messages.
 
     """
-    logger = CleverLogger(__name__)
-    logger.log_enter_function(
-        "test_loop_fn",
-        device=device,
-        dataloader=dataloader,
-        model=model,
-        loss_fn=loss_fn,
-    )
+    # logger.log_enter_function(
+    #     "test_loop_fn",
+    #     device=device,
+    #     dataloader=dataloader,
+    #     model=model,
+    #     loss_fn=loss_fn,
+    # )
     # Set the model to evaluation mode
     model.eval()
     model.to(device)
@@ -49,21 +46,21 @@ def test_loop(
     #       for tensors with requires_grad=True
 
     with torch.no_grad():
-        logger.log_preloop("testing_for_loop")
+        # logger.log_preloop("testing_for_loop")
         for cluster in dataloader:
-            logger.log_iteration_head(cluster=cluster)
+            # logger.log_iteration_head(cluster=cluster)
             # Move data to GPU
             data = cluster[:, :-1].to(device)
             label = cluster[:, -1].to(device).type(torch.long)
             pred = model(data)
             test_loss += loss_fn(pred, label).item()
             correct += (pred.argmax(1) == label).type(torch.float).sum().item()
-            logger.log_iteration_tail()
-        logger.log_postloop("testing_for_loop")
+        #     logger.log_iteration_tail()
+        # logger.log_postloop("testing_for_loop")
 
     test_loss /= num_batches
     correct /= size
     outstring = f"\tAccuracy: {(100 * correct):>0.1f}%, Avg loss: {test_loss:>8f}"
-    logger.log_function_exit_type("return", retval=[correct, outstring])
-    logger.log_exit_function("test_loop_fn")
+    # logger.log_function_exit_type("return", retval=[correct, outstring])
+    # logger.log_exit_function("test_loop_fn")
     return correct, outstring

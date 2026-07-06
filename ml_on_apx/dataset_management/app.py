@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import ClassVar, Type
 
 import textual.widgets
+from eliot import start_action
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.widgets import Label
@@ -11,6 +12,7 @@ from textual.widgets import Label
 from ml_on_apx.dataset_management.app_views.main_view import MainView
 from ml_on_apx.dataset_management.dataset import Dataset
 from ml_on_apx.dataset_management.dataset_manager import DatasetManager
+from ml_on_apx.logging import log_call
 from ml_on_apx.modes import Mode
 from ml_on_apx.tui_common.binary_modal_question import (
     BinaryModalQuestion,
@@ -48,6 +50,7 @@ class DatasetManagerApp(App):
         """
         yield textual.widgets.LoadingIndicator()
 
+    @log_call(action_type="data:app:app:on_mount")
     async def on_mount(self) -> None:
         """Finish setup of the screen once it is attached to the DOM."""
         self.theme = "gruvbox"
@@ -55,23 +58,33 @@ class DatasetManagerApp(App):
 
     def action_show_quit_screen(self) -> None:
         """Process the action `show_quit_screen`."""
+        action = start_action(action_type="data:app:app:show_quit")
 
         def check_quit(sentinal: bool | None) -> None:
-            if sentinal:
-                self.exit()
+            with action.context():
+                if sentinal:
+                    self.exit()
+            action.finish()
 
-        self.push_screen(
-            BinaryModalQuestion(Label("Quit dataset management?")), check_quit
-        )
+        with action.context():
+            self.push_screen(
+                BinaryModalQuestion(Label("Quit dataset management?")), check_quit
+            )
 
 
-def main(dataset_dir: Path, mode: Mode, dataset_class: Type[Dataset]) -> None:
+@log_call(action_type="data:app:start")
+def main(
+    dataset_dir: Path,
+    mode: Mode,
+    dataset_class: Type[Dataset],
+) -> None:
     """Run the dataset manager app.
 
     Args:
         dataset_dir (Path): The directory all dataset information is stored under.
         mode (Mode): The mode of datasets this app is managing.
         dataset_class (Type[Dataset]): The class that should be used for datasets.
+        log_level (LogLevel): The logging level to use.
 
     """
     with DatasetManager(dataset_dir, mode, dataset_class) as manager:

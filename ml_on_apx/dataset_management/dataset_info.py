@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Iterable, Set, Tuple
 
 from ml_on_apx.labelling import Label, Labels
+from ml_on_apx.logging import log_call
 
 DATASET_NAME_REGEX = r"[\w]([\w\s-]*[\w-])?"
 
@@ -29,10 +30,12 @@ class DatasetInfo:
             if source[1] not in labels:
                 raise ValueError(f"Label {source[1]} not found in provided labels!")
 
+    @log_call(action_type="data:info:get_labels")
     def get_labels(self) -> Labels:
         """Get the labels this dataset uses."""
         return self._labels
 
+    @log_call(action_type="data:info:get_sources")
     def get_sources(self) -> Set[Path]:
         """Get the unlabled sources this dataset uses."""
         return {x[0] for x in self._sources}

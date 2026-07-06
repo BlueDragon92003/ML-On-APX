@@ -3,17 +3,19 @@
 import argparse
 import os
 from pathlib import Path
-from typing import LiteralString
 
 import ml_on_apx.cluster_classification.main
 import ml_on_apx.dataset_management.app
-from ml_on_apx.cleverlogger import CleverLogger
 from ml_on_apx.cluster_classification.cluster_classification_dataset import (
     ClusterClassificationDataset,
 )
+from ml_on_apx.logging import initialize_file_logging
 from ml_on_apx.modes import Mode
 
-LOG_LEVELS = ["TRACE", "DEBUG", "INFO", "WARN", "ERROR", "CRITICAL", "FATAL", "SILENT"]
+LL_DEVELOPMENT = "DEBUG"
+LL_PRODUCTION = "INFO"
+LL_SILENT = "SILENT"
+LOG_LEVELS = [LL_DEVELOPMENT, LL_PRODUCTION, LL_SILENT]
 
 MODE_CLASSIFICATION: str = "classification"
 MODE_IDENTIFICATION: str = "identification"
@@ -60,21 +62,14 @@ def get_parser() -> argparse.ArgumentParser:
         help="Specify the console logging level.",
     )
     parser.add_argument(
-        "--file-log-level",
-        type=str,
-        choices=LOG_LEVELS,
-        default="INFO",
-        help="Specify the file logging level.",
+        "--log-to", type=Path, default=None, help="Specify the file to log over."
     )
-    log_paths = parser.add_mutually_exclusive_group()
-    log_paths.add_argument(
-        "--log-file", type=Path, default=None, help="Specify the file to log over."
-    )
-    log_paths.add_argument(
-        "--log-dir",
-        type=Path,
-        default=None,
-        help="Specify the directory to save logs to.",
+    parser.add_argument(
+        "--append",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="If a regular file, append to the log file instead of overwriting it. \
+                (Default: append)",
     )
     subparsers = parser.add_subparsers()
 
@@ -162,9 +157,6 @@ def main() -> int:
         args.model_dir if args.model_dir is not None else application_dir / "model"
     )
 
-    console_log_level: LiteralString = args.console_log_level
-    file_log_level: LiteralString = args.file_log_level
-
     log_path: Path = application_dir / "logs"
     if args.log_file is not None:
         if os.path.isfile(args.log_file) or not os.path.exists(args.log_file):
@@ -181,9 +173,7 @@ def main() -> int:
             argparser.print_help()
             return -1
 
-    CleverLogger.file_log_level = file_log_level
-    CleverLogger.console_log_level = console_log_level
-    CleverLogger.log_file = log_path
+    initialize_file_logging(log_path, append=args.append)
 
     mode: Mode
     match args.mode:
@@ -209,7 +199,11 @@ def main() -> int:
                 case m if m == Mode.Identification:
                     print("`manage identification data` not yet implemented")
                     return 0
-            ml_on_apx.dataset_management.app.main(data_dir, mode, dataset_class)
+            ml_on_apx.dataset_management.app.main(
+                data_dir,
+                mode,
+                dataset_class,
+            )
             return 0
         case subcommand if subcommand == SUBCOMMAND_MNG_MODEL:
             print("`manage ___ models` not yet implemeneted")
