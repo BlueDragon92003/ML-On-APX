@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Callable, ParamSpec, TypeVar
 
 import eliot
-from eliot import ActionType, fields
+from eliot import Action, ActionType, fields
 
 _R = TypeVar("_R")
 _P = ParamSpec("_P")
@@ -35,26 +35,17 @@ _LOG_SETUP = "setup" @ _LOG
 
 _LOG_SETUP_FILE = ActionType(
     action_type="file" @ _LOG_SETUP,
-    startFields=fields(filepath=Path, append=bool),
+    startFields=fields(filepath=str, append=bool),
     successFields=fields(),
     description="Setup logging to one file",
 )
 
 _LOG_SETUP_DIRECTORY = ActionType(
     action_type="dir" @ _LOG_SETUP,
-    startFields=fields(filepath=Path, file_count=int),
-    successFields=fields(),
+    startFields=fields(filepath=str, file_count=int),
+    successFields=fields(newfile=str, deleted=list),
     description="",
 )
-
-
-def _compare_files(file1: Path, file2: Path) -> int:
-    stem1 = file1.stem.split("-")
-    stem2 = file2.stem.split("-")
-    for i in range(4):
-        if int(stem2[i]) != int(stem1[i]):
-            return int(stem2[i]) - int(stem1[i])
-    return int(os.path.getctime(file2) - os.path.getctime(file1))
 
 
 def log_call(
@@ -64,6 +55,16 @@ def log_call(
 ) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
     """Typed wrapper for `eliot`'s log_call decorator."""
     return eliot.log_call(None, action_type, include_args, include_result)
+
+
+@log_call("compare_files" @ _LOG_SETUP)
+def _compare_files(file1: Path, file2: Path) -> int:
+    stem1 = file1.stem.split("-")
+    stem2 = file2.stem.split("-")
+    for i in range(4):
+        if int(stem2[i]) != int(stem1[i]):
+            return int(stem2[i]) - int(stem1[i])
+    return int(os.path.getctime(file2) - os.path.getctime(file1))
 
 
 @log_call(action_type="init" @ _LOG)
@@ -91,7 +92,8 @@ def initialize_file_logging(
         with _LOG_SETUP_FILE(filepath=log_file, append=append):
             eliot.to_file(open(log_file, "ab" if append else "wb"))
     else:
-        with _LOG_SETUP_DIRECTORY(filepath=log_file, file_count=file_count):
+        with _LOG_SETUP_DIRECTORY(filepath=log_file, file_count=file_count) as action:
+            assert type(action) is Action
             if file_count > 0:
                 log_files = list(
                     filter(
@@ -109,12 +111,16 @@ def initialize_file_logging(
             base = f"{today.year:04d}-{today.month:02d}-{today.day:02d}"
             stem = base
             count = 1
-            while (log_file / f"{stem}.log").exists():
+            target = log_file / f"{stem}.log"
+            print(target.exists(), target)
+            while target.exists():
                 stem = f"{base}-{count}"
+                target = log_file / f"{stem}.log"
                 count += 1
-            eliot.to_file(open(log_file / f"{stem}.log", "xb"))
+            eliot.to_file(open(target, "xb"))
             os.symlink(
-                log_file / f"{stem}.log",
+                target,
                 log_file / "latest.log",
                 target_is_directory=False,
             )
+            action.add_success_fields(newfile=target)

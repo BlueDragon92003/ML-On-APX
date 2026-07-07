@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import List, Set, Tuple
 
 import pyfakefs.fake_filesystem_unittest
+from eliot.testing import capture_logging
 
 from ml_on_apx.dataset_management.dataset import Dataset
 from ml_on_apx.dataset_management.dataset_info import DatasetInfo
@@ -81,6 +82,7 @@ class TestDatasetManager(
 
         self.mode_path.mkdir(parents=True)
 
+    @capture_logging
     def set_up_sources(self) -> None:
         """Set up the sources in a valid way."""
         self.root_file_path.mkdir(parents=True)
@@ -89,11 +91,13 @@ class TestDatasetManager(
         for source in self.sources:
             (self.root_file_path / source).touch()
 
+    @capture_logging
     def set_up_dataset_info_pickle(self) -> None:
         """Set up the sources in a valid way."""
         with open(self.set_info_path, mode="wb") as target:
             pickle.dump(self.dataset_infos, target)
 
+    @capture_logging
     def set_up_dataset_pickles(self) -> None:
         """Set up valid dataset pickles."""
         self.sets_path.mkdir(parents=True)
@@ -106,6 +110,7 @@ class TestDatasetManager(
     #                                 HELPERS
     # ========================================================================
 
+    @capture_logging
     def test_dataset_manager__datasets_in_dir(self) -> None:
         """Test that the helper method produces the proper dataset list."""
         self.set_up_dataset_info_pickle()
@@ -116,6 +121,7 @@ class TestDatasetManager(
         result = self.manager._datasets_in_dir(self.sets_path)
         self.assertEqual(expected, result)
 
+    @capture_logging
     def test_dataset_manager__recompile_dataset(self) -> None:
         """Test that the helper method properly remakes and repickles the dataset."""
         self.set_up_dataset_pickles()
@@ -134,6 +140,7 @@ class TestDatasetManager(
     #                                 ENTERING
     # ========================================================================
 
+    @capture_logging
     def test_dataset_manager__enter_missing_root_dir(self) -> None:
         """Test that the manager creates a directory for ROOT files."""
         self.sets_path.mkdir()
@@ -143,6 +150,7 @@ class TestDatasetManager(
                 self.root_file_path.exists() and self.root_file_path.is_dir()
             )
 
+    @capture_logging
     def test_dataset_manager__enter_missing_sets_dir(self) -> None:
         """Test that the manager creates a directory for datasets files."""
         self.root_file_path.mkdir()
@@ -150,6 +158,7 @@ class TestDatasetManager(
         with self.manager as _:
             self.assertTrue(self.sets_path.exists() and self.sets_path.is_dir())
 
+    @capture_logging
     def test_dataset_manager__enter_file_at_root_dir(self) -> None:
         """Test that the manager errors if the ROOT file directory path is a file."""
         self.set_up_dataset_info_pickle()
@@ -158,6 +167,7 @@ class TestDatasetManager(
             with self.manager as _:
                 pass
 
+    @capture_logging
     def test_dataset_manager__enter_file_at_sets_dir(self) -> None:
         """Test that the manager errors if the dataset file directory path is a file."""
         self.set_up_dataset_info_pickle()
@@ -166,6 +176,7 @@ class TestDatasetManager(
             with self.manager as _:
                 pass
 
+    @capture_logging
     def test_dataset_manager__enters_and_exits_fine(self) -> None:
         """Test that the manager successfully operates in a normal scenario."""
         with self.manager as _:
@@ -175,6 +186,7 @@ class TestDatasetManager(
     #                                 SOURCES
     # ========================================================================
 
+    @capture_logging
     def test_dataset_manager__get_sources(self) -> None:
         """Test that the manager returns the correct tree of available sources."""
         self.set_up_sources()
@@ -199,6 +211,7 @@ class TestDatasetManager(
     #                              CREATE DATASET
     # ========================================================================
 
+    @capture_logging
     def test_dataset_manager__create(self) -> None:
         """Test that the manager can create a new dataset."""
         set_name = "new"
@@ -208,6 +221,7 @@ class TestDatasetManager(
             manager.create_dataset(set_name, self.dataset_infos["full"])
         self.assertTrue(self.manager._get_dataset_path(set_name).exists())
 
+    @capture_logging
     def test_dataset_manager__create_existing(self) -> None:
         """Test that the manager errors when a dataset with that name already exists."""
         self.set_up_dataset_pickles()
@@ -220,6 +234,7 @@ class TestDatasetManager(
     #                              READ DATASETS
     # ========================================================================
 
+    @capture_logging
     def test_dataset_manager__names(self) -> None:
         """Test that the manager delivers the correct list of available datasets."""
         self.set_up_dataset_pickles()
@@ -229,6 +244,7 @@ class TestDatasetManager(
             result = manager.get_dataset_names()
         self.assertEqual(expected, result)
 
+    @capture_logging
     def test_dataset_manager__get_dataset_info(self) -> None:
         """Test that the manager delivers the correct dataset_info object."""
         set_name = "group_a"
@@ -239,6 +255,7 @@ class TestDatasetManager(
             result = manager.get_dataset_info(set_name)
         self.assertEqual(expected, result)
 
+    @capture_logging
     def test_dataset_manager__get_dataset_info_missing(self) -> None:
         """Test that the manager errors when there is no dataset_info object."""
         self.set_up_dataset_info_pickle()
@@ -247,6 +264,7 @@ class TestDatasetManager(
             with self.manager as manager:
                 manager.get_dataset_info("absolutely positively does not exist")
 
+    @capture_logging
     def test_dataset_manager__get_dataset(self) -> None:
         """Test that the manager delivers the correct dataset object."""
         set_name = "individual"
@@ -258,6 +276,7 @@ class TestDatasetManager(
             result = manager.get_dataset(set_name)
         self.assertEqual(expected, result)
 
+    @capture_logging
     def test_dataset_manager__get_dataset_group(self) -> None:
         """Test that the manager delivers the correct dataset object."""
         set_name = "group_a"
@@ -269,6 +288,7 @@ class TestDatasetManager(
             result = manager.get_dataset(set_name)
         self.assertEqual(expected, result)
 
+    @capture_logging
     def test_dataset_manager__get_dataset_missing(self) -> None:
         """Test that the manager errors when there is no dataset object."""
         self.set_up_dataset_info_pickle()
@@ -281,6 +301,7 @@ class TestDatasetManager(
     #                             UPDATE DATASETS
     # ========================================================================
 
+    @capture_logging
     def test_dataset_manager__update(self) -> None:
         """Test that the manager correctly updates a dataset's information."""
         new_set_name = "group_b"
@@ -293,6 +314,7 @@ class TestDatasetManager(
             result = manager.get_dataset_info(old_set_name)
         self.assertEqual(expected, result)
 
+    @capture_logging
     def test_dataset_manager__update_missing(self) -> None:
         """Test that the manager errors when there is no dataset to update."""
         dummy_set_name = self.dataset_infos["full"]
@@ -304,6 +326,7 @@ class TestDatasetManager(
                     "absolutely positively does not exist", dummy_set_name
                 )
 
+    @capture_logging
     def test_dataset_manager__rename_mv_file(self) -> None:
         """Test that the manager correctly renames a dataset file."""
         set_name_from = "full"
@@ -318,6 +341,7 @@ class TestDatasetManager(
         self.assertTrue(self.manager._get_dataset_path(set_name_to).exists())
         self.assertFalse(self.manager._get_dataset_path(set_name_from).exists())
 
+    @capture_logging
     def test_dataset_manager__rename_update_key(self) -> None:
         """Test that the manager correctly changes the dataset key."""
         set_name_from = "full"
@@ -334,6 +358,7 @@ class TestDatasetManager(
                 manager.get_dataset_info(set_name_from)
         self.assertEqual(expected, result)
 
+    @capture_logging
     def test_dataset_manager__rename_missing(self) -> None:
         """Test that the manager errors when there is no dataset to rename."""
         dummy_set_name = "definitely does not exist"
@@ -345,6 +370,7 @@ class TestDatasetManager(
                     "absolutely positively does not exist", dummy_set_name
                 )
 
+    @capture_logging
     def test_dataset_manager__rename_to_existing(self) -> None:
         """Test that the manager errors when the target already exists."""
         set_name_from = "full"
@@ -355,6 +381,7 @@ class TestDatasetManager(
             with self.manager as manager:
                 manager.rename_dataset(set_name_from, set_name_to)
 
+    @capture_logging
     def test_dataset_manager__rename_recompile(self) -> None:
         """Test that the manager correctly moves a recompilation request."""
         set_name_from = "full"
@@ -378,6 +405,7 @@ class TestDatasetManager(
     #                             DELETE DATASETS
     # ========================================================================
 
+    @capture_logging
     def test_dataset_manager__delete_file(self) -> None:
         """Test that the manager correctly deletes a dataset pickle."""
         set_to_delete = "full"
@@ -389,6 +417,7 @@ class TestDatasetManager(
             manager.delete_dataset(set_to_delete)
         self.assertFalse(self.manager._get_dataset_path(set_to_delete).exists())
 
+    @capture_logging
     def test_dataset_manager__delete_info(self) -> None:
         """Test that the manager correctly deletes a dataset info entry."""
         set_to_delete = "full"
@@ -400,6 +429,7 @@ class TestDatasetManager(
             with self.assertRaises(ValueError):
                 manager.get_dataset_info(set_to_delete)
 
+    @capture_logging
     def test_dataset_manager__delete_missing(self) -> None:
         """Test that the manager errors when there is no dataset to delete."""
         self.set_up_dataset_info_pickle()

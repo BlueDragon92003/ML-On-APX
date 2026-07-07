@@ -6,7 +6,7 @@ from pathlib import Path
 
 from colour_runner.runner import ColourTextTestRunner
 
-from ml_on_apx.cleverlogger import CleverLogger
+from ml_on_apx.logging import initialize_file_logging
 
 if __name__ == "__main__":
     log_path = Path(__file__).parent.parent / "logs" / "tests"
@@ -18,9 +18,7 @@ if __name__ == "__main__":
     for file in log_path.iterdir():
         file.unlink()
 
-    CleverLogger.file_log_level = "NONE"
-    CleverLogger.console_log_level = "NONE"
-    CleverLogger.log_file = log_path
+    initialize_file_logging(log_path, file_count=10)
 
     loader = unittest.TestLoader()
     start_dir = pathlib.Path(__file__).parent
