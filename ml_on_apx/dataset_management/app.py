@@ -4,11 +4,12 @@ from pathlib import Path
 from typing import ClassVar, Type
 
 import textual.widgets
-from eliot import start_action
+from eliot import Action
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.widgets import Label
 
+from ml_on_apx.dataset_management import _ACTION_SHOW_QUIT_SCREEN, _APP, _TUI
 from ml_on_apx.dataset_management.app_views.main_view import MainView
 from ml_on_apx.dataset_management.dataset import Dataset
 from ml_on_apx.dataset_management.dataset_manager import DatasetManager
@@ -50,16 +51,15 @@ class DatasetManagerApp(App):
         """
         yield textual.widgets.LoadingIndicator()
 
-    @log_call(action_type="data:app:app:mount")
+    @log_call(action_type="mount" @ _APP)
     async def on_mount(self) -> None:
         """Finish setup of the screen once it is attached to the DOM."""
         self.theme = "gruvbox"
         self.push_screen(MainView(self._manager))
 
-    @log_call(action_type="data:app:app:quit_screen")
     def action_show_quit_screen(self) -> None:
         """Process the action `show_quit_screen`."""
-        action = start_action(action_type="data:app:app:show_quit")
+        action: Action = _ACTION_SHOW_QUIT_SCREEN()
 
         def check_quit(sentinal: bool | None) -> None:
             with action.context():
@@ -73,7 +73,7 @@ class DatasetManagerApp(App):
             )
 
 
-@log_call(action_type="data:app:start")
+@log_call(action_type="start" @ _TUI)
 def main(
     dataset_dir: Path,
     mode: Mode,

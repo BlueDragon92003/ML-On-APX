@@ -6,13 +6,16 @@ import numpy as np
 import torch
 from torch import nn
 
+from ml_on_apx.cluster_classification import _CLASS
 from ml_on_apx.cluster_classification.model import Model
 from ml_on_apx.cluster_classification.test import test_loop
 from ml_on_apx.cluster_classification.train import train_loop
 from ml_on_apx.logging import log_call
 
+_MAIN = "main" @ _CLASS
 
-@log_call(action_type="class:main")
+
+@log_call(action_type="main" @ _MAIN)
 def main() -> None:
     """Trains a cluster classification model.
 

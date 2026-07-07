@@ -13,18 +13,38 @@ from eliot import ActionType, fields
 _R = TypeVar("_R")
 _P = ParamSpec("_P")
 
-LOGGING_SETUP_FILE = ActionType(
-    "logging:setup:file",
-    fields(filepath=Path, append=bool),  # Start
-    fields(),  # Succeed
-    fields(),  # Fail
+
+class Namespace(str):
+    """The namespace of an action."""
+
+    def __rmatmul__(self, name: str) -> "Namespace":
+        """Specify a child namespace.
+
+        Args:
+            name (Namespace): The name of the child namespace.
+
+        Returns:
+            Namespace: The child namespace
+
+        """
+        return Namespace(self + ":" + name)
+
+
+_LOG = Namespace("log")
+_LOG_SETUP = "setup" @ _LOG
+
+_LOG_SETUP_FILE = ActionType(
+    action_type="file" @ _LOG_SETUP,
+    startFields=fields(filepath=Path, append=bool),
+    successFields=fields(),
+    description="Setup logging to one file",
 )
 
-LOGGING_SETUP_DIRECTORY = ActionType(
-    "logging:setup:directory",
-    fields(filepath=Path, file_count=int),  # Start
-    fields(),  # Succeed
-    fields(),  # Fail
+_LOG_SETUP_DIRECTORY = ActionType(
+    action_type="dir" @ _LOG_SETUP,
+    startFields=fields(filepath=Path, file_count=int),
+    successFields=fields(),
+    description="",
 )
 
 
@@ -46,7 +66,7 @@ def log_call(
     return eliot.log_call(None, action_type, include_args, include_result)
 
 
-@log_call(action_type="log:init_file")
+@log_call(action_type="init" @ _LOG)
 def initialize_file_logging(
     log_file: Path,
     append: bool = False,
@@ -68,10 +88,10 @@ def initialize_file_logging(
 
     """
     if log_file.is_file():
-        with LOGGING_SETUP_FILE(filepath=log_file, append=append):
+        with _LOG_SETUP_FILE(filepath=log_file, append=append):
             eliot.to_file(open(log_file, "ab" if append else "wb"))
     else:
-        with LOGGING_SETUP_DIRECTORY(filepath=log_file, file_count=file_count):
+        with _LOG_SETUP_DIRECTORY(filepath=log_file, file_count=file_count):
             if file_count > 0:
                 log_files = list(
                     filter(

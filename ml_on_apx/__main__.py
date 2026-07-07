@@ -4,15 +4,31 @@ import argparse
 import os
 from pathlib import Path
 
-from eliot import start_action
+from eliot import ActionType, fields
 
 import ml_on_apx.cluster_classification.main
 import ml_on_apx.dataset_management.app
 from ml_on_apx.cluster_classification.cluster_classification_dataset import (
     ClusterClassificationDataset,
 )
-from ml_on_apx.logging import initialize_file_logging, log_call
+from ml_on_apx.logging import Namespace, initialize_file_logging, log_call
 from ml_on_apx.modes import Mode
+
+_MAIN = Namespace("main")
+
+_HANDLE_ARGS = ActionType(
+    action_type="handle_args" @ _MAIN,
+    startFields=fields(),
+    successFields=fields(data_dir=Path, model_dir=Path, log_path=Path, mode=Mode),
+    description="Handle the args from argparse.",
+)
+
+_SUBCOMMANDS = ActionType(
+    action_type="run_subcommand" @ _MAIN,
+    startFields=fields(),
+    successFields=fields(),
+    description="Determine and run the necessary subcommand.",
+)
 
 LL_DEVELOPMENT = "DEBUG"
 LL_PRODUCTION = "INFO"
@@ -28,7 +44,7 @@ SUBCOMMAND_MNG_DATA: str = "manage data"
 SUBCOMMAND_MNG_MODEL: str = "manage model"
 
 
-@log_call(action_type="main:get_parser")
+@log_call(action_type="get_parser" @ _MAIN)
 def get_parser() -> argparse.ArgumentParser:
     """Get the argument parser.
 
@@ -140,12 +156,13 @@ def get_parser() -> argparse.ArgumentParser:
 #         Fork for each job
 #         Load relavant information
 #         Train until stop conditions
+@log_call(action_type="start" @ _MAIN)
 def main() -> int:
     """Start the application."""
     argparser = get_parser()
     args = argparser.parse_args()
 
-    with start_action(action_type="main:parse_args"):
+    with _HANDLE_ARGS() as action:
         if "subcommand" not in args:
             argparser.print_help()
             return -1
@@ -190,7 +207,11 @@ def main() -> int:
             case argsmode if argsmode == MODE_IDENTIFICATION:
                 mode = Mode.Identification
 
-    with start_action(action_type="main:subcommands"):
+        action.add_success_fields(
+            data_dir=data_dir, model_dir=model_dir, log_path=log_path, mode=mode
+        )
+
+    with _SUBCOMMANDS():
         match args.subcommand:
             case subcommand if subcommand == SUBCOMMAND_TRAIN:
                 match mode:

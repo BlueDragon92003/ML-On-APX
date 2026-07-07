@@ -8,8 +8,12 @@ from rich.text import Text
 from textual.widgets import Tree
 from textual.widgets.tree import TreeNode
 
+from ml_on_apx.dataset_management import _TUI
 from ml_on_apx.labelling import Label
 from ml_on_apx.logging import log_call
+
+_SOURCE_TREE = "source_tree" @ _TUI
+_DATA = "source_tree_data" @ _TUI
 
 
 class SourceTreeWidget(Tree["SourceTreeData"]):
@@ -59,7 +63,7 @@ class SourceTreeWidget(Tree["SourceTreeData"]):
             style = style + node.data.get_style(self.app.get_css_variables())
         return super().render_label(node, base_style, style)
 
-    @log_call(action_type="data:app:source_tree:get_sources")
+    @log_call(action_type="get_sources" @ _SOURCE_TREE)
     def get_labeled_sources(self) -> set[tuple[Path, Label]]:
         """Return a set of labeled sources from the information stored in the tree.
 
@@ -72,7 +76,7 @@ class SourceTreeWidget(Tree["SourceTreeData"]):
             labeled_sources.update(self.get_labeled_sources_from_node(child))
         return labeled_sources
 
-    @log_call(action_type="data:app:source_tree:lab_src_from_here")
+    @log_call(action_type="lab_src_from_here" @ _SOURCE_TREE)
     def get_labeled_sources_from_node(
         self, node: TreeNode["SourceTreeData"]
     ) -> set[tuple[Path, Label]]:
@@ -112,7 +116,7 @@ class SourceTreeWidget(Tree["SourceTreeData"]):
 
         return labeled_sources
 
-    @log_call(action_type="data:app:source_tree:paths_from_here")
+    @log_call(action_type="paths_from_here" @ _SOURCE_TREE)
     def get_paths_from_node(self, node: TreeNode["SourceTreeData"]) -> list[Path]:
         """Get a list of paths from an included directory node.
 
@@ -165,7 +169,7 @@ class SourceTreeData(object):
         self._name: str
 
     @classmethod
-    @log_call(action_type="data:app:source_tree_data:new_leaf")
+    @log_call(action_type="new_leaf" @ _DATA)
     def new_leaf_data(
         cls,
         name: str,
@@ -187,7 +191,7 @@ class SourceTreeData(object):
         return data
 
     @classmethod
-    @log_call(action_type="data:app:source_tree_data:new_dir")
+    @log_call(action_type="new_dir" @ _DATA)
     def new_directory_data(
         cls,
         name: str,
@@ -207,7 +211,7 @@ class SourceTreeData(object):
         data._descendant_error = False
         return data
 
-    @log_call(action_type="data:app:source_tree_data:label_style")
+    @log_call(action_type="label_style" @ _DATA)
     def get_style(self, theme: dict[str, str]) -> Style:
         """Generate the style the node with this data's label should use.
 
@@ -241,17 +245,17 @@ class SourceTreeData(object):
             style = Style(color=theme["foreground"])
         return style
 
-    @log_call(action_type="data:app:source_tree_data:get_dir")
+    @log_call(action_type="get_dir" @ _DATA)
     def is_directory(self) -> bool:
         """Return true if the node with this data is a directory, not a source."""
         return self._is_directory
 
-    @log_call(action_type="data:app:source_tree_data:get_name")
+    @log_call(action_type="get_name" @ _DATA)
     def get_name(self) -> str:
         """Get the name of the node with this data."""
         return self._name
 
-    @log_call(action_type="data:app:source_tree_data:get_path")
+    @log_call(action_type="get_path" @ _DATA)
     def get_path(self) -> Path:
         """Get the name of the node with this data.
 
@@ -268,27 +272,27 @@ class SourceTreeData(object):
         assert self._path is not None
         return self._path
 
-    @log_call(action_type="data:app:source_tree_data:get_label")
+    @log_call(action_type="get_label" @ _DATA)
     def get_label(self) -> Label | None:
         """Get the machine learning label of the node with this data."""
         return self._label
 
-    @log_call(action_type="data:app:source_tree_data:st_label")
+    @log_call(action_type="set_label" @ _DATA)
     def set_label(self, label: Label | None) -> None:
         """Set the machine learning label of the node with this data."""
         self._label = label
 
-    @log_call(action_type="data:app:source_tree_data:rst_error")
+    @log_call(action_type="reset_error_status" @ _DATA)
     def reset_descendant_error(self) -> None:
         """Unset if this node has any descendants with errors."""
         self._descendant_error = False
 
-    @log_call(action_type="data:app:source_tree_data:set_error")
+    @log_call(action_type="set_error_status" @ _DATA)
     def set_descendant_has_error(self) -> None:
         """Set if this node has any descendants with errors."""
         self._descendant_error = True
 
-    @log_call(action_type="data:app:source_tree_data:has_error")
+    @log_call(action_type="has_error_status" @ _DATA)
     def has_error(self) -> bool:
         """Return True if this node or a descendant has an error."""
         if self.inclusion == self.InclusionType.DIRECTLY_INCLUDED:

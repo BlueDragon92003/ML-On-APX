@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import Iterable, List
 
+from ml_on_apx.dataset_management import _TREE
 from ml_on_apx.logging import log_call
 
 
@@ -19,17 +20,17 @@ class TreeNode:
         self._name: str = name
         self._children: List["TreeNode"] = []
 
-    @log_call(action_type="data:tree:get_name")
+    @log_call(action_type="get_name" @ _TREE)
     def get_name(self) -> str:
         """Get the name for this node."""
         return self._name
 
-    @log_call(action_type="data:tree:get_children")
+    @log_call(action_type="get_children" @ _TREE)
     def get_children(self) -> List["TreeNode"]:
         """Get this node's children."""
         return self._children
 
-    @log_call(action_type="data:tree:add_child")
+    @log_call(action_type="add_child" @ _TREE)
     def add_child(self, child: "TreeNode") -> None:
         """Add a child node to this node.
 
@@ -68,7 +69,7 @@ class TreeNode:
         return True
 
     @staticmethod
-    @log_call(action_type="data:tree:from_fs")
+    @log_call(action_type="from_fs" @ _TREE)
     def from_filesystem(name: str, sources: Iterable[Path]) -> "TreeNode":
         """Produce a tree of ROOT files and parent directories.
 

@@ -2,10 +2,13 @@
 
 import torch
 
+from ml_on_apx.cluster_classification import _CLASS
 from ml_on_apx.logging import log_call
 
+_TEST = "test" @ _CLASS
 
-@log_call(action_type="class:test:test")
+
+@log_call(action_type="main" @ _TEST)
 def test_loop(
     device: torch.device,
     dataloader: torch.utils.data.DataLoader,

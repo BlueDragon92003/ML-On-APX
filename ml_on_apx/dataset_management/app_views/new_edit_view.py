@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 from typing import ClassVar, Literal
 
-from eliot import start_action
+from eliot import Action, ActionType, fields
 from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -25,6 +25,7 @@ from textual.widgets import (
 )
 from textual.widgets.tree import TreeNode
 
+from ml_on_apx.dataset_management import _TUI
 from ml_on_apx.dataset_management.app_views.source_tree_widget import (
     SourceTreeData,
     SourceTreeWidget,
@@ -40,6 +41,31 @@ from ml_on_apx.tui_common.binary_modal_question import (
 )
 from ml_on_apx.tui_common.list_select_question import (
     ListSelectQuestion,
+)
+
+_NEW_EDIT_VIEW = "new_edit" @ _TUI
+_SOURCE_SELECT = "source_select" @ _NEW_EDIT_VIEW
+
+_DIRECT_INCLUSION = ActionType(
+    action_type="direct" @ _SOURCE_SELECT,
+    startFields=fields(data=SourceTreeData),
+    successFields=fields(callback_result=SourceLabel | Literal[False] | None),
+)
+_ANCESTOR_INCLUSION = ActionType(
+    action_type="ancestor" @ _SOURCE_SELECT,
+    startFields=fields(data=SourceTreeData),
+    successFields=fields(callback_result=SourceLabel | Literal[False] | None),
+)
+_NOT_INCLUSION = ActionType(
+    action_type="not" @ _SOURCE_SELECT,
+    startFields=fields(data=SourceTreeData),
+    successFields=fields(callback_result=SourceLabel | None),
+)
+
+_ACTION_DELETE_LABEL = ActionType(
+    action_type="delete_label" @ _NEW_EDIT_VIEW,
+    startFields=fields(),
+    successFields=fields(callback_result=bool),
 )
 
 
@@ -132,7 +158,7 @@ class NewEditView(Screen[None]):
                 self._tree.auto_expand = False
                 yield self._tree
 
-    @log_call(action_type="data:app:new_edit:check_action", include_args=["action"])
+    @log_call(action_type="check_action" @ _NEW_EDIT_VIEW, include_args=["action"])
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
         """Check to see if an action can be performed.
 
@@ -180,7 +206,7 @@ class NewEditView(Screen[None]):
                         return True
         return False
 
-    @log_call(action_type="data:app:new_edit:mount")
+    @log_call(action_type="mount" @ _NEW_EDIT_VIEW)
     def on_mount(self) -> None:
         """Finish setup of the screen once it is attached to the DOM."""
         if self._template is not None:
@@ -197,7 +223,7 @@ class NewEditView(Screen[None]):
         )
 
     @on(Tree.NodeSelected)
-    @log_call(action_type="data:app:new_edit:source_select")
+    @log_call(action_type=_SOURCE_SELECT)
     def handle_source_selection(
         self, message: Tree.NodeSelected[SourceTreeData]
     ) -> None:
@@ -223,13 +249,12 @@ class NewEditView(Screen[None]):
         #
         match data.inclusion:
             case _inclusion if _inclusion == data.InclusionType.DIRECTLY_INCLUDED:
-                with start_action(
-                    action_type="data:app:new_edit:source_select:direct_inclusion"
-                ):
+                action: Action = _DIRECT_INCLUSION(data=data)
 
-                    def included_node(
-                        selected: SourceLabel | Literal[False] | None,
-                    ) -> None:
+                def included_node(
+                    selected: SourceLabel | Literal[False] | None,
+                ) -> None:
+                    with action.context():
                         if not selected:
                             if selected is None:
                                 return
@@ -240,7 +265,10 @@ class NewEditView(Screen[None]):
                             for child in node.children:
                                 self.include(child)
                         self.update_source_tree_selections(self._tree.root)
+                    action.addSuccessFields(callback_result=selected)
+                    action.finish()
 
+                with action.context():
                     options: list[tuple[str, SourceLabel | Literal[False]]] = []
                     for label in self.labels:
                         options.append((str(label), label))
@@ -258,13 +286,12 @@ class NewEditView(Screen[None]):
                         callback=included_node,
                     )
             case _inclusion if _inclusion == data.InclusionType.ANCENSTOR_INCLUDED:
-                with start_action(
-                    action_type="data:app:new_edit:source_select:anscestor_inclusion"
-                ):
+                action: Action = _ANCESTOR_INCLUSION(data=data)
 
-                    def ancestrally_included_node(
-                        selected: SourceLabel | Literal[False] | None,
-                    ) -> None:
+                def ancestrally_included_node(
+                    selected: SourceLabel | Literal[False] | None,
+                ) -> None:
+                    with action.context():
                         if selected is None:
                             return
                         else:
@@ -278,7 +305,10 @@ class NewEditView(Screen[None]):
                             else:
                                 self.disinclude(node)
                         self.update_source_tree_selections(self._tree.root)
+                    action.addSuccessFields(callback_result=selected)
+                    action.finish()
 
+                with action.context():
                     options: list[tuple[str, SourceLabel | Literal[False]]] = []
                     for label in self.labels:
                         options.append((str(label), label))
@@ -296,11 +326,10 @@ class NewEditView(Screen[None]):
                         callback=ancestrally_included_node,
                     )
             case _inclusion if _inclusion == data.InclusionType.NOT_INCLUDED:
-                with start_action(
-                    action_type="data:app:new_edit:source_select:not_included"
-                ):
+                action: Action = _NOT_INCLUSION(data=data)
 
-                    def not_included_node(selected: SourceLabel | None) -> None:
+                def not_included_node(selected: SourceLabel | None) -> None:
+                    with action.context():
                         if not selected:
                             return
                         else:
@@ -309,7 +338,10 @@ class NewEditView(Screen[None]):
                             for child in node.children:
                                 self.include(child)
                         self.update_source_tree_selections(self._tree.root)
+                    action.addSuccessFields(callback_result=selected)
+                    action.finish()
 
+                with action.context():
                     options: list[tuple[str, SourceLabel]] = []
                     for label in self.labels:
                         options.append((str(label), label))
@@ -327,7 +359,7 @@ class NewEditView(Screen[None]):
         message.stop()
 
     @on(Button.Pressed)
-    @log_call(action_type="data:app:new_edit:button_press")
+    @log_call(action_type="button_press" @ _NEW_EDIT_VIEW)
     def handle_button_press(self, message: Button.Pressed) -> None:
         """Handle the Pressed event from descendant buttons.
 
@@ -344,7 +376,7 @@ class NewEditView(Screen[None]):
                 self.finalize()
 
     @on(Input.Submitted)
-    @log_call(action_type="data:app:new_edit:text_submission")
+    @log_call(action_type="text_submission" @ _NEW_EDIT_VIEW)
     def handle_input_submission(self, message: Input.Submitted) -> None:
         """Handle the Submitted event from an input object.
 
@@ -356,7 +388,7 @@ class NewEditView(Screen[None]):
             case "label-name-input":
                 self.create_label()
 
-    @log_call(action_type="data:app:new_edit:view_info")
+    @log_call(action_type="view_info" @ _NEW_EDIT_VIEW)
     def action_to_basic_info(self) -> None:
         """Process the `to_basic_info` action."""
         tabs = self.get_child_by_id("new-edit-tabs")
@@ -364,7 +396,7 @@ class NewEditView(Screen[None]):
         tabs.active = "general-info-tab"
         self.get_widget_by_id("general-info-scroll").focus()
 
-    @log_call(action_type="data:app:new_edit:view_lab")
+    @log_call(action_type="view_lab" @ _NEW_EDIT_VIEW)
     def action_to_labels(self) -> None:
         """Process the `to_labels` action."""
         tabs = self.get_child_by_id("new-edit-tabs")
@@ -372,7 +404,7 @@ class NewEditView(Screen[None]):
         tabs.active = "labels-tab"
         self.get_widget_by_id("labels-list").focus()
 
-    @log_call(action_type="data:app:new_edit:view_src")
+    @log_call(action_type="view_src" @ _NEW_EDIT_VIEW)
     def action_to_sources(self) -> None:
         """Process the `to_sources` action."""
         tabs = self.get_child_by_id("new-edit-tabs")
@@ -380,26 +412,32 @@ class NewEditView(Screen[None]):
         tabs.active = "sources-tab"
         self.get_widget_by_id("source-tree").focus()
 
-    @log_call(action_type="data:app:new_edit:delete_label")
     def action_delete_label(self) -> None:
         """Process the `delete_label` action."""
-        labels_list = self.get_widget_by_id("labels-list")
-        assert type(labels_list) is ListView
-        if labels_list.highlighted_child is not None:
-            name = labels_list.highlighted_child.name
+        action: Action = _ACTION_DELETE_LABEL()
 
-            def delete_label(delete: bool | None) -> None:
+        def delete_label(delete: bool | None) -> None:
+            with action.context():
                 if not delete:
                     return
                 assert name is not None
                 idx = self.labels.index(SourceLabel(name))
                 self.labels = self.labels[:idx] + self.labels[idx + 1 :]
+            action.addSuccessFields(callback_result=delete)
+            action.finish()
 
-            self.app.push_screen(
-                BinaryModalQuestion(Label(f"Delete label `{name}`?")), delete_label
-            )
+        with action.context():
+            labels_list = self.get_widget_by_id("labels-list")
+            assert type(labels_list) is ListView
+            if labels_list.highlighted_child is not None:
+                name = labels_list.highlighted_child.name
 
-    @log_call(action_type="data:app:new_edit:delete_label_no_checks")
+                self.app.push_screen(
+                    BinaryModalQuestion(Label(f"Delete label `{name}`?")),
+                    callback=delete_label,
+                )
+
+    @log_call(action_type="delete_label_no_checks" @ _NEW_EDIT_VIEW)
     def action_force_delete_label(self) -> None:
         """Process the `force_delete_label` action."""
         labels_list = self.get_widget_by_id("labels-list", ListView)
@@ -437,7 +475,7 @@ class NewEditView(Screen[None]):
         tree_node: TreeNode[SourceTreeData] = tree.root
         self.update_source_tree_selections(tree_node)
 
-    @log_call(action_type="data:app:new_edit:update_labels")
+    @log_call(action_type="update_labels" @ _NEW_EDIT_VIEW)
     def remake_label_list(self) -> None:
         """Remake and display the list of labels shown to the user."""
         labels_list = self.get_widget_by_id("labels-list", ListView)
@@ -445,7 +483,7 @@ class NewEditView(Screen[None]):
         for label in self.labels:
             labels_list.append(ListItem(Label(f"{label}"), name=f"{label}"))
 
-    @log_call(action_type="data:app:new_edit:update_tree")
+    @log_call(action_type="update_tree" @ _NEW_EDIT_VIEW)
     def update_source_tree_selections(
         self, tree_node: TreeNode[SourceTreeData]
     ) -> None:
@@ -464,7 +502,7 @@ class NewEditView(Screen[None]):
                 tree_node.data.set_descendant_has_error()
         tree_node.refresh()
 
-    @log_call(action_type="data:app:new_edit:rm_label_from_tree")
+    @log_call(action_type="rm_label_from_tree" @ _NEW_EDIT_VIEW)
     def remove_label_from_tree(
         self, tree_node: TreeNode[SourceTreeData], label_to_remove: SourceLabel
     ) -> None:
@@ -476,7 +514,7 @@ class NewEditView(Screen[None]):
         for child in tree_node.children:
             self.remove_label_from_tree(child, label_to_remove)
 
-    @log_call(action_type="data:app:new_edit:append_node")
+    @log_call(action_type="append_node" @ _NEW_EDIT_VIEW)
     def append_nodes(
         self,
         dest_tree_node: TreeNode[SourceTreeData],
@@ -519,7 +557,7 @@ class NewEditView(Screen[None]):
             self.append_nodes(new_tree_node, source_node, this_path)
         dest_tree_node.expand()
 
-    @log_call(action_type="data:app:new_edit:release")
+    @log_call(action_type="release" @ _NEW_EDIT_VIEW)
     def release_children(self, node: TreeNode[SourceTreeData]) -> None:
         """Include child nodes under this node's label, then release this node's parent.
 
@@ -541,7 +579,7 @@ class NewEditView(Screen[None]):
             child.data.set_label(node.data.get_label())
         node.data.set_label(None)
 
-    @log_call(action_type="data:app:new_edit:include")
+    @log_call(action_type="include" @ _NEW_EDIT_VIEW)
     def include(self, node: TreeNode[SourceTreeData]) -> None:
         """Include this node and its descendants ancestrally.
 
@@ -555,7 +593,7 @@ class NewEditView(Screen[None]):
         for child in node.children:
             self.include(child)
 
-    @log_call(action_type="data:app:new_edit:disinclude")
+    @log_call(action_type="disinclude" @ _NEW_EDIT_VIEW)
     def disinclude(self, node: TreeNode[SourceTreeData]) -> None:
         """Remove this node and its descendants from the source list.
 
@@ -569,7 +607,7 @@ class NewEditView(Screen[None]):
         for child in node.children:
             self.disinclude(child)
 
-    @log_call(action_type="data:app:new_edit:create_label")
+    @log_call(action_type="create_label" @ _NEW_EDIT_VIEW)
     def create_label(self) -> None:
         """Create a new label from the user string in the view."""
         input = self.get_widget_by_id("label-name-input", Input)
@@ -594,7 +632,7 @@ class NewEditView(Screen[None]):
         input.clear()
         input.focus()
 
-    @log_call(action_type="data:app:new_edit:finalize")
+    @log_call(action_type="finalize" @ _NEW_EDIT_VIEW)
     def finalize(self) -> None:
         """Validate and then create or update the dataset as specified by the user.
 

@@ -3,10 +3,13 @@
 import torch
 from torch import nn
 
+from ml_on_apx.cluster_classification import _CLASS
 from ml_on_apx.logging import log_call
 
+_TRAIN = "train" @ _CLASS
 
-@log_call(action_type="class:train:train")
+
+@log_call(action_type="main" @ _TRAIN)
 def train_loop(
     device: torch.device,
     dataloader: torch.utils.data.DataLoader,
