@@ -10,6 +10,7 @@ import uproot
 from uproot.behaviors.TBranch import TBranch
 
 from ml_on_apx.dataset_management.dataset import Dataset
+from ml_on_apx.logging import log_call
 
 
 class ClusterClassificationDataset(Dataset):
@@ -151,6 +152,7 @@ class ClusterClassificationDataset(Dataset):
         return out
 
     @classmethod
+    @log_call(action_type="class:ds:create")
     def create(cls, components: set[tuple[Path, int]]) -> "Dataset":
         """Create a new ClusterClassificationDataset.
 

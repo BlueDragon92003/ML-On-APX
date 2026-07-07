@@ -4,12 +4,14 @@ import argparse
 import os
 from pathlib import Path
 
+from eliot import start_action
+
 import ml_on_apx.cluster_classification.main
 import ml_on_apx.dataset_management.app
 from ml_on_apx.cluster_classification.cluster_classification_dataset import (
     ClusterClassificationDataset,
 )
-from ml_on_apx.logging import initialize_file_logging
+from ml_on_apx.logging import initialize_file_logging, log_call
 from ml_on_apx.modes import Mode
 
 LL_DEVELOPMENT = "DEBUG"
@@ -26,6 +28,7 @@ SUBCOMMAND_MNG_DATA: str = "manage data"
 SUBCOMMAND_MNG_MODEL: str = "manage model"
 
 
+@log_call(action_type="main:get_parser")
 def get_parser() -> argparse.ArgumentParser:
     """Get the argument parser.
 
@@ -142,76 +145,82 @@ def main() -> int:
     argparser = get_parser()
     args = argparser.parse_args()
 
-    if "subcommand" not in args:
-        argparser.print_help()
-        return -1
-
-    application_dir: Path = (
-        args.application_dir if args.application_dir is not None else Path(os.getcwd())
-    )
-    os.environ["APP_DIR"] = str(application_dir)
-    data_dir: Path = (
-        args.data_dir if args.data_dir is not None else application_dir / "data"
-    )
-    model_dir: Path = (
-        args.model_dir if args.model_dir is not None else application_dir / "model"
-    )
-
-    log_path: Path = application_dir / "logs"
-    if args.log_file is not None:
-        if os.path.isfile(args.log_file) or not os.path.exists(args.log_file):
-            log_path: Path = args.log_file
-        else:
-            print(f"{args.log_dir} must not exist or be a regular file.", end="\n\n")
-            argparser.print_help()
-            return -1
-    elif args.log_dir is not None:
-        if os.path.isdir(args.log_dir):
-            log_path: Path = args.log_dir
-        else:
-            print(f"{args.log_dir} is not a directory.", end="\n\n")
+    with start_action(action_type="main:parse_args"):
+        if "subcommand" not in args:
             argparser.print_help()
             return -1
 
-    initialize_file_logging(log_path, append=args.append)
+        application_dir: Path = (
+            args.application_dir
+            if args.application_dir is not None
+            else Path(os.getcwd())
+        )
+        os.environ["APP_DIR"] = str(application_dir)
+        data_dir: Path = (
+            args.data_dir if args.data_dir is not None else application_dir / "data"
+        )
+        model_dir: Path = (
+            args.model_dir if args.model_dir is not None else application_dir / "model"
+        )
 
-    mode: Mode
-    match args.mode:
-        case argsmode if argsmode == MODE_CLASSIFICATION:
-            mode = Mode.Classification
-        case argsmode if argsmode == MODE_IDENTIFICATION:
-            mode = Mode.Identification
+        log_path: Path = application_dir / "logs"
+        if args.log_file is not None:
+            if os.path.isfile(args.log_file) or not os.path.exists(args.log_file):
+                log_path: Path = args.log_file
+            else:
+                print(
+                    f"{args.log_dir} must not exist or be a regular file.", end="\n\n"
+                )
+                argparser.print_help()
+                return -1
+        elif args.log_dir is not None:
+            if os.path.isdir(args.log_dir):
+                log_path: Path = args.log_dir
+            else:
+                print(f"{args.log_dir} is not a directory.", end="\n\n")
+                argparser.print_help()
+                return -1
 
-    match args.subcommand:
-        case subcommand if subcommand == SUBCOMMAND_TRAIN:
-            match mode:
-                case mode if mode is Mode.Classification:
-                    print("`train classification` not yet implemeneted")
-                    return 0
-                    ml_on_apx.cluster_classification.main.main(data_dir, model_dir)
-                case mode if mode is Mode.Identification:
-                    print("`train identification` not yet implemeneted")
-                    return 0
-        case subcommand if subcommand == SUBCOMMAND_MNG_DATA:
-            match mode:
-                case m if m == Mode.Classification:
-                    dataset_class = ClusterClassificationDataset
-                case m if m == Mode.Identification:
-                    print("`manage identification data` not yet implemented")
-                    return 0
-            ml_on_apx.dataset_management.app.main(
-                data_dir,
-                mode,
-                dataset_class,
-            )
-            return 0
-        case subcommand if subcommand == SUBCOMMAND_MNG_MODEL:
-            print("`manage ___ models` not yet implemeneted")
-            return 0
-            ml_on_apx.dataset_management.app.main(model_dir, mode)
-        case _:
-            argparser.print_help()
-            return -1
+        initialize_file_logging(log_path, append=args.append)
+
+        mode: Mode
+        match args.mode:
+            case argsmode if argsmode == MODE_CLASSIFICATION:
+                mode = Mode.Classification
+            case argsmode if argsmode == MODE_IDENTIFICATION:
+                mode = Mode.Identification
+
+    with start_action(action_type="main:subcommands"):
+        match args.subcommand:
+            case subcommand if subcommand == SUBCOMMAND_TRAIN:
+                match mode:
+                    case mode if mode is Mode.Classification:
+                        print("`train classification` not yet implemeneted")
+                        return 0
+                        ml_on_apx.cluster_classification.main.main(data_dir, model_dir)
+                    case mode if mode is Mode.Identification:
+                        print("`train identification` not yet implemeneted")
+                        return 0
+            case subcommand if subcommand == SUBCOMMAND_MNG_DATA:
+                match mode:
+                    case m if m == Mode.Classification:
+                        dataset_class = ClusterClassificationDataset
+                    case m if m == Mode.Identification:
+                        print("`manage identification data` not yet implemented")
+                        return 0
+                ml_on_apx.dataset_management.app.main(
+                    data_dir,
+                    mode,
+                    dataset_class,
+                )
+                return 0
+            case subcommand if subcommand == SUBCOMMAND_MNG_MODEL:
+                print("`manage ___ models` not yet implemeneted")
+                return 0
+                ml_on_apx.dataset_management.app.main(model_dir, mode)
+            case _:
+                argparser.print_help()
+                return -1
 
     return 0
 

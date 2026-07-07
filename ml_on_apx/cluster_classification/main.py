@@ -9,8 +9,10 @@ from torch import nn
 from ml_on_apx.cluster_classification.model import Model
 from ml_on_apx.cluster_classification.test import test_loop
 from ml_on_apx.cluster_classification.train import train_loop
+from ml_on_apx.logging import log_call
 
 
+@log_call(action_type="class:main")
 def main() -> None:
     """Trains a cluster classification model.
 

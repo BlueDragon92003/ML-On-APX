@@ -7,6 +7,7 @@ from typing import ClassVar, Dict, Generic, List, Set, Type, TypeVar
 from ml_on_apx.dataset_management.dataset import Dataset
 from ml_on_apx.dataset_management.dataset_info import DatasetInfo
 from ml_on_apx.dataset_management.tree import TreeNode
+from ml_on_apx.logging import log_call
 from ml_on_apx.modes import Mode
 
 ManagedDataset = TypeVar("ManagedDataset", bound=Dataset)
@@ -41,6 +42,7 @@ class DatasetManager(Generic[ManagedDataset]):
         )
         self._dataset_class: Type[ManagedDataset] = dataset_class
 
+    @log_call(action_type="data:manager:open")
     def __enter__(self) -> "DatasetManager[ManagedDataset]":
         """Initialize the environment.
 
@@ -96,6 +98,7 @@ class DatasetManager(Generic[ManagedDataset]):
 
         return self
 
+    @log_call(action_type="data:manager:close")
     def __exit__(self, _exc_type, _exc_value, _exc_traceback) -> bool:  # noqa: ANN001
         """Safely leave a managed environment.
 
@@ -137,14 +140,17 @@ class DatasetManager(Generic[ManagedDataset]):
             pass
         return False
 
+    @log_call(action_type="data:manager:get_root_path")
     def get_root_dir_path(self) -> Path:
         """Get the path to the ROOT file directory."""
         return self._root_dir_path
 
+    @log_call(action_type="data:manager:get_sources")
     def get_sources(self) -> TreeNode:
         """Get the possible ROOT sources as a tree."""
         return self._sources
 
+    @log_call(action_type="data:manager:create")
     def create_dataset(self, name: str, dataset: DatasetInfo) -> None:
         """Create a new dataset.
 
@@ -156,17 +162,17 @@ class DatasetManager(Generic[ManagedDataset]):
             ValueError: If a dataset with that name already exists.
 
         """
-        # TODO better exception for this?
         if name in self._set_info.keys():
-            # TODO LOG WARN
             raise ValueError("Set already exists!")
         self._set_info[name] = dataset
         self._to_recompile.append(name)
 
+    @log_call(action_type="data:manager:list_names")
     def get_dataset_names(self) -> Set[str]:
         """List all datasets this manager is aware of."""
         return set(self._set_info.keys())
 
+    @log_call(action_type="data:manager:get_info")
     def get_dataset_info(self, dataset_name: str) -> DatasetInfo:
         """Retrieve information for a dataset.
 
@@ -184,6 +190,7 @@ class DatasetManager(Generic[ManagedDataset]):
             raise LookupError("No such set!")
         return self._set_info[dataset_name]
 
+    @log_call(action_type="data:manager:get")
     def get_dataset(self, dataset_name: str) -> ManagedDataset:
         """Retrieve a dataset object.
 
@@ -206,6 +213,7 @@ class DatasetManager(Generic[ManagedDataset]):
         with open(set_path, mode="rb") as file:
             return pickle.load(file)
 
+    @log_call(action_type="data:manager:update")
     def update_dataset(self, dataset_name: str, dataset_info: DatasetInfo) -> None:
         """Update the information for the provided dataset's name.
 
@@ -222,6 +230,7 @@ class DatasetManager(Generic[ManagedDataset]):
         self._to_recompile.append(dataset_name)
         self._set_info[dataset_name] = dataset_info
 
+    @log_call(action_type="data:manager:rename")
     def rename_dataset(self, dataset_name: str, new_name: str) -> None:
         """Rename a dataset.
 
@@ -247,6 +256,7 @@ class DatasetManager(Generic[ManagedDataset]):
             self._to_recompile.remove(dataset_name)
             self._to_recompile.append(new_name)
 
+    @log_call(action_type="data:manager:delete")
     def delete_dataset(self, dataset_name: str) -> None:
         """Delete a dataset.
 
@@ -266,6 +276,7 @@ class DatasetManager(Generic[ManagedDataset]):
         if dataset_name in self._to_recompile:
             self._to_recompile.remove(dataset_name)
 
+    @log_call(action_type="data:manager:recompile")
     def _recompile_dataset(self, path: Path, dataset_info: DatasetInfo) -> None:
         """Create and pickle a dataset based on the provided information.
 

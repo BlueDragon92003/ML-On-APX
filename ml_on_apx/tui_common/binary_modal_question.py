@@ -12,6 +12,8 @@ from textual.screen import ModalScreen
 from textual.widget import Widget
 from textual.widgets import Button
 
+from ml_on_apx.logging import log_call
+
 
 class BinaryModalQuestion(ModalScreen[bool]):
     """A question with a binary answer."""
@@ -63,6 +65,7 @@ class BinaryModalQuestion(ModalScreen[bool]):
             yield Button(self._true_button_label, variant="success", id="bmodal-true")
             yield Button(self._false_button_label, variant="error", id="bmodal-false")
 
+    @log_call(action_type="tui:bmq:mount")
     def on_mount(self) -> None:
         """Finish setup of the screen once it is attached to the DOM."""
         container = self.get_child_by_id("container")
@@ -70,11 +73,13 @@ class BinaryModalQuestion(ModalScreen[bool]):
         container.border_subtitle = self._subtitle
         container.get_child_by_id("bmodal-true").focus()
 
+    @log_call(action_type="tui:bmq:exit")
     def action_exit(self) -> None:
         """Process the action `exit`."""
         self.dismiss(None)
 
     @on(Button.Pressed)
+    @log_call(action_type="tui:bmq:button")
     def handle_button_press(self, message: Button.Pressed) -> None:
         """Handle the Pressed event from a child button.
 

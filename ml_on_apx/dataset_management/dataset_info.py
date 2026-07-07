@@ -1,7 +1,7 @@
 """Stores informaiton relating to a dataset."""
 
 from pathlib import Path
-from typing import Iterable, Set, Tuple
+from typing import Iterable
 
 from ml_on_apx.labelling import Label, Labels
 from ml_on_apx.logging import log_call
@@ -12,7 +12,7 @@ DATASET_NAME_REGEX = r"[\w]([\w\s-]*[\w-])?"
 class DatasetInfo:
     """Stores information relating to a dataset."""
 
-    def __init__(self, labels: Labels, sources: Iterable[Tuple[Path, Label]]) -> None:
+    def __init__(self, labels: Labels, sources: Iterable[tuple[Path, Label]]) -> None:
         """Create a new DatasetInfo object.
 
         Args:
@@ -36,20 +36,22 @@ class DatasetInfo:
         return self._labels
 
     @log_call(action_type="data:info:get_sources")
-    def get_sources(self) -> Set[Path]:
+    def get_sources(self) -> set[Path]:
         """Get the unlabled sources this dataset uses."""
         return {x[0] for x in self._sources}
 
-    def get_numbered_sources(self) -> Set[Tuple[Path, int]]:
+    @log_call(action_type="data:app:info:num_source")
+    def get_numbered_sources(self) -> set[tuple[Path, int]]:
         """Get the sources this dataset uses with ml-safe integer labels."""
-        labled_sources: Set[Tuple[Path, int]] = set()
+        labled_sources: set[tuple[Path, int]] = set()
         for path, label in self._sources:
             labled_sources.add((path, self._labels[label]))
         return labled_sources
 
-    def get_labeled_sources(self) -> Set[Tuple[Path, Label]]:
+    @log_call(action_type="data:app:info:lab_source")
+    def get_labeled_sources(self) -> set[tuple[Path, Label]]:
         """Get the sources this dataset uses with human-readable labels."""
-        labled_sources: Set[Tuple[Path, Label]] = set()
+        labled_sources: set[tuple[Path, Label]] = set()
         for path, label in self._sources:
             labled_sources.add((path, label))
         return labled_sources

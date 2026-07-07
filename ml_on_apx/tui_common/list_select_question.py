@@ -10,6 +10,8 @@ from textual.screen import ModalScreen
 from textual.types import NoSelection
 from textual.widgets import Select
 
+from ml_on_apx.logging import log_call
+
 ListItem = TypeVar("ListItem")
 
 
@@ -54,6 +56,7 @@ class ListSelectQuestion(ModalScreen[ListItem]):
         with VerticalGroup(classes="container", id="container"):
             yield Select[ListItem](self._options, id="slist-list")
 
+    @log_call(action_type="tui:lsq:mount")
     def on_mount(self) -> None:
         """Finish setup of the screen once it is attached to the DOM."""
         container = self.get_child_by_id("container")
@@ -61,11 +64,13 @@ class ListSelectQuestion(ModalScreen[ListItem]):
         container.border_subtitle = self._subtitle
         container.get_child_by_id("slist-list").focus()
 
+    @log_call(action_type="tui:lsq:exit")
     def action_exit(self) -> None:
         """Process the action `exit`."""
         self.dismiss(None)
 
     @on(Select.Changed)
+    @log_call(action_type="tui:lsq:handle_selection")
     def handle_selection(self, message: Select.Changed) -> None:
         """Handle the Changed event from a descendant Select widget.
 

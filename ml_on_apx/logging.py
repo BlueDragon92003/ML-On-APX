@@ -46,6 +46,7 @@ def log_call(
     return eliot.log_call(None, action_type, include_args, include_result)
 
 
+@log_call(action_type="log:init_file")
 def initialize_file_logging(
     log_file: Path,
     append: bool = False,

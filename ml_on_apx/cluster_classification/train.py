@@ -3,7 +3,10 @@
 import torch
 from torch import nn
 
+from ml_on_apx.logging import log_call
 
+
+@log_call(action_type="class:train:train")
 def train_loop(
     device: torch.device,
     dataloader: torch.utils.data.DataLoader,
@@ -26,25 +29,13 @@ def train_loop(
     - A formatted string for user display messages.
 
     """
-    # logger.log_enter_function(
-    #     "train_loop_fn",
-    #     device=device,
-    #     dataloader=dataloader,
-    #     model=model,
-    #     loss_fn=loss_fn,
-    #     optimizer=optimizer,
-    # )
     # size = len(dataloader.dataset)
     # Set the model to training mode - important for batch normalization and
     #       dropout layers
     model.train()
     model.to(device)
 
-    # Loop through each batch of data from the dataloader.
-    # logger.log_preloop("training_for_loop")
-    #
-    for batch_num, batch_items in enumerate(dataloader):
-        # logger.log_iteration_head(batch_num=batch_num)
+    for _batch_num, batch_items in enumerate(dataloader):
         # Move data to GPU
         data = batch_items[:, :-1].to(device)
         labels = batch_items[:, -1].to(device).type(torch.long)
@@ -56,6 +47,3 @@ def train_loop(
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
-        # logger.log_iteration_tail()
-    # logger.log_postloop("training_for_loop")
-    # logger.log_exit_function("train_loop_fn")

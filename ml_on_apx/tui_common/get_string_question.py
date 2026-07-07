@@ -9,6 +9,8 @@ from textual.containers import VerticalGroup
 from textual.screen import ModalScreen
 from textual.widgets import Input
 
+from ml_on_apx.logging import log_call
+
 
 class GetStringQuestion(ModalScreen[str]):
     """A question with a text answer."""
@@ -51,6 +53,7 @@ class GetStringQuestion(ModalScreen[str]):
         with VerticalGroup(classes="container", id="container"):
             yield Input(id="getstr-input")
 
+    @log_call(action_type="tui:gsq:mount")
     def on_mount(self) -> None:
         """Finish setup of the screen once it is attached to the DOM."""
         container = self.get_child_by_id("container")
@@ -58,11 +61,13 @@ class GetStringQuestion(ModalScreen[str]):
         container.border_subtitle = self._subtitle
         container.get_child_by_id("getstr-input").focus()
 
+    @log_call(action_type="tui:gsq:exit")
     def action_exit(self) -> None:
         """Process the action `exit`."""
         self.dismiss(None)
 
     @on(Input.Submitted)
+    @log_call(action_type="tui:gsq:submit")
     def handle_input_submission(self, message: Input.Submitted) -> None:
         """Handle the Submitted event from a descendant Input widget.
 

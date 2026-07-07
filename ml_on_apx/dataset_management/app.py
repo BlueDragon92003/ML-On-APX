@@ -50,12 +50,13 @@ class DatasetManagerApp(App):
         """
         yield textual.widgets.LoadingIndicator()
 
-    @log_call(action_type="data:app:app:on_mount")
+    @log_call(action_type="data:app:app:mount")
     async def on_mount(self) -> None:
         """Finish setup of the screen once it is attached to the DOM."""
         self.theme = "gruvbox"
         self.push_screen(MainView(self._manager))
 
+    @log_call(action_type="data:app:app:quit_screen")
     def action_show_quit_screen(self) -> None:
         """Process the action `show_quit_screen`."""
         action = start_action(action_type="data:app:app:show_quit")
