@@ -15,9 +15,6 @@ if __name__ == "__main__":
     elif not log_path.is_dir():
         raise NotADirectoryError(f"Expected a directory at `{log_path!s}`.")
 
-    for file in log_path.iterdir():
-        file.unlink()
-
     initialize_file_logging(log_path, file_count=10)
 
     loader = unittest.TestLoader()

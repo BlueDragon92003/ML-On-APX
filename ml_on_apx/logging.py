@@ -57,14 +57,18 @@ def log_call(
     return eliot.log_call(None, action_type, include_args, include_result)
 
 
-@log_call("compare_files" @ _LOG_SETUP)
+# @log_call("compare_files" @ _LOG_SETUP)
 def _compare_files(file1: Path, file2: Path) -> int:
     stem1 = file1.stem.split("-")
     stem2 = file2.stem.split("-")
+    if len(stem1) == 3:
+        stem1.append("0")
+    if len(stem2) == 3:
+        stem2.append("0")
     for i in range(4):
         if int(stem2[i]) != int(stem1[i]):
-            return int(stem2[i]) - int(stem1[i])
-    return int(os.path.getctime(file2) - os.path.getctime(file1))
+            return int(stem1[i]) - int(stem2[i])
+    return int(os.path.getctime(file1) - os.path.getctime(file2))
 
 
 @log_call(action_type="init" @ _LOG)
@@ -94,33 +98,37 @@ def initialize_file_logging(
     else:
         with _LOG_SETUP_DIRECTORY(filepath=log_file, file_count=file_count) as action:
             assert type(action) is Action
-            if file_count > 0:
-                log_files = list(
-                    filter(
-                        lambda path: re.fullmatch(
-                            r"\d{4,}-\d\d-\d\d-\d+.log", path.name
-                        ),
-                        log_file.iterdir(),
-                    )
+            log_files = list(
+                filter(
+                    lambda path: re.fullmatch(r"\d{4,}-\d\d-\d\d-\d+.log", path.name),
+                    log_file.iterdir(),
                 )
+            )
+            log_files = sorted(log_files, key=cmp_to_key(_compare_files))
+            if file_count > 0:
                 if (diff := len(log_files) + 1 - file_count) > 0:
-                    to_delete = sorted(log_files, key=cmp_to_key(_compare_files))[:diff]
+                    to_delete = log_files[:diff]
+                    log_files = log_files[diff:]
+                    action.add_success_fields(deleted=to_delete)
                     for td in to_delete:
                         os.unlink(td)
+                else:
+                    action.add_success_fields(deleted=None)
+            newest = log_files[-1].stem if len(log_files) != 0 else None
             today = datetime.date.today()
             base = f"{today.year:04d}-{today.month:02d}-{today.day:02d}"
-            stem = base
-            count = 1
+            count = int(newest.split("-")[3]) if newest is not None else 0
+            stem = f"{base}-{count}"
             target = log_file / f"{stem}.log"
-            print(target.exists(), target)
             while target.exists():
+                count += 1
                 stem = f"{base}-{count}"
                 target = log_file / f"{stem}.log"
-                count += 1
             eliot.to_file(open(target, "xb"))
+            (log_file / "latest.log").unlink()
             os.symlink(
                 target,
                 log_file / "latest.log",
                 target_is_directory=False,
             )
-            action.add_success_fields(newfile=target)
+            action.add_success_fields(newfile=str(target))
