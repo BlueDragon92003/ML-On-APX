@@ -1,9 +1,11 @@
 """Information on specific models."""
 
 from datetime import date, datetime
-from typing import List
 
-from ml_on_apx.labelling import Labels
+from ml_on_apx.logging import log_call
+from ml_on_apx.model_management import _MODEL
+
+_MODEL_INFO = "model" @ _MODEL
 
 
 class ModelTestInfo:
@@ -31,7 +33,25 @@ class ModelTestInfo:
         self._accuracy: float = accuracy
         self._average_loss: float = average_loss
 
-        # TODO Properties for all of the above
+        @property
+        def test_time(self: "ModelTestInfo") -> datetime:
+            """When the test was run."""
+            return self._test_time
+
+        @property
+        def run_by_user(self: "ModelTestInfo") -> bool:
+            """If the test was run by the user or as part of the checkpoint process."""
+            return self._run_by_user
+
+        @property
+        def accuracy(self: "ModelTestInfo") -> float:
+            """The test's accuracy."""
+            return self._accuracy
+
+        @property
+        def average_loss(self: "ModelTestInfo") -> float:
+            """The average loss across the test."""
+            return self._average_loss
 
 
 class ModelInfo:
@@ -41,8 +61,8 @@ class ModelInfo:
         self,
         start_date: date,
         fork_time: datetime,
-        labels: Labels,
-        training_datasets: List[str],
+        labels: str,
+        training_datasets: list[str],
     ) -> None:
         """Create a new object to store information on a model.
 
@@ -57,13 +77,37 @@ class ModelInfo:
         # Training information
         self._training_start_date: date = start_date
         self._model_fork_time: datetime = fork_time
-        self._labels: Labels = labels
-        self._training_datasets: List[str] = training_datasets
+        self._group: str = labels
+        self._training_datasets: list[str] = training_datasets
         # Testing information
-        self._testing_information: List[ModelTestInfo] = []
+        self._testing_information: list[ModelTestInfo] = []
 
-        # TODO Properties for all of the above
+    @property
+    def training_start_date(self: "ModelInfo") -> date:
+        """The date the training job started."""
+        return self._training_start_date
 
+    @property
+    def model_fork_time(self: "ModelInfo") -> datetime:
+        """When this model was saved."""
+        return self._model_fork_time
+
+    @property
+    def group(self: "ModelInfo") -> str:
+        """The name of group this model belongs to."""
+        return self._group
+
+    @property
+    def training_datasets(self: "ModelInfo") -> list[str]:
+        """The date the training job started."""
+        return self._training_datasets
+
+    @property
+    def testing_information(self: "ModelInfo") -> list[ModelTestInfo]:
+        """The date the training job started."""
+        return self._testing_information
+
+    @log_call(action_type="add" > _MODEL_INFO)
     def add_testing_information(self, new_test: ModelTestInfo) -> None:
         """Add information about a test run on this model.
 

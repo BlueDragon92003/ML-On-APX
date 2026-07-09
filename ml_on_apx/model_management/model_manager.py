@@ -1,7 +1,6 @@
 """Manages models and model groups."""
 
 from pathlib import Path
-from typing import List
 
 from ml_on_apx.model_management.group_info import GroupInfo
 from ml_on_apx.model_management.model_info import ModelInfo
@@ -51,7 +50,7 @@ class ModelManager:
 
         """
 
-    def get_group_names(self) -> List[str]:
+    def get_group_names(self) -> list[str]:
         """Get a list of group names tracked by this manager.
 
         Returns:
@@ -96,7 +95,7 @@ class ModelManager:
 
         """
 
-    def get_model_names(self, group_name: str) -> List[str]:
+    def get_model_names(self, group_name: str) -> list[str]:
         """Return a list of tracked models.
 
         Args:

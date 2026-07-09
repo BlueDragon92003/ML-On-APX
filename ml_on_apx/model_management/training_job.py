@@ -1,7 +1,10 @@
 """A job to train a model."""
 
-from ml_on_apx.dataset_management.dataset_info import DatasetInfo
+from ml_on_apx.logging import log_call
+from ml_on_apx.model_management import _MODEL
 from ml_on_apx.model_management.stop_functions import StopFunction
+
+_TRAINING = "training" @ _MODEL
 
 
 class TrainingJob:
@@ -17,13 +20,13 @@ class TrainingJob:
     def __init__(
         self,
         group_name: str,
-        dataset: DatasetInfo,
+        dataset: str,
         stop_function: StopFunction,
         lookback_distance: int,
         batch_size: int,
         checkpoint_rate: int,
         learning_rate: float,
-        testing_dataset: DatasetInfo | None,
+        testing_dataset: str | None,
         base_model_name: str | None,
     ) -> None:
         """Initialize a new training job.
@@ -32,7 +35,7 @@ class TrainingJob:
 
         Args:
             group_name (str): The model group to train around.
-            dataset (DatasetInfo): The dataset to train against.
+            dataset (str): The name of the dataset to train against.
             stop_function (StopFunction): The function the job uses to determine whether
                 to stop.
             lookback_distance (int): The length of history to provide to the stop
@@ -40,8 +43,8 @@ class TrainingJob:
             batch_size (int): Hyperparameter: The batch size to train with.
             checkpoint_rate (int): Hyperparameter: How often to make a checkpoint.
             learning_rate (float): Hyperparameter: The learning rate for the model.
-            testing_dataset (DatasetInfo | None): The dataset to test against, or None
-                if the same dataset used for training is to be used.
+            testing_dataset (str | None): The name of the dataset to test against, or
+                None if the same dataset used for training is to be used.
             base_model_name (str | None): A model in the group to pull staring weights
                 from.
 
@@ -56,11 +59,50 @@ class TrainingJob:
         self._testing_dataset = testing_dataset
         self._base_model_name = base_model_name
 
-    # Group to train
-    # Starting model (or 'None' to create new)
-    # Dataset to test on
-    # Training hyperparameters
-    # Stop condition(s)
+    @property
+    def group_name(self: "TrainingJob") -> str:
+        """The name of the model group to train."""
+        return self._group_name
+
+    @property
+    def dataset(self: "TrainingJob") -> str:
+        """The name of the dataset to train against."""
+        return self._dataset
+
+    @property
+    def stop_function(self: "TrainingJob") -> StopFunction:
+        """The function used to determine if the training job should stop."""
+        return self._stop_function
+
+    @property
+    def lookback_distance(self: "TrainingJob") -> int:
+        """How far back each of the parameters to the stop function should go."""
+        return self._lookback_distance
+
+    @property
+    def batch_size(self: "TrainingJob") -> int:
+        """Hyperparemeter. The size of the training batch."""
+        return self._batch_size
+
+    @property
+    def checkpoint_rate(self: "TrainingJob") -> int:
+        """How many epochs between testing & checkpointing."""
+        return self._checkpoint_rate
+
+    @property
+    def learning_rate(self: "TrainingJob") -> float:
+        """Hyperparameter. The learning rate of the model."""
+        return self._learning_rate
+
+    @property
+    def testing_dataset(self: "TrainingJob") -> str | None:
+        """The name of the dataset to test with, if different than the training set."""
+        return self._testing_dataset
+
+    @property
+    def base_model_name(self: "TrainingJob") -> str | None:
+        """The name of the model in this group to copy weights from as a template."""
+        return self._base_model_name
 
 
 class TrainingJobBuilder:
@@ -69,13 +111,13 @@ class TrainingJobBuilder:
     def __init__(self) -> None:
         """Initialize the builder."""
         self._group_name: str | None = None
-        self._dataset: DatasetInfo | None = None
+        self._dataset: str | None = None
         self._stop_function: StopFunction | None = None
         self._lookback_distance: int = 3
         self._batch_size: int = 1
         self._checkpoint_rate: int = 10
         self._learning_rate: float = 1e-4
-        self._testing_dataset: DatasetInfo | None = None
+        self._testing_dataset: str | None = None
         self._base_model_name: str | None = None
 
     def group_name(self, group_name: str) -> "TrainingJobBuilder":
@@ -91,11 +133,11 @@ class TrainingJobBuilder:
         self._group_name = group_name
         return self
 
-    def dataset(self, dataset: DatasetInfo) -> "TrainingJobBuilder":
+    def dataset(self, dataset: str) -> "TrainingJobBuilder":
         """Specify the dataset for the training job.
 
         Args:
-            dataset (str): The dataset to use.
+            dataset (str): The name of the dataset to use.
 
         Returns:
             TrainingJobBuilder: The builder.
@@ -169,13 +211,11 @@ class TrainingJobBuilder:
         self._learning_rate = learning_rate
         return self
 
-    def testing_dataset(
-        self, testing_dataset: DatasetInfo | None
-    ) -> "TrainingJobBuilder":
+    def testing_dataset(self, testing_dataset: str | None) -> "TrainingJobBuilder":
         """Specify the testing dataset for the training job.
 
         Args:
-            testing_dataset (DatasetInfo | None): The testing dataset.
+            testing_dataset (str | None): The name of the testing dataset.
 
         Returns:
             TrainingJobBuilder: The builder.
@@ -197,6 +237,7 @@ class TrainingJobBuilder:
         self._base_model_name = base_model_name
         return self
 
+    @log_call(action_type="build_job" > _TRAINING)
     def build(self) -> TrainingJob:
         """Build a training job from this builder.
 

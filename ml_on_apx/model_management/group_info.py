@@ -8,7 +8,7 @@ from ml_on_apx.labelling import Labels
 from ml_on_apx.logging import log_call
 from ml_on_apx.model_management import _MODEL
 
-_GROUP_INFO = "info" @ _MODEL
+_GROUP_INFO = "group" @ _MODEL
 _ACTIVATION = "activation" @ _MODEL
 
 _FEATURE = "feature" @ _GROUP_INFO
@@ -175,7 +175,7 @@ class GroupInfo:
         self._hidden_layer_activations.pop(layer - 1)
 
     @log_call(action_type="get" > _LAYER_SIZE)
-    def get_layer_size(self, layer: int) -> int:
+    def layer_size(self, layer: int) -> int:
         """Get the size of the specified layer.
 
         Args:
@@ -315,6 +315,11 @@ class GroupInfo:
             self._output_activation
         else:
             raise IndexError(f"Index {layer} out of bounds!")
+
+    @property
+    def labels(self: "GroupInfo") -> Labels:
+        """The labels models in this group train on."""
+        return self._labels
 
     def __len__(self) -> int:
         """Return the number of layers for the models in this group.

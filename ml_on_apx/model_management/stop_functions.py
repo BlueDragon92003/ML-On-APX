@@ -3,8 +3,13 @@
 import math
 from typing import Dict, List, Tuple
 
+from ml_on_apx.logging import log_call
+from ml_on_apx.model_management import _MODEL
+
 LispType = float | str | List["LispType"]
 LispVars = List[Tuple[str, LispType]]
+
+_STOP_FUNCTIONS = "stopfn" @ _MODEL
 
 
 class StopFunction:
@@ -51,6 +56,7 @@ class StopFunction:
         self._code = code
         self._parsed = StopFunction.parse(StopFunction.lex(self._code))
 
+    @log_call(action_type="call" > _STOP_FUNCTIONS)
     def __call__(self, **kwargs: float) -> bool:
         """Call the stop function.
 
@@ -91,6 +97,7 @@ class StopFunction:
         )
 
     @staticmethod
+    @log_call(action_type="kwargs" > _STOP_FUNCTIONS)
     def convert_kwargs(kwargs: Dict[str, float]) -> LispVars:
         """Convert a keyword argument dict to the interpreter's variable format.
 
@@ -108,6 +115,7 @@ class StopFunction:
 
     # Very simple lexer, split by parens and whitespace
     @staticmethod
+    @log_call(action_type="lex" > _STOP_FUNCTIONS)
     def lex(code: str) -> List[str]:
         """Process the code string into individual tokens.
 
@@ -122,6 +130,7 @@ class StopFunction:
 
     # A simple parser: build nested lists from nested parenthesis
     @staticmethod
+    @log_call(action_type="parse" > _STOP_FUNCTIONS)
     def parse(tokens: List[str]) -> LispType:
         """Parse tokens into an executable lisp AST.
 
