@@ -51,14 +51,14 @@ class SourceTreeWidget(Tree["SourceTreeData"]):
 
         """
         if node.data is not None:
-            text = Text(node.data.get_name())
+            text = Text(node.data.name)
             if node.data._is_directory:
                 text = Text.assemble(text, "/")
             if (
                 node.data.inclusion == node.data.InclusionType.DIRECTLY_INCLUDED
                 and node.data._label is not None
             ):
-                text = Text.assemble(text, f" [{node.data.get_label()}]")
+                text = Text.assemble(text, f" [{node.data.label}]")
             node._label = text
             style = style + node.data.get_style(self.app.get_css_variables())
         return super().render_label(node, base_style, style)
@@ -97,17 +97,17 @@ class SourceTreeWidget(Tree["SourceTreeData"]):
         assert node.data is not None
         labeled_sources: set[tuple[Path, Label]] = set()
         if node.data.inclusion == node.data.InclusionType.DIRECTLY_INCLUDED:
-            if node.data.is_directory():
+            if node.data.is_directory:
                 for path in self.get_paths_from_node(node):
-                    label = node.data.get_label()
+                    label = node.data.label
                     if label is None:
                         raise self.MissingLabelError(
                             path, f"Label not set for source `{path}`!"
                         )
                     labeled_sources.add((path, label))
             else:
-                label = node.data.get_label()
-                path = node.data.get_path()
+                label = node.data.label
+                path = node.data.path
                 if label is None:
                     raise self.MissingLabelError(
                         path, f"Label not set for source `{path}`!"
@@ -129,11 +129,11 @@ class SourceTreeWidget(Tree["SourceTreeData"]):
         """
         assert node.data is not None
         path_list: list[Path] = []
-        if node.data.is_directory():
+        if node.data.is_directory:
             for child in node.children:
                 path_list.extend(self.get_paths_from_node(child))
         else:
-            path_list.append(node.data.get_path())
+            path_list.append(node.data.path)
         return path_list
 
 
@@ -245,19 +245,22 @@ class SourceTreeData(object):
             style = Style(color=theme["foreground"])
         return style
 
+    @property
     @log_call(action_type="get_dir" > _DATA)
     def is_directory(self) -> bool:
-        """Return true if the node with this data is a directory, not a source."""
+        """If the node with this data is a directory, not a source."""
         return self._is_directory
 
+    @property
     @log_call(action_type="get_name" > _DATA)
-    def get_name(self) -> str:
-        """Get the name of the node with this data."""
+    def name(self) -> str:
+        """The name of the node with this data."""
         return self._name
 
+    @property
     @log_call(action_type="get_path" > _DATA)
-    def get_path(self) -> Path:
-        """Get the name of the node with this data.
+    def path(self) -> Path:
+        """The path to the node's source file.
 
         Raises:
             NotASourceError: If the node with this data is a directory,
@@ -272,14 +275,15 @@ class SourceTreeData(object):
         assert self._path is not None
         return self._path
 
+    @property
     @log_call(action_type="get_label" > _DATA)
-    def get_label(self) -> Label | None:
-        """Get the machine learning label of the node with this data."""
+    def label(self) -> Label | None:
+        """The machine learning label of the node with this data."""
         return self._label
 
-    @log_call(action_type="set_label" > _DATA)
-    def set_label(self, label: Label | None) -> None:
-        """Set the machine learning label of the node with this data."""
+    @label.setter
+    # @log_call(action_type="set_label" > _DATA)
+    def label(self, label: Label | None) -> None:
         self._label = label
 
     @log_call(action_type="reset_error_status" > _DATA)

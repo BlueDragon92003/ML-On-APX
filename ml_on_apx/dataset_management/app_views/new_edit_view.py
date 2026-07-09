@@ -152,7 +152,7 @@ class NewEditView(Screen[None]):
                     )
             with TabPane("Sources", id="sources-tab"):
                 self._tree = SourceTreeWidget(
-                    "/".join(self._manager.get_root_dir_path().parts) + "/",
+                    "/".join(self._manager.root_dir_path.parts) + "/",
                     id="source-tree",
                 )
                 self._tree.auto_expand = False
@@ -211,15 +211,15 @@ class NewEditView(Screen[None]):
         """Finish setup of the screen once it is attached to the DOM."""
         if self._template is not None:
             labels = []
-            for label in self._template.get_labels():
+            for label in self._template.labels:
                 labels.append(label)
             self.labels = labels
-            for path, label in self._template.get_labeled_sources():
+            for path, label in self._template.labeled_sources:
                 self.template_sources.update({path: label})
         self.append_nodes(
             self._tree.root,
-            self._manager.get_sources(),
-            Path(self._manager.get_root_dir_path()),
+            self._manager.sources,
+            Path(self._manager.root_dir_path),
         )
 
     @on(Tree.NodeSelected)
@@ -261,7 +261,7 @@ class NewEditView(Screen[None]):
                             else:
                                 self.disinclude(node)
                         else:
-                            data.set_label(selected)
+                            data.label = selected
                             for child in node.children:
                                 self.include(child)
                         self.update_source_tree_selections(self._tree.root)
@@ -272,15 +272,13 @@ class NewEditView(Screen[None]):
                     options: list[tuple[str, SourceLabel | Literal[False]]] = []
                     for label in self.labels:
                         options.append((str(label), label))
-                    options.append(
-                        (f"> Remove {data.get_name()} from the dataset.", False)
-                    )
+                    options.append((f"> Remove {data.name} from the dataset.", False))
 
                     self.app.push_screen(
                         ListSelectQuestion(
                             options,
                             title=f"Which label should be used for \
-                                `{data.get_name()}`?",
+                                `{data.name}`?",
                             subtitle="Press escape to cancel.",
                         ),
                         callback=included_node,
@@ -298,7 +296,7 @@ class NewEditView(Screen[None]):
                             assert node.parent is not None
                             self.release_children(node.parent)
                             if selected:
-                                data.set_label(selected)
+                                data.label = selected
                                 data.inclusion = data.InclusionType.DIRECTLY_INCLUDED
                                 for child in node.children:
                                     self.include(child)
@@ -312,15 +310,12 @@ class NewEditView(Screen[None]):
                     options: list[tuple[str, SourceLabel | Literal[False]]] = []
                     for label in self.labels:
                         options.append((str(label), label))
-                    options.append(
-                        (f"> Remove {data.get_name()} from the dataset.", False)
-                    )
+                    options.append((f"> Remove {data.name} from the dataset.", False))
 
                     self.app.push_screen(
                         ListSelectQuestion(
                             options,
-                            title=f"Which label should be used for \
-                                `{data.get_name()}`?",
+                            title=f"Which label should be used for `{data.name}`?",
                             subtitle="Press escape to cancel.",
                         ),
                         callback=ancestrally_included_node,
@@ -333,7 +328,7 @@ class NewEditView(Screen[None]):
                         if not selected:
                             return
                         else:
-                            data.set_label(selected)
+                            data.label = selected
                             data.inclusion = data.InclusionType.DIRECTLY_INCLUDED
                             for child in node.children:
                                 self.include(child)
@@ -349,8 +344,7 @@ class NewEditView(Screen[None]):
                     self.app.push_screen(
                         ListSelectQuestion(
                             options,
-                            title=f"Which label should be used for \
-                                `{data.get_name()}`?",
+                            title=f"Which label should be used for `{data.name}`?",
                             subtitle="Press escape to cancel.",
                         ),
                         callback=not_included_node,
@@ -509,8 +503,8 @@ class NewEditView(Screen[None]):
         """Remove a label from all entries on the source tree."""
         if tree_node is not tree_node.tree.root:
             assert tree_node.data is not None
-            if tree_node.data.get_label() is label_to_remove:
-                tree_node.data.set_label(None)
+            if tree_node.data.label is label_to_remove:
+                tree_node.data.label = None
         for child in tree_node.children:
             self.remove_label_from_tree(child, label_to_remove)
 
@@ -531,19 +525,17 @@ class NewEditView(Screen[None]):
                 the new node as data.
 
         """
-        for source_node in source_tree.get_children():
-            this_path = path_so_far / (source_node.get_name() + ".root")
-            if len(source_node.get_children()) == 0:
+        for source_node in source_tree.children:
+            this_path = path_so_far / (source_node.name + ".root")
+            if len(source_node.children) == 0:
                 new_tree_node = dest_tree_node.add_leaf(
-                    f"{source_node.get_name()}",
-                    data=SourceTreeData.new_leaf_data(
-                        f"{source_node.get_name()}", this_path
-                    ),
+                    f"{source_node.name}",
+                    data=SourceTreeData.new_leaf_data(f"{source_node.name}", this_path),
                 )
             else:
                 new_tree_node = dest_tree_node.add(
-                    f"{source_node.get_name()}",
-                    data=SourceTreeData.new_directory_data(f"{source_node.get_name()}"),
+                    f"{source_node.name}",
+                    data=SourceTreeData.new_directory_data(f"{source_node.name}"),
                 )
             if (
                 self.template_sources is not None
@@ -553,7 +545,7 @@ class NewEditView(Screen[None]):
                 new_tree_node.data.inclusion = (
                     new_tree_node.data.InclusionType.DIRECTLY_INCLUDED
                 )
-                new_tree_node.data.set_label(self.template_sources[this_path])
+                new_tree_node.data.label = self.template_sources[this_path]
             self.append_nodes(new_tree_node, source_node, this_path)
         dest_tree_node.expand()
 
@@ -570,14 +562,14 @@ class NewEditView(Screen[None]):
             assert node.parent is not None
             self.release_children(node.parent)
             node.data.inclusion = node.data.InclusionType.NOT_INCLUDED
-            node.data.set_label(None)
+            node.data.label = None
         elif node.data.inclusion == node.data.InclusionType.DIRECTLY_INCLUDED:
             node.data.inclusion = node.data.InclusionType.NOT_INCLUDED
         for child in node.children:
             assert child.data is not None
             child.data.inclusion = child.data.InclusionType.DIRECTLY_INCLUDED
-            child.data.set_label(node.data.get_label())
-        node.data.set_label(None)
+            child.data.label = node.data.label
+        node.data.label = None
 
     @log_call(action_type="include" > _NEW_EDIT_VIEW)
     def include(self, node: TreeNode[SourceTreeData]) -> None:
@@ -589,7 +581,7 @@ class NewEditView(Screen[None]):
         """
         assert node.data is not None
         node.data.inclusion = node.data.InclusionType.ANCENSTOR_INCLUDED
-        node.data.set_label(None)
+        node.data.label = None
         for child in node.children:
             self.include(child)
 
@@ -603,7 +595,7 @@ class NewEditView(Screen[None]):
         """
         assert node.data is not None
         node.data.inclusion = node.data.InclusionType.NOT_INCLUDED
-        node.data.set_label(None)
+        node.data.label = None
         for child in node.children:
             self.disinclude(child)
 

@@ -20,14 +20,16 @@ class TreeNode:
         self._name: str = name
         self._children: List["TreeNode"] = []
 
+    @property
     @log_call(action_type="name" > _TREE)
-    def get_name(self) -> str:
-        """Get the name for this node."""
+    def name(self) -> str:
+        """The name for this node."""
         return self._name
 
+    @property
     @log_call(action_type="get_children" > _TREE)
-    def get_children(self) -> List["TreeNode"]:
-        """Get this node's children."""
+    def children(self) -> List["TreeNode"]:
+        """The node's children."""
         return self._children
 
     @log_call(action_type="add_child" > _TREE)
@@ -53,10 +55,10 @@ class TreeNode:
         """
         if type(other) is not TreeNode:
             return False
-        if self.get_name() != other.get_name():
+        if self.name != other.name:
             return False
-        children1 = self.get_children()
-        children2 = other.get_children()
+        children1 = self.children
+        children2 = other.children
         if len(children1) != len(children2):
             return False
         for child1 in children1:

@@ -133,14 +133,16 @@ class DatasetManager(Generic[ManagedDataset]):
                 pickle.dump(self._set_info, set_info)
         return False
 
+    @property
     @log_call(action_type="get_root_path" > _MANAGER)
-    def get_root_dir_path(self) -> Path:
-        """Get the path to the ROOT file directory."""
+    def root_dir_path(self) -> Path:
+        """The path to the ROOT file directory."""
         return self._root_dir_path
 
+    @property
     @log_call(action_type="get_sources" > _MANAGER)
-    def get_sources(self) -> TreeNode:
-        """Get the possible ROOT sources as a tree."""
+    def sources(self) -> TreeNode:
+        """The possible ROOT sources as a tree."""
         return self._sources
 
     @log_call(action_type="create" > _MANAGER)
@@ -160,8 +162,9 @@ class DatasetManager(Generic[ManagedDataset]):
         self._set_info[name] = dataset
         self._to_recompile.append(name)
 
+    @property
     @log_call(action_type="list_names" > _MANAGER)
-    def get_dataset_names(self) -> Set[str]:
+    def dataset_names(self) -> Set[str]:
         """List all datasets this manager is aware of."""
         return set(self._set_info.keys())
 
@@ -281,7 +284,7 @@ class DatasetManager(Generic[ManagedDataset]):
             dataset_info (DatasetInfo): The information to compile the dataset with.
 
         """
-        to_pickle = self._dataset_class.create(dataset_info.get_numbered_sources())
+        to_pickle = self._dataset_class.create(dataset_info.numbered_sources)
         with open(path, mode="wb") as file:
             pickle.dump(to_pickle, file)
 

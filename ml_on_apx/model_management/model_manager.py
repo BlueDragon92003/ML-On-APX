@@ -50,7 +50,8 @@ class ModelManager:
 
         """
 
-    def get_group_names(self) -> list[str]:
+    @property
+    def group_names(self) -> list[str]:
         """Get a list of group names tracked by this manager.
 
         Returns:

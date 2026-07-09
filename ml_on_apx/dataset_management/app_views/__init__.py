@@ -20,11 +20,11 @@ def get_dataset_info_markdown(dsinfo: DatasetInfo, manager: DatasetManager) -> s
 
     """
     markdown = "The dataset uses the following labels:\n"
-    for label in dsinfo.get_labels():
+    for label in dsinfo.labels:
         markdown += f"  - {label}\n"
     markdown += "\nThe dataset uses the following sources:\n"
-    for source in dsinfo.get_labeled_sources():
+    for source in dsinfo.labeled_sources:
         markdown += (
-            f"  - {source[0].relative_to(manager.get_root_dir_path())} ({source[1]})\n"
+            f"  - {source[0].relative_to(manager.root_dir_path)} ({source[1]})\n"
         )
     return markdown

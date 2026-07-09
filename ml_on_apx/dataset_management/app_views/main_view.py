@@ -139,7 +139,7 @@ class MainView(Screen[None]):
             str | None: The actual value that should be set.
 
         """
-        valid = self._manager.get_dataset_names()
+        valid = self._manager.dataset_names
         if new_name not in valid:
             new_name = None
         return new_name
@@ -312,7 +312,7 @@ class MainView(Screen[None]):
         """Remake and display the list of datasets shown to the user."""
         dataset_list = self.get_widget_by_id("dataset-list", ListView)
         await dataset_list.clear()
-        dataset_names = list(self._manager.get_dataset_names())
+        dataset_names = list(self._manager.dataset_names)
         dataset_names.sort()
         for dataset_name in dataset_names:
             dataset_list.append(ListItem(Label(dataset_name), name=dataset_name))
