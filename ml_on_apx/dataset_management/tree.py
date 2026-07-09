@@ -20,17 +20,17 @@ class TreeNode:
         self._name: str = name
         self._children: List["TreeNode"] = []
 
-    @log_call(action_type="get_name" @ _TREE)
+    @log_call(action_type="name" > _TREE)
     def get_name(self) -> str:
         """Get the name for this node."""
         return self._name
 
-    @log_call(action_type="get_children" @ _TREE)
+    @log_call(action_type="get_children" > _TREE)
     def get_children(self) -> List["TreeNode"]:
         """Get this node's children."""
         return self._children
 
-    @log_call(action_type="add_child" @ _TREE)
+    @log_call(action_type="add_child" > _TREE)
     def add_child(self, child: "TreeNode") -> None:
         """Add a child node to this node.
 
@@ -69,7 +69,7 @@ class TreeNode:
         return True
 
     @staticmethod
-    @log_call(action_type="from_fs" @ _TREE)
+    @log_call(action_type="from_fs" > _TREE)
     def from_filesystem(name: str, sources: Iterable[Path]) -> "TreeNode":
         """Produce a tree of ROOT files and parent directories.
 

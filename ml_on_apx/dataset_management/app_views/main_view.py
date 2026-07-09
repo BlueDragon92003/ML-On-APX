@@ -106,7 +106,7 @@ class MainView(Screen[None]):
             )
         yield Footer()
 
-    @log_call(action_type="check_action" @ _MAIN_VIEW, include_args=["action"])
+    @log_call(action_type="check_action" > _MAIN_VIEW, include_args=["action"])
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
         """Check to see if an action can be performed.
 
@@ -169,14 +169,14 @@ class MainView(Screen[None]):
                 get_dataset_info_markdown(dataset_info, self._manager)
             )
 
-    @log_call(action_type="mount" @ _MAIN_VIEW)
+    @log_call(action_type="mount" > _MAIN_VIEW)
     async def on_mount(self) -> None:
         """Finish setup of the screen once it is attached to the DOM."""
         await self.remake_dataset_list()
         self.no_selection_view()
 
     @on(Button.Pressed)
-    @log_call(action_type="button_pressed" @ _MAIN_VIEW)
+    @log_call(action_type="button_pressed" > _MAIN_VIEW)
     async def handle_button_press(self, message: Button.Pressed) -> None:
         """Handle the Pressed event from any child button.
 
@@ -198,7 +198,7 @@ class MainView(Screen[None]):
                 self.action_recompile_dataset()
 
     @on(ListView.Selected)
-    @log_call(action_type="select_ds" @ _MAIN_VIEW)
+    @log_call(action_type="select_ds" > _MAIN_VIEW)
     def handle_list_view_selected(self, message: ListView.Selected) -> None:
         """Handle the Selected event from the dataset list.
 
@@ -299,7 +299,7 @@ class MainView(Screen[None]):
                 check_delete,
             )
 
-    @log_call(action_type="force_recompile" @ _MAIN_VIEW)
+    @log_call(action_type="force_recompile" > _MAIN_VIEW)
     def action_recompile_dataset(self) -> None:
         """Process the action `recompile_dataset`."""
         if self.dataset_name is None:
@@ -307,7 +307,7 @@ class MainView(Screen[None]):
         info = self._manager.get_dataset_info(self.dataset_name)
         self._manager.update_dataset(self.dataset_name, info)
 
-    @log_call(action_type="remake_ds_list" @ _MAIN_VIEW)
+    @log_call(action_type="remake_ds_list" > _MAIN_VIEW)
     async def remake_dataset_list(self) -> None:
         """Remake and display the list of datasets shown to the user."""
         dataset_list = self.get_widget_by_id("dataset-list", ListView)
@@ -317,7 +317,7 @@ class MainView(Screen[None]):
         for dataset_name in dataset_names:
             dataset_list.append(ListItem(Label(dataset_name), name=dataset_name))
 
-    @log_call(action_type="no_ds_selected" @ _MAIN_VIEW)
+    @log_call(action_type="no_ds_selected" > _MAIN_VIEW)
     def no_selection_view(self) -> None:
         """Set up the screen when no dataset is selected."""
         title = self.get_widget_by_id("dataset-name", Label)

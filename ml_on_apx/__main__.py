@@ -44,7 +44,7 @@ SUBCOMMAND_MNG_DATA: str = "manage data"
 SUBCOMMAND_MNG_MODEL: str = "manage model"
 
 
-@log_call(action_type="get_parser" @ _MAIN)
+@log_call(action_type="get_parser" > _MAIN)
 def get_parser() -> argparse.ArgumentParser:
     """Get the argument parser.
 
@@ -156,7 +156,7 @@ def get_parser() -> argparse.ArgumentParser:
 #         Fork for each job
 #         Load relavant information
 #         Train until stop conditions
-@log_call(action_type="start" @ _MAIN)
+@log_call(action_type="start" > _MAIN)
 def main() -> int:
     """Start the application."""
     argparser = get_parser()

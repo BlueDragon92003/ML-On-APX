@@ -6,7 +6,7 @@ from ml_on_apx.dataset_management.dataset_manager import DatasetManager
 from ml_on_apx.logging import log_call
 
 
-@log_call(action_type="ds_markdown" @ _TUI)
+@log_call(action_type="ds_markdown" > _TUI)
 def get_dataset_info_markdown(dsinfo: DatasetInfo, manager: DatasetManager) -> str:
     """Produce a markdown summary from a DatasetInfo object.
 

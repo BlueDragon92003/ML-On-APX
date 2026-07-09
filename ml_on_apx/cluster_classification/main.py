@@ -15,7 +15,7 @@ from ml_on_apx.logging import log_call
 _MAIN = "main" @ _CLASS
 
 
-@log_call(action_type="main" @ _MAIN)
+@log_call(action_type="main" > _MAIN)
 def main() -> None:
     """Trains a cluster classification model.
 

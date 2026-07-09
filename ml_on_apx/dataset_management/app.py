@@ -51,7 +51,7 @@ class DatasetManagerApp(App):
         """
         yield textual.widgets.LoadingIndicator()
 
-    @log_call(action_type="mount" @ _APP)
+    @log_call(action_type="mount" > _APP)
     async def on_mount(self) -> None:
         """Finish setup of the screen once it is attached to the DOM."""
         self.theme = "gruvbox"
@@ -73,7 +73,7 @@ class DatasetManagerApp(App):
             )
 
 
-@log_call(action_type="start" @ _TUI)
+@log_call(action_type="start" > _TUI)
 def main(
     dataset_dir: Path,
     mode: Mode,

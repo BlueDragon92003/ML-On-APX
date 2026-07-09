@@ -14,20 +14,60 @@ _R = TypeVar("_R")
 _P = ParamSpec("_P")
 
 
-class Namespace(str):
+class Namespace:
     """The namespace of an action."""
 
-    def __rmatmul__(self, name: str) -> "Namespace":
+    def __init__(self, name: str) -> None:
+        """Create a new namespace.
+
+        Args:
+            name (str): The name of the namespace.
+
+        """
+        self._path = name
+        self._namespaces: set[str] = set()
+        self._names: set[str] = set()
+
+    def __lt__(self, name: str) -> str:
+        """Add a new non-namespace name to the namespace.
+
+        Args:
+            name (str): The name to add
+
+        Raises:
+            KeyError: If the name was already defined.
+
+        Returns:
+            str: The fully-qualified name added
+
+        """
+        if name in self._names:
+            raise KeyError("Name already defined!")
+        self._names.add(name)
+        return self._path + ":" + name
+
+    def __rmatmul__(self, namespace_name: str) -> "Namespace":
         """Specify a child namespace.
 
         Args:
-            name (Namespace): The name of the child namespace.
+            namespace_name (str): The name of the child namespace.
+
+        Raises:
+            KeyError: If the name was already defined.
 
         Returns:
             Namespace: The child namespace
 
         """
-        return Namespace(self + ":" + name)
+        if namespace_name in self._names:
+            raise KeyError("Name already defined!")
+        self._namespaces.add(namespace_name)
+        self._names.add(namespace_name)
+        return Namespace(self._path + ":" + namespace_name)
+
+    def __str__(self) -> str:
+        """Get the fully-qualified name for this namespace."""
+        return self._path
 
 
 _LOG = Namespace("log")
@@ -71,7 +111,7 @@ def _compare_files(file1: Path, file2: Path) -> int:
     return int(os.path.getctime(file1) - os.path.getctime(file2))
 
 
-@log_call(action_type="init" @ _LOG)
+@log_call(action_type="init" > _LOG)
 def initialize_file_logging(
     log_file: Path,
     append: bool = False,

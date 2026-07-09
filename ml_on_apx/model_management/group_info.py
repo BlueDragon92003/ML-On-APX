@@ -31,12 +31,12 @@ class Activation:
         self.name = name
         self.activation = activation
 
-    @log_call(action_type="name" @ _ACTIVATION)
+    @log_call(action_type="name" > _ACTIVATION)
     def get_name(self) -> str:
         """Get the human-readable name for this activation."""
         return self.name
 
-    @log_call(action_type="model" @ _ACTIVATION, include_result=False)
+    @log_call(action_type="model" > _ACTIVATION, include_result=False)
     def get_activation(self) -> Type[torch.nn.Module]:
         """Get the module class to use this activation."""
         return self.activation
@@ -56,7 +56,7 @@ class Activation:
         return False
 
     @staticmethod
-    @log_call(action_type="list" @ _ACTIVATION)
+    @log_call(action_type="list" > _ACTIVATION)
     def get_activations() -> dict[str, "Activation"]:
         """Return a static list of activations this application supports."""
         return {
@@ -85,7 +85,7 @@ class GroupInfo:
         self._features: set = set()
         self._all_features = possible_features
 
-    @log_call(action_type="enable" @ _FEATURE)
+    @log_call(action_type="enable" > _FEATURE)
     def enable_feature(self, feature: str) -> None:
         """Set a dataset feature to be used for training or testing.
 
@@ -101,7 +101,7 @@ class GroupInfo:
         self._features.add(feature)
         self._input_layer_size += 1
 
-    @log_call(action_type="disable" @ _FEATURE)
+    @log_call(action_type="disable" > _FEATURE)
     def disable_feature(self, feature: str) -> None:
         """Remove a dataset feature to be used for training or testing.
 
@@ -115,7 +115,7 @@ class GroupInfo:
             self._all_features.remove(feature)
             self._input_layer_size -= 1
 
-    @log_call(action_type="below" @ _LAYER)
+    @log_call(action_type="below" > _LAYER)
     def insert_layer_below(
         self, layer: int, activation_name: str, size: int = 1
     ) -> None:
@@ -134,7 +134,7 @@ class GroupInfo:
         self._hidden_layer_sizes.insert(layer, size)
         self._hidden_layer_activations.insert(layer, activation_name)
 
-    @log_call(action_type="above" @ _LAYER)
+    @log_call(action_type="above" > _LAYER)
     def insert_layer_above(
         self, layer: int, activation_name: str, size: int = 1
     ) -> None:
@@ -153,7 +153,7 @@ class GroupInfo:
         self._hidden_layer_sizes.insert(layer - 1, size)
         self._hidden_layer_activations.insert(layer - 1, activation_name)
 
-    @log_call(action_type="del" @ _LAYER)
+    @log_call(action_type="del" > _LAYER)
     def remove_layer(self, layer: int) -> None:
         """Remove the specified layer.
 
@@ -174,7 +174,7 @@ class GroupInfo:
         self._hidden_layer_sizes.pop(layer - 1)
         self._hidden_layer_activations.pop(layer - 1)
 
-    @log_call(action_type="get" @ _LAYER_SIZE)
+    @log_call(action_type="get" > _LAYER_SIZE)
     def get_layer_size(self, layer: int) -> int:
         """Get the size of the specified layer.
 
@@ -199,7 +199,7 @@ class GroupInfo:
         else:
             raise IndexError(f"Index {layer} out of bounds!")
 
-    @log_call(action_type="set" @ _LAYER_SIZE)
+    @log_call(action_type="set" > _LAYER_SIZE)
     def set_layer_size(self, layer: int, size: int) -> None:
         """Set the size of the specified layer.
 
@@ -231,7 +231,7 @@ class GroupInfo:
         else:
             raise IndexError(f"Index {layer} out of bounds!")
 
-    @log_call(action_type="delta" @ _LAYER_SIZE)
+    @log_call(action_type="delta" > _LAYER_SIZE)
     def change_layer_size(self, layer: int, by: int) -> None:
         """Increase or decrease the size of the specified layer.
 
@@ -263,7 +263,7 @@ class GroupInfo:
         else:
             raise IndexError(f"Index {layer} out of bounds!")
 
-    @log_call(action_type="get" @ _LAYER_ACTIVATION)
+    @log_call(action_type="get" > _LAYER_ACTIVATION)
     def get_layer_activation(self, layer: int) -> str:
         """Get the activation used by the specified layer.
 
@@ -291,7 +291,7 @@ class GroupInfo:
         else:
             raise IndexError(f"Index {layer} out of bounds!")
 
-    @log_call(action_type="set" @ _LAYER_ACTIVATION)
+    @log_call(action_type="set" > _LAYER_ACTIVATION)
     def set_layer_activation(self, layer: int, activation_name: str) -> None:
         """Set the activation used by the specified layer.
 

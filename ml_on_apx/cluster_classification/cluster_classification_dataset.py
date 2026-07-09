@@ -155,7 +155,7 @@ class ClusterClassificationDataset(Dataset):
         return out
 
     @classmethod
-    @log_call(action_type="create" @ _CCD)
+    @log_call(action_type="create" > _CCD)
     def create(cls, components: set[tuple[Path, int]]) -> "Dataset":
         """Create a new ClusterClassificationDataset.
 

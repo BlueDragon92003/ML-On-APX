@@ -9,7 +9,7 @@ from ml_on_apx.logging import log_call
 _TRAIN = "train" @ _CLASS
 
 
-@log_call(action_type="main" @ _TRAIN)
+@log_call(action_type="main" > _TRAIN)
 def train_loop(
     device: torch.device,
     dataloader: torch.utils.data.DataLoader,

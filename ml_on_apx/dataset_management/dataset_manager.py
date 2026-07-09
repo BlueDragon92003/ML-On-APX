@@ -43,7 +43,7 @@ class DatasetManager(Generic[ManagedDataset]):
         )
         self._dataset_class: Type[ManagedDataset] = dataset_class
 
-    @log_call(action_type="open" @ _MANAGER)
+    @log_call(action_type="open" > _MANAGER)
     def __enter__(self) -> "DatasetManager[ManagedDataset]":
         """Initialize the environment.
 
@@ -94,7 +94,7 @@ class DatasetManager(Generic[ManagedDataset]):
 
         return self
 
-    @log_call(action_type="close" @ _MANAGER)
+    @log_call(action_type="close" > _MANAGER)
     def __exit__(self, _exc_type, _exc_value, _exc_traceback) -> bool:  # noqa: ANN001
         """Safely leave a managed environment.
 
@@ -133,17 +133,17 @@ class DatasetManager(Generic[ManagedDataset]):
                 pickle.dump(self._set_info, set_info)
         return False
 
-    @log_call(action_type="get_root_path" @ _MANAGER)
+    @log_call(action_type="get_root_path" > _MANAGER)
     def get_root_dir_path(self) -> Path:
         """Get the path to the ROOT file directory."""
         return self._root_dir_path
 
-    @log_call(action_type="get_sources" @ _MANAGER)
+    @log_call(action_type="get_sources" > _MANAGER)
     def get_sources(self) -> TreeNode:
         """Get the possible ROOT sources as a tree."""
         return self._sources
 
-    @log_call(action_type="create" @ _MANAGER)
+    @log_call(action_type="create" > _MANAGER)
     def create_dataset(self, name: str, dataset: DatasetInfo) -> None:
         """Create a new dataset.
 
@@ -160,12 +160,12 @@ class DatasetManager(Generic[ManagedDataset]):
         self._set_info[name] = dataset
         self._to_recompile.append(name)
 
-    @log_call(action_type="list_names" @ _MANAGER)
+    @log_call(action_type="list_names" > _MANAGER)
     def get_dataset_names(self) -> Set[str]:
         """List all datasets this manager is aware of."""
         return set(self._set_info.keys())
 
-    @log_call(action_type="get_info" @ _MANAGER)
+    @log_call(action_type="get_info" > _MANAGER)
     def get_dataset_info(self, dataset_name: str) -> DatasetInfo:
         """Retrieve information for a dataset.
 
@@ -183,7 +183,7 @@ class DatasetManager(Generic[ManagedDataset]):
             raise LookupError("No such set!")
         return self._set_info[dataset_name]
 
-    @log_call(action_type="get" @ _MANAGER)
+    @log_call(action_type="get" > _MANAGER)
     def get_dataset(self, dataset_name: str) -> ManagedDataset:
         """Retrieve a dataset object.
 
@@ -206,7 +206,7 @@ class DatasetManager(Generic[ManagedDataset]):
         with open(set_path, mode="rb") as file:
             return pickle.load(file)
 
-    @log_call(action_type="update" @ _MANAGER)
+    @log_call(action_type="update" > _MANAGER)
     def update_dataset(self, dataset_name: str, dataset_info: DatasetInfo) -> None:
         """Update the information for the provided dataset's name.
 
@@ -223,7 +223,7 @@ class DatasetManager(Generic[ManagedDataset]):
         self._to_recompile.append(dataset_name)
         self._set_info[dataset_name] = dataset_info
 
-    @log_call(action_type="rename" @ _MANAGER)
+    @log_call(action_type="rename" > _MANAGER)
     def rename_dataset(self, dataset_name: str, new_name: str) -> None:
         """Rename a dataset.
 
@@ -249,7 +249,7 @@ class DatasetManager(Generic[ManagedDataset]):
             self._to_recompile.remove(dataset_name)
             self._to_recompile.append(new_name)
 
-    @log_call(action_type="delete" @ _MANAGER)
+    @log_call(action_type="delete" > _MANAGER)
     def delete_dataset(self, dataset_name: str) -> None:
         """Delete a dataset.
 
@@ -269,7 +269,7 @@ class DatasetManager(Generic[ManagedDataset]):
         if dataset_name in self._to_recompile:
             self._to_recompile.remove(dataset_name)
 
-    @log_call(action_type="recompile" @ _MANAGER)
+    @log_call(action_type="recompile" > _MANAGER)
     def _recompile_dataset(self, path: Path, dataset_info: DatasetInfo) -> None:
         """Create and pickle a dataset based on the provided information.
 
@@ -285,7 +285,7 @@ class DatasetManager(Generic[ManagedDataset]):
         with open(path, mode="wb") as file:
             pickle.dump(to_pickle, file)
 
-    @log_call(action_type="get_path" @ _MANAGER)
+    @log_call(action_type="get_path" > _MANAGER)
     def _get_dataset_path(self, dataset_name: str) -> Path:
         """Get the path to a dataset.
 
@@ -301,7 +301,7 @@ class DatasetManager(Generic[ManagedDataset]):
             / f"{dataset_name}{''.join(DatasetManager.DATASET_PICKLE_SUFFIXES)}"
         )
 
-    @log_call(action_type="get_datasets" @ _MANAGER)
+    @log_call(action_type="get_datasets" > _MANAGER)
     def _datasets_in_dir(self, dir: Path) -> List[str]:
         """Return a list of datasets pickled to files.
 
