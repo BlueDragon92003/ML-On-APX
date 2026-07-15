@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import torch
 from torch import nn
 
 from ml_on_apx.logging import log_call
@@ -42,6 +43,7 @@ class ModelManager:
     JOBS_FILE = "jobs" + PICKLE_SUFFIX
     GROUP_INFO_FILE = "group_info" + PICKLE_SUFFIX
     MODEL_INFOS_FILE = "model_infos" + PICKLE_SUFFIX
+    PYTORCH_SUFFIX = ".pth"
 
     class ModelLookupError(LookupError):
         """A lookup error for a model."""
@@ -77,8 +79,8 @@ class ModelManager:
         self._dataset_names: set[str]
         # Read Jobs
         # For each folder:
-        # Check for & read group_info.pckl
-        # Read model_infos.pckl
+        #   Check for & read group_info.pckl
+        #   Read model_infos.pckl
         return self
 
     @log_call(action_type="close" > _MANAGER)
@@ -98,8 +100,8 @@ class ModelManager:
         # TODO
         # Write Jobs
         # For each group info name:
-        # Pickle & write group_info.pckl
-        # Pickle & write model_infos.pckl
+        #   Pickle & write group_info.pckl
+        #   Pickle & write model_infos.pckl
         return False
 
     @log_call(action_type="create" > _GROUP)
@@ -111,7 +113,12 @@ class ModelManager:
             group_info (GroupInfo): The info of the group being create.
 
         """
-        # TODO
+        if group_name in self._model_infos[group_name].keys():
+            raise ValueError(
+                f"Model {group_name} already exists in group {group_name}!"
+            )
+        self._group_infos.update({group_name: group_info})
+        self.get_group_path(group_name).mkdir()
 
     @property
     def group_names(self) -> list[str]:
@@ -142,17 +149,6 @@ class ModelManager:
             raise self.GroupLookupError("No such group!")
         return self._group_infos[group_name]
 
-    @log_call(action_type="update" > _GROUP)
-    def update_group(self, group_name: str, group_info: GroupInfo) -> None:
-        """Modify the information on a specific group.
-
-        Args:
-            group_name (str): The name of the group to update
-            group_info (GroupInfo): The object to update the group info to.
-
-        """
-        # TODO
-
     @log_call(action_type="rename" > _GROUP)
     def rename_group(self, group_name: str, new_name: str) -> None:
         """Change a group's name.
@@ -162,7 +158,16 @@ class ModelManager:
             new_name (str): The new name of the group.
 
         """
-        # TODO
+        if group_name not in self._group_infos.keys():
+            raise self.GroupLookupError("No such group!")
+        group_model_infos = self._model_infos.pop(group_name)
+        self._model_infos.update({new_name: group_model_infos})
+
+        group_info = self._group_infos.pop(group_name)
+        self._group_infos.update({new_name: group_info})
+
+        path = self.get_group_path(group_name)
+        path.move(self.get_model_path(group_name, new_name))
 
     @log_call(action_type="name" > _GROUP)
     def delete_group(self, group_name: str) -> None:
@@ -172,7 +177,14 @@ class ModelManager:
             group_name (str): The group to delete.
 
         """
-        # TODO
+        for model_name in self.get_model_names(group_name):
+            self.delete_model(group_name, model_name)
+        self._group_infos.pop(group_name)
+        self._model_infos.pop(group_name)
+        group_info_dir = self._models_path / group_name
+        for file in group_info_dir.iterdir():
+            file.unlink()
+        group_info_dir.rmdir()
 
     @log_call(action_type="list" > _MODEL)
     def get_model_names(self, group_name: str) -> list[str]:
@@ -218,16 +230,31 @@ class ModelManager:
         return self._model_infos[group_name][model_name]
 
     @log_call(action_type="create" > _MODEL)
-    def create_model(self, group_name: str, model_name: str, model: nn.Module) -> None:
-        """Change a model's name.
+    def create_model(
+        self, group_name: str, model_name: str, model_info: ModelInfo, model: nn.Module
+    ) -> None:
+        """Create a new model.
 
         Args:
             group_name (str): The name of the group where the model is kept.
             model_name (str): The name of the model to rename.
+            model_info (ModelInfo): The model's associated info.
             model (torch.nn.Module): The pytorch model.
 
+        Raises:
+            GroupLookupError: When the specified group name is not associated with a
+                group.
+            ValueError: When the specified model name already exists.
+
         """
-        # TODO
+        if group_name not in self._group_infos.keys():
+            raise self.GroupLookupError("No such group!")
+        if model_name in self._model_infos[group_name].keys():
+            raise ValueError(
+                f"Model {model_name} already exists in group {group_name}!"
+            )
+        self._model_infos[group_name].update({model_name: model_info})
+        torch.save(model, self.get_model_path(group_name, model_name))
 
     @log_call(action_type="rename" > _MODEL)
     def rename_model(self, group_name: str, model_name: str, new_name: str) -> None:
@@ -238,8 +265,21 @@ class ModelManager:
             model_name (str): The name of the model to rename.
             new_name (str): The new name of the model.
 
+        Raises:
+            GroupLookupError: When the specified group name is not associated with a
+                group.
+            ModelLookupError: When the specified model name is not associated with a
+                model in the group.
+
         """
-        # TODO
+        if group_name not in self._group_infos.keys():
+            raise self.GroupLookupError("No such group!")
+        if model_name not in self._model_infos[group_name].keys():
+            raise self.ModelLookupError(f"No such model in group {group_name}!")
+        info = self._model_infos[group_name].pop(model_name)
+        self._model_infos[group_name].update({new_name: info})
+        path = self.get_model_path(group_name, model_name)
+        path.move(self.get_model_path(group_name, new_name))
 
     @log_call(action_type="delete" > _MODEL)
     def delete_model(self, group_name: str, model_name: str) -> None:
@@ -249,8 +289,21 @@ class ModelManager:
             group_name (str): The name of the group the model to delete is saved.
             model_name (str): The name of the model to delete
 
+        Raises:
+            GroupLookupError: When the specified group name is not associated with a
+                group.
+            ModelLookupError: When the specified model name is not associated with a
+                model in the group.
+
         """
-        # TODO
+        if group_name not in self._group_infos.keys():
+            raise self.GroupLookupError("No such group!")
+        if model_name not in self._model_infos[group_name].keys():
+            raise self.ModelLookupError(f"No such model in group {group_name}!")
+        self._model_infos[group_name].pop(model_name)
+        path = self.get_model_path(group_name, model_name)
+        if path.exists():
+            path.unlink()
 
     @property
     def training_job(self) -> TrainingJob | None:
@@ -269,3 +322,30 @@ class ModelManager:
     @testing_job.setter
     def testing_job(self, job: TestingJob | None) -> None:
         self._testing_job = job
+
+    @log_call(action_type="path" > _GROUP)
+    def get_group_path(self, group_name: str) -> Path:
+        """Get the path to a model specified by its name and group name.
+
+        Args:
+            group_name (str): The name of the model's group
+
+        Returns:
+            Path: The path to the model
+
+        """
+        return self._models_path / group_name
+
+    @log_call(action_type="path" > _MODEL)
+    def get_model_path(self, group_name: str, model_name: str) -> Path:
+        """Get the path to a model specified by its name and group name.
+
+        Args:
+            group_name (str): The name of the model's group
+            model_name (str): The name of the model.
+
+        Returns:
+            Path: The path to the model
+
+        """
+        return self.get_group_path(group_name) / (model_name + self.PYTORCH_SUFFIX)
