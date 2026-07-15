@@ -1,5 +1,6 @@
 """Manages models and model groups."""
 
+import pickle
 from pathlib import Path
 
 import torch
@@ -60,10 +61,10 @@ class ModelManager:
                 models.
 
         """
-        self._training_job = None
-        self._testing_job = None
-        self._models_path = models_dir / mode.value
-        self._jobs_path = self._models_path / self.JOBS_FILE
+        self._training_job: TrainingJob | None = None
+        self._testing_job: TestingJob | None = None
+        self._models_path: Path = models_dir / mode.value
+        self._jobs_path: Path = self._models_path / self.JOBS_FILE
 
     @log_call(action_type="open" > _MANAGER)
     def __enter__(self) -> "ModelManager":
@@ -73,14 +74,28 @@ class ModelManager:
             ModelManager: The fully-initialized model manager.
 
         """
-        # TODO
-        self._group_infos: dict[str, GroupInfo]  # TODO
-        self._model_infos: dict[str, dict[str, ModelInfo]]  # TODO
-        self._dataset_names: set[str]
+        self._group_infos: dict[str, GroupInfo]
+        self._model_infos: dict[str, dict[str, ModelInfo]]
         # Read Jobs
+        with open(self._jobs_path, mode="rb") as file:
+            self._training_job, self.testing_job = pickle.load(file)
         # For each folder:
-        #   Check for & read group_info.pckl
-        #   Read model_infos.pckl
+        for file in self._models_path.iterdir():
+            if not file.is_dir():
+                continue  # not a group folder
+            # Check for & read group_info.pckl
+            group_name = file.name
+            group_info_path = self.get_group_path(group_name) / self.GROUP_INFO_FILE
+            models_info_path = self.get_group_path(group_name) / self.MODEL_INFOS_FILE
+            if not (group_info_path.exists() and models_info_path.exists()):
+                continue  # incomplete information in this folder
+            with open(group_info_path, mode="rb") as file:
+                group_info = pickle.load(file)
+                self._group_infos.update({group_name: group_info})
+            # Read model_infos.pckl
+            with open(models_info_path, mode="rb") as file:
+                models_info = pickle.load(file)
+                self._model_infos.update({group_name: models_info})
         return self
 
     @log_call(action_type="close" > _MANAGER)
@@ -97,11 +112,19 @@ class ModelManager:
             bool: If the exception was handled (always False)
 
         """
-        # TODO
         # Write Jobs
+        with open(self._jobs_path, mode="wb") as file:
+            pickle.dump((self._training_job, self._testing_job), file)
         # For each group info name:
-        #   Pickle & write group_info.pckl
-        #   Pickle & write model_infos.pckl
+        for group_name in self.group_names:
+            group_info_path = self.get_group_path(group_name) / self.GROUP_INFO_FILE
+            model_infos_path = self.get_group_path(group_name) / self.MODEL_INFOS_FILE
+            # Pickle & write group_info.pckl
+            with open(group_info_path, mode="wb") as file:
+                pickle.dump(self._group_infos[group_name], file)
+            # Pickle & write model_infos.pckl
+            with open(model_infos_path, mode="wb") as file:
+                pickle.dump(self._model_infos[group_name], file)
         return False
 
     @log_call(action_type="create" > _GROUP)
