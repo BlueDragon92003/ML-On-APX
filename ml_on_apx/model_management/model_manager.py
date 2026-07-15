@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+from torch import nn
+
 from ml_on_apx.logging import log_call
 from ml_on_apx.model_management import _MODEL
 from ml_on_apx.model_management.group_info import GroupInfo
@@ -41,6 +43,12 @@ class ModelManager:
     GROUP_INFO_FILE = "group_info" + PICKLE_SUFFIX
     MODEL_INFOS_FILE = "model_infos" + PICKLE_SUFFIX
 
+    class ModelLookupError(LookupError):
+        """A lookup error for a model."""
+
+    class GroupLookupError(LookupError):
+        """A lookup error for a model group."""
+
     def __init__(self, models_dir: Path, mode: Mode) -> None:
         """Create a new model manager for use in an environment.
 
@@ -67,6 +75,10 @@ class ModelManager:
         self._group_infos: dict[str, GroupInfo]  # TODO
         self._model_infos: dict[str, dict[str, ModelInfo]]  # TODO
         self._dataset_names: set[str]
+        # Read Jobs
+        # For each folder:
+        # Check for & read group_info.pckl
+        # Read model_infos.pckl
         return self
 
     @log_call(action_type="close" > _MANAGER)
@@ -84,6 +96,10 @@ class ModelManager:
 
         """
         # TODO
+        # Write Jobs
+        # For each group info name:
+        # Pickle & write group_info.pckl
+        # Pickle & write model_infos.pckl
         return False
 
     @log_call(action_type="create" > _GROUP)
@@ -95,6 +111,7 @@ class ModelManager:
             group_info (GroupInfo): The info of the group being create.
 
         """
+        # TODO
 
     @property
     def group_names(self) -> list[str]:
@@ -113,12 +130,16 @@ class ModelManager:
         Args:
             group_name (str): The name of the group.
 
+        Raises:
+            GroupLookupError: When the specified group name is not associated with a
+                group.
+
         Returns:
             GroupInfo: The group info object.
 
-        """  # TODO Raises
+        """
         if group_name not in self._group_infos.keys():
-            raise LookupError("No such group!")
+            raise self.GroupLookupError("No such group!")
         return self._group_infos[group_name]
 
     @log_call(action_type="update" > _GROUP)
@@ -130,6 +151,7 @@ class ModelManager:
             group_info (GroupInfo): The object to update the group info to.
 
         """
+        # TODO
 
     @log_call(action_type="rename" > _GROUP)
     def rename_group(self, group_name: str, new_name: str) -> None:
@@ -140,6 +162,7 @@ class ModelManager:
             new_name (str): The new name of the group.
 
         """
+        # TODO
 
     @log_call(action_type="name" > _GROUP)
     def delete_group(self, group_name: str) -> None:
@@ -149,6 +172,7 @@ class ModelManager:
             group_name (str): The group to delete.
 
         """
+        # TODO
 
     @log_call(action_type="list" > _MODEL)
     def get_model_names(self, group_name: str) -> list[str]:
@@ -157,10 +181,17 @@ class ModelManager:
         Args:
             group_name (str): The name of the group to get models from.
 
+        Raises:
+            GroupLookupError: When the specified group name is not associated with a
+                group.
+
         Returns:
             List[str]: The list of models contained in this group.
 
         """
+        if group_name not in self._group_infos.keys():
+            raise self.GroupLookupError("No such group!")
+        return list(self._model_infos[group_name].keys())
 
     @log_call(action_type="get" > _MODEL)
     def get_model(self, group_name: str, model_name: str) -> ModelInfo:
@@ -170,15 +201,33 @@ class ModelManager:
             group_name (str): The name of the group to get a model from.
             model_name (str): The name of the model in that group to get.
 
+        Raises:
+            GroupLookupError: When the specified group name is not associated with a
+                group.
+            ModelLookupError: When the specified model name is not associated with a
+                model in the group.
+
         Returns:
             ModelInfo: The info object for the model.
 
-        """  # TODO raises
+        """
         if group_name not in self._group_infos.keys():
-            raise LookupError()  # TODO
+            raise self.GroupLookupError("No such group!")
         if model_name not in self._model_infos[group_name].keys():
-            raise LookupError()  # TODO
+            raise self.ModelLookupError(f"No such model in group {group_name}!")
         return self._model_infos[group_name][model_name]
+
+    @log_call(action_type="create" > _MODEL)
+    def create_model(self, group_name: str, model_name: str, model: nn.Module) -> None:
+        """Change a model's name.
+
+        Args:
+            group_name (str): The name of the group where the model is kept.
+            model_name (str): The name of the model to rename.
+            model (torch.nn.Module): The pytorch model.
+
+        """
+        # TODO
 
     @log_call(action_type="rename" > _MODEL)
     def rename_model(self, group_name: str, model_name: str, new_name: str) -> None:
@@ -190,6 +239,7 @@ class ModelManager:
             new_name (str): The new name of the model.
 
         """
+        # TODO
 
     @log_call(action_type="delete" > _MODEL)
     def delete_model(self, group_name: str, model_name: str) -> None:
@@ -200,6 +250,7 @@ class ModelManager:
             model_name (str): The name of the model to delete
 
         """
+        # TODO
 
     @property
     def training_job(self) -> TrainingJob | None:
