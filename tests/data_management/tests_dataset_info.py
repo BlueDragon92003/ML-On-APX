@@ -23,6 +23,7 @@ class TestDatasetInfo(unittest.TestCase):
         ]
         DatasetInfo(labels, sources)
 
+    @capture_logging
     def test_dataset_info__missing_labels(self) -> None:
         """Test that the creation of a DatasetInfo missing a label object errors."""
         labels = Labels([Label("a")])
