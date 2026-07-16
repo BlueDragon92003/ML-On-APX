@@ -67,7 +67,9 @@ class Activation:
 class GroupInfo:
     """Stores training data about the group."""
 
-    def __init__(self, labels: Labels, possible_features: list[str]) -> None:
+    DEFAULT_ACTIVATION = "ReLU"
+
+    def __init__(self, labels: Labels, possible_features: set[str]) -> None:
         """Create a new group info object.
 
         Args:
@@ -80,10 +82,20 @@ class GroupInfo:
         self._input_layer_size = len(labels)
         self._hidden_layer_sizes: list[int] = []
         self._hidden_layer_activations: list[str] = []
-        self._output_activation: str = next(iter(Activation.get_activations().keys()))
+        self._output_activation: str = self.DEFAULT_ACTIVATION
         self._output_layer_size = 0
         self._features: set = set()
         self._all_features = possible_features
+
+    @property
+    def features(self) -> set[str]:
+        """The features this group uses."""
+        return self._features
+
+    @property
+    def all_features(self) -> set[str]:
+        """The features available to this group."""
+        return self._all_features
 
     @log_call(action_type="enable" > _FEATURE)
     def enable_feature(self, feature: str) -> None:
@@ -111,8 +123,8 @@ class GroupInfo:
         """
         if feature not in self._all_features:
             raise ValueError("No such feature!")
-        if feature not in self._all_features:
-            self._all_features.remove(feature)
+        if feature not in self._features:
+            self._features.remove(feature)
             self._input_layer_size -= 1
 
     @log_call(action_type="below" > _LAYER)
@@ -175,7 +187,7 @@ class GroupInfo:
         self._hidden_layer_activations.pop(layer - 1)
 
     @log_call(action_type="get" > _LAYER_SIZE)
-    def layer_size(self, layer: int) -> int:
+    def get_layer_size(self, layer: int) -> int:
         """Get the size of the specified layer.
 
         Args:
@@ -208,23 +220,25 @@ class GroupInfo:
             size (int): The size of the layer to set.
 
         Raises:
-            IndexError: If the provided index is out of bounds.
-            ValueError: If the user tried to change the size of the input or output
-                layer.
+            IndexError: If the provided index is the input layer, the output layer, or
+                out of bounds.
+            ValueError: If the user tried set a non-positive layer size.
 
         """
         if layer < 0:
             raise IndexError(f"Index {layer} out of bounds!")
         elif layer == 0:
             # layer 0 is "input"
-            raise ValueError(
+            raise IndexError(
                 "Index 0 is the input layer. \
                 Change its size by enabling or disabling features."
             )
         elif layer <= len(self._hidden_layer_sizes):
+            if size <= 0:
+                raise ValueError("Invalid layer size!")
             self._hidden_layer_sizes[layer - 1] = size  # layer 1 is hidden layer 0
         elif layer == len(self._hidden_layer_sizes) + 1:
-            raise ValueError(
+            raise IndexError(
                 f"Index {layer} is the output layer. \
                 Its size was determined by dataset labels."
             )
@@ -240,7 +254,8 @@ class GroupInfo:
             by (int): The number to add to the size of the layer.
 
         Raises:
-            IndexError: If the provided index is out of bounds.
+            IndexError: If the provided index is the input layer, the output layer, or
+                out of bounds.
             ValueError: If the user tried to change the size of the input or output
                 layer.
 
@@ -249,14 +264,16 @@ class GroupInfo:
             raise IndexError(f"Index {layer} out of bounds!")
         elif layer == 0:
             # layer 0 is "input"
-            raise ValueError(
+            raise IndexError(
                 "Index 0 is the input layer. \
                 Change its size by enabling or disabling features."
             )
         elif layer <= len(self._hidden_layer_sizes):
+            if (new := self._hidden_layer_sizes[layer - 1] + by) <= 0:
+                raise ValueError(f"Underset layer size by {by} to {new}!")
             self._hidden_layer_sizes[layer - 1] += by  # layer 1 is hidden layer 0
         elif layer == len(self._hidden_layer_sizes) + 1:
-            raise ValueError(
+            raise IndexError(
                 f"Index {layer} is the output layer. \
                 Its size was determined by dataset labels."
             )
@@ -321,11 +338,7 @@ class GroupInfo:
         """The labels models in this group train on."""
         return self._labels
 
-    def __len__(self) -> int:
-        """Return the number of layers for the models in this group.
-
-        Returns:
-            int: The number of layers for the models in this group.
-
-        """
+    @property
+    def layer_count(self) -> int:
+        """The number of layers for the models in this group."""
         return len(self._hidden_layer_sizes) + 2
