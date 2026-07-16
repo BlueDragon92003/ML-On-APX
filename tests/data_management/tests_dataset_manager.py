@@ -104,7 +104,7 @@ class TestDatasetManager(
         for name, set_info in self.dataset_infos.items():
             path = self.manager._get_dataset_path(name)
             with open(path, mode="wb") as file:
-                pickle.dump(_MockDataset(set_info.get_numbered_sources()), file)
+                pickle.dump(_MockDataset(set_info.numbered_sources), file)
 
     # ========================================================================
     #                                 HELPERS
@@ -128,7 +128,7 @@ class TestDatasetManager(
         path = self.manager._get_dataset_path("test")
         info = DatasetInfo(self.labels, self.labeling[0:5])
         self.manager._recompile_dataset(path, info)
-        expected = _MockDataset(info.get_numbered_sources())
+        expected = _MockDataset(info.numbered_sources)
         try:
             with open(path, mode="rb") as file:
                 result = pickle.load(file)
@@ -204,7 +204,7 @@ class TestDatasetManager(
         expected.add_child(group_b)
 
         with self.manager as manager:
-            result = manager.get_sources()
+            result = manager.sources
         self.assertEqual(expected, result)
 
     # ========================================================================
@@ -241,7 +241,7 @@ class TestDatasetManager(
         self.set_up_dataset_info_pickle()
         expected = set(self.dataset_infos.keys())
         with self.manager as manager:
-            result = manager.get_dataset_names()
+            result = manager.dataset_names
         self.assertEqual(expected, result)
 
     @capture_logging
@@ -390,7 +390,7 @@ class TestDatasetManager(
         self.set_up_dataset_pickles()
         self.set_up_dataset_info_pickle()
 
-        expected = _MockDataset(set_name_target.get_numbered_sources())
+        expected = _MockDataset(set_name_target.numbered_sources)
         with self.manager as manager:
             old = manager.get_dataset(set_name_from)
             manager.update_dataset(set_name_from, set_name_target)

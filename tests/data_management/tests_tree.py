@@ -20,13 +20,13 @@ class TestTree(unittest.TestCase):
         """Test the get_name function."""
         name = "name"
         node = TreeNode(name)
-        self.assertEqual(node.get_name(), name)
+        self.assertEqual(node.name, name)
 
     @capture_logging
     def test_tree__get_no_children(self) -> None:
         """Test that the get_children works as expected without children."""
         node = TreeNode("NAME")
-        self.assertEqual(node.get_children(), [])
+        self.assertEqual(node.children, [])
 
     @capture_logging
     def test_tree__add_child(self) -> None:
@@ -40,10 +40,10 @@ class TestTree(unittest.TestCase):
         node = TreeNode("root")
         for i in range(5):
             node.add_child(TreeNode(str(i)))
-        children = node.get_children()
+        children = node.children
         self.assertEqual(len(children), 5)
         result = []
         for child in children:
-            result.append(child.get_name())
+            result.append(child.name)
         for i in range(5):
             self.assertIn(str(i), result)

@@ -44,7 +44,7 @@ class TestDatasetInfo(unittest.TestCase):
             (Path("third"), Label("c")),
         ]
         dsinfo = DatasetInfo(labels, sources)
-        self.assertEqual(dsinfo.get_labels(), labels)
+        self.assertEqual(dsinfo.labels, labels)
 
     @capture_logging
     def test_dataset_info__get_sources(self) -> None:
@@ -57,7 +57,7 @@ class TestDatasetInfo(unittest.TestCase):
         ]
         dsinfo = DatasetInfo(labels, sources)
         expected = {Path("first"), Path("second"), Path("third")}
-        self.assertEqual(dsinfo.get_sources(), expected)
+        self.assertEqual(dsinfo.sources, expected)
 
     @capture_logging
     def test_dataset_info__get_labeled_sources(self) -> None:
@@ -70,4 +70,4 @@ class TestDatasetInfo(unittest.TestCase):
         ]
         dsinfo = DatasetInfo(labels, sources)
         expected = {(Path("first"), 0), (Path("second"), 0), (Path("third"), 1)}
-        self.assertEqual(dsinfo.get_numbered_sources(), expected)
+        self.assertEqual(dsinfo.numbered_sources, expected)

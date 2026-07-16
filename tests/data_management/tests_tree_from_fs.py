@@ -41,8 +41,8 @@ class TestTreeFromFS(
     @capture_logging
     def print_tree(self, tree: TreeNode, depth: int = 0) -> str:
         """Create a string representation of the tree."""
-        out = ("\t" * depth) + tree.get_name() + "/\n"
-        for child in tree.get_children():
+        out = ("\t" * depth) + tree.name + "/\n"
+        for child in tree.children:
             out += self.print_tree(child, depth=depth + 1)
         return out
 
