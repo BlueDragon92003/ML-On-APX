@@ -28,18 +28,18 @@ class Activation:
             activation (Type[torch.nn.Module]): The activation.
 
         """
-        self.name = name
-        self.activation = activation
+        self._name = name
+        self._activation = activation
 
-    @log_call(action_type="name" > _ACTIVATION)
-    def get_name(self) -> str:
-        """Get the human-readable name for this activation."""
-        return self.name
+    @property
+    def name(self) -> str:
+        """The human-readable name for this activation."""
+        return self._name
 
-    @log_call(action_type="model" > _ACTIVATION, include_result=False)
-    def get_activation(self) -> Type[torch.nn.Module]:
+    @property
+    def activation(self) -> Type[torch.nn.Module]:
         """Get the module class to use this activation."""
-        return self.activation
+        return self._activation
 
     def __eq__(self, other: object) -> bool:
         """Compare this activation to another object.
@@ -60,7 +60,34 @@ class Activation:
     def get_activations() -> dict[str, "Activation"]:
         """Return a static list of activations this application supports."""
         return {
-            "ReLU": Activation("ReLU", torch.nn.ReLU),
+            x: Activation(x, y)
+            for x, y in [
+                ("ReLU", torch.nn.ReLU),
+                ("Sigmoid", torch.nn.Sigmoid),
+                ("Tanh", torch.nn.Tanh),
+                ("ELU", torch.nn.ELU),
+                ("Hardshrink", torch.nn.Hardshrink),
+                ("Hardsigmoid", torch.nn.Hardsigmoid),
+                ("Hardtanh", torch.nn.Hardtanh),
+                ("Hardswish", torch.nn.Hardswish),
+                ("LeakyReLU", torch.nn.LeakyReLU),
+                ("LogSigmoid", torch.nn.LogSigmoid),
+                ("MultiheadAttention", torch.nn.MultiheadAttention),
+                ("PReLU", torch.nn.PReLU),
+                ("ReLU6", torch.nn.ReLU6),
+                ("RReLU", torch.nn.RReLU),
+                ("SELU", torch.nn.SELU),
+                ("CELU", torch.nn.CELU),
+                ("GELU", torch.nn.GELU),
+                ("SiLU", torch.nn.SiLU),
+                ("Mish", torch.nn.Mish),
+                ("Softplus", torch.nn.Softplus),
+                ("Softshrink", torch.nn.Softshrink),
+                ("Softsign", torch.nn.Softsign),
+                ("Tanhshrink", torch.nn.Tanhshrink),
+                ("Threshold", torch.nn.Threshold),
+                ("GLU", torch.nn.GLU),
+            ]
         }
 
 
