@@ -219,8 +219,8 @@ class TrainingJobBuilder:
             raise TypeError("A dataset must be set.")
         if self._stop_function is None:
             raise TypeError("A stop function must be set.")
-        if self._lookback_distance < 0:
-            raise ValueError("Lookback distance must be non-negative.")
+        if self._lookback_distance <= 0:
+            raise ValueError("Lookback distance must be positive.")
         if self._batch_size < 1:
             raise ValueError("Batch size must be positive.")
         if self._checkpoint_rate < 1:

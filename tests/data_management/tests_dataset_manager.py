@@ -243,7 +243,7 @@ class TestDatasetManager(
         """Test that the manager errors when there is no dataset_info object."""
         self.set_up_dataset_info_pickle()
         self.set_up_dataset_pickles()
-        with self.assertRaises(ValueError):
+        with self.assertRaises(LookupError):
             with self.manager as manager:
                 manager.get_dataset_info("absolutely positively does not exist")
 
@@ -273,7 +273,7 @@ class TestDatasetManager(
         """Test that the manager errors when there is no dataset object."""
         self.set_up_dataset_info_pickle()
         self.set_up_dataset_pickles()
-        with self.assertRaises(ValueError):
+        with self.assertRaises(LookupError):
             with self.manager as manager:
                 manager.get_dataset_info("absolutely positively does not exist")
 
@@ -298,7 +298,7 @@ class TestDatasetManager(
         dummy_set_name = self.dataset_infos["full"]
         self.set_up_dataset_info_pickle()
         self.set_up_dataset_pickles()
-        with self.assertRaises(ValueError):
+        with self.assertRaises(LookupError):
             with self.manager as manager:
                 manager.update_dataset(
                     "absolutely positively does not exist", dummy_set_name
@@ -326,11 +326,11 @@ class TestDatasetManager(
         self.set_up_dataset_info_pickle()
         with self.manager as manager:
             expected = manager.get_dataset_info(set_name_from)
-            with self.assertRaises(ValueError):
+            with self.assertRaises(LookupError):
                 manager.get_dataset_info(set_name_to)
             manager.rename_dataset(set_name_from, set_name_to)
             result = manager.get_dataset_info(set_name_to)
-            with self.assertRaises(ValueError):
+            with self.assertRaises(LookupError):
                 manager.get_dataset_info(set_name_from)
         self.assertEqual(expected, result)
 
@@ -339,7 +339,7 @@ class TestDatasetManager(
         dummy_set_name = "definitely does not exist"
         self.set_up_dataset_info_pickle()
         self.set_up_dataset_pickles()
-        with self.assertRaises(ValueError):
+        with self.assertRaises(LookupError):
             with self.manager as manager:
                 manager.rename_dataset(
                     "absolutely positively does not exist", dummy_set_name
@@ -397,13 +397,13 @@ class TestDatasetManager(
         with self.manager as manager:
             manager.get_dataset_info(set_to_delete)
             manager.delete_dataset(set_to_delete)
-            with self.assertRaises(ValueError):
+            with self.assertRaises(LookupError):
                 manager.get_dataset_info(set_to_delete)
 
     def test_dataset_manager__delete_missing(self) -> None:
         """Test that the manager errors when there is no dataset to delete."""
         self.set_up_dataset_info_pickle()
         self.set_up_dataset_pickles()
-        with self.assertRaises(ValueError):
+        with self.assertRaises(LookupError):
             with self.manager as manager:
                 manager.delete_dataset("absolutely positively does not exist")

@@ -106,11 +106,11 @@ class GroupInfo:
 
         """
         self._labels = labels
-        self._input_layer_size = len(labels)
+        self._input_layer_size = 0
         self._hidden_layer_sizes: list[int] = []
         self._hidden_layer_activations: list[str] = []
         self._output_activation: str = self.DEFAULT_ACTIVATION
-        self._output_layer_size = 0
+        self._output_layer_size = len(labels)
         self._features: set = set()
         self._all_features = possible_features
 
@@ -150,7 +150,7 @@ class GroupInfo:
         """
         if feature not in self._all_features:
             raise ValueError("No such feature!")
-        if feature not in self._features:
+        if feature in self._features:
             self._features.remove(feature)
             self._input_layer_size -= 1
 
@@ -356,7 +356,7 @@ class GroupInfo:
             # layer 1 is hidden layer 0
             self._hidden_layer_activations[layer - 1] = activation_name
         elif layer == len(self._hidden_layer_sizes) + 1:
-            self._output_activation
+            self._output_activation = activation_name
         else:
             raise IndexError(f"Index {layer} out of bounds!")
 

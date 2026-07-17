@@ -21,7 +21,7 @@ class TestsGroupInfo(unittest.TestCase):
         self.assertEqual(labels, group_info.labels)
         self.assertEqual(features, group_info.all_features)
         self.assertEqual(0, len(group_info.features))
-        self.assertEqual(0, group_info.layer_count)
+        self.assertEqual(2, group_info.layer_count)
 
     # Enable feaure works
     def test_group_info__enable_feature(self) -> None:
