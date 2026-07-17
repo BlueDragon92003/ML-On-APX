@@ -3,8 +3,6 @@
 import unittest
 from pathlib import Path
 
-from eliot.testing import capture_logging
-
 from ml_on_apx.dataset_management.dataset_info import DatasetInfo
 from ml_on_apx.labelling import Label, Labels
 
@@ -12,7 +10,6 @@ from ml_on_apx.labelling import Label, Labels
 class TestDatasetInfo(unittest.TestCase):
     """Tests for the DatasetInfo class."""
 
-    @capture_logging
     def test_dataset_info__instantiation(self) -> None:
         """Test that the creation of a valid DatasetInfo object does not error."""
         labels = Labels([Label("a"), Label("c")])
@@ -23,7 +20,6 @@ class TestDatasetInfo(unittest.TestCase):
         ]
         DatasetInfo(labels, sources)
 
-    @capture_logging
     def test_dataset_info__missing_labels(self) -> None:
         """Test that the creation of a DatasetInfo missing a label object errors."""
         labels = Labels([Label("a")])
@@ -35,7 +31,6 @@ class TestDatasetInfo(unittest.TestCase):
         with self.assertRaises(ValueError):
             DatasetInfo(labels, sources)
 
-    @capture_logging
     def test_dataset_info__get_labels(self) -> None:
         """Test that the get_lables function works as expected."""
         labels = Labels([Label("a"), Label("c")])
@@ -47,7 +42,6 @@ class TestDatasetInfo(unittest.TestCase):
         dsinfo = DatasetInfo(labels, sources)
         self.assertEqual(dsinfo.labels, labels)
 
-    @capture_logging
     def test_dataset_info__get_sources(self) -> None:
         """Test that the get_sources function works as expected."""
         labels = Labels([Label("a"), Label("c")])
@@ -60,7 +54,6 @@ class TestDatasetInfo(unittest.TestCase):
         expected = {Path("first"), Path("second"), Path("third")}
         self.assertEqual(dsinfo.sources, expected)
 
-    @capture_logging
     def test_dataset_info__get_labeled_sources(self) -> None:
         """Test that the get_labeled_sources function works as expected."""
         labels = Labels([Label("a"), Label("c")])

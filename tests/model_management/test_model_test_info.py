@@ -3,15 +3,12 @@
 import datetime
 import unittest
 
-from eliot.testing import capture_logging
-
 from ml_on_apx.model_management.model_info import ModelTestInfo
 
 
 class TestsModelTestInfo(unittest.TestCase):
     """Tests for the ModelTestInfo class."""
 
-    @capture_logging
     def test_model_test_info(self) -> None:
         """Test that a ModelTestInfo object instantiates correctly."""
         time = datetime.datetime(2026, 7, 17, 8, 15, 00)
@@ -25,7 +22,6 @@ class TestsModelTestInfo(unittest.TestCase):
         self.assertEqual(0.01, model_test_info.average_loss)
         self.assertFalse(model_test_info.run_by_user)
 
-    @capture_logging
     def test_model_test_info_run_by_user(self) -> None:
         """Test that a ModelTestInfo object instantiates correctly."""
         time = datetime.datetime(2026, 7, 17, 8, 15, 00)

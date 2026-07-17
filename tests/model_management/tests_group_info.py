@@ -2,8 +2,6 @@
 
 import unittest
 
-from eliot.testing import capture_logging
-
 from ml_on_apx.labelling import Label, Labels
 from ml_on_apx.model_management.group_info import GroupInfo
 
@@ -15,7 +13,6 @@ class TestsGroupInfo(unittest.TestCase):
     # labels same as input
     # initial features empty
     # layers length starts at 2
-    @capture_logging
     def test_group_info__initialization(self) -> None:
         """Test that the GroupInfo object is insatiated correctly."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -27,7 +24,6 @@ class TestsGroupInfo(unittest.TestCase):
         self.assertEqual(0, group_info.layer_count)
 
     # Enable feaure works
-    @capture_logging
     def test_group_info__enable_feature(self) -> None:
         """Test that enabling a feature works correctly."""
         feature = "alpha"
@@ -39,7 +35,6 @@ class TestsGroupInfo(unittest.TestCase):
         self.assertIn(feature, group_info.features)
 
     # disable feature works
-    @capture_logging
     def test_group_info__disable_feature(self) -> None:
         """Test that disabling a feature works correctly."""
         feature = "alpha"
@@ -52,7 +47,6 @@ class TestsGroupInfo(unittest.TestCase):
         self.assertNotIn(feature, group_info.features)
 
     # enable unavailable feature errors
-    @capture_logging
     def test_group_info__enable_missing_feature(self) -> None:
         """Test that enabling a non-existant feature errors."""
         feature = "jeff"
@@ -63,7 +57,6 @@ class TestsGroupInfo(unittest.TestCase):
             group_info.enable_feature(feature)
 
     # disable unavailable feature errors
-    @capture_logging
     def test_group_info__disable_missing_feature(self) -> None:
         """Test that disabling a non-existant feature errors."""
         feature = "jeff"
@@ -74,7 +67,6 @@ class TestsGroupInfo(unittest.TestCase):
             group_info.disable_feature(feature)
 
     # enable enabled feature silently "fails"
-    @capture_logging
     def test_group_info__enable_enabled_feature(self) -> None:
         """Test that enabling an already-enabled feature does nothing."""
         feature = "alpha"
@@ -89,7 +81,6 @@ class TestsGroupInfo(unittest.TestCase):
         self.assertIn(feature, group_info.features)
 
     # disable disabled feature silently "fails"
-    @capture_logging
     def test_group_info__disable_disabled_feature(self) -> None:
         """Test that enabling an already-enabled feature does nothing."""
         feature = "alpha"
@@ -105,7 +96,6 @@ class TestsGroupInfo(unittest.TestCase):
         self.assertNotIn(feature, group_info.features)
 
     # add layer above works
-    @capture_logging
     def test_group_info__insert_layer_above(self) -> None:
         """Test that insert_layer_above adds a layer above the target."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -123,7 +113,6 @@ class TestsGroupInfo(unittest.TestCase):
         self.assertEqual(7, group_info.get_layer_size(1))
 
     # add layer above errors when targeting input layer
-    @capture_logging
     def test_group_info__insert_layer_above_input(self) -> None:
         """Test that insert_layer_above errors when given the input layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -133,7 +122,6 @@ class TestsGroupInfo(unittest.TestCase):
             group_info.insert_layer_above(0, "aleph", 13)
 
     # add layer above errors when targeting oob
-    @capture_logging
     def test_group_info__insert_layer_above_oob(self) -> None:
         """Test that insert_layer_above errors when given an out-of-bounds layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -145,7 +133,6 @@ class TestsGroupInfo(unittest.TestCase):
             group_info.insert_layer_above(-1, "aleph", 13)
 
     # add layer below works
-    @capture_logging
     def test_group_info__insert_layer_below(self) -> None:
         """Test that insert_layer_below adds a layer below the target."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -160,7 +147,6 @@ class TestsGroupInfo(unittest.TestCase):
         self.assertEqual("bet", group_info.get_layer_activation(1))
 
     # add layer below erros when targeting output layer
-    @capture_logging
     def test_group_info__insert_layer_below_output(self) -> None:
         """Test that insert_layer_below erros when given the output layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -170,7 +156,6 @@ class TestsGroupInfo(unittest.TestCase):
             group_info.insert_layer_below(1, "aleph", 13)
 
     # add layer above errors when targeting oob
-    @capture_logging
     def test_group_info__insert_layer_below_oob(self) -> None:
         """Test that insert_layer_below errors when given an out-of-bounds layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -182,7 +167,6 @@ class TestsGroupInfo(unittest.TestCase):
             group_info.insert_layer_below(-1, "aleph", 13)
 
     # remove layer works
-    @capture_logging
     def test_group_info__remove_layer(self) -> None:
         """Test that remove_layer removes a layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -193,7 +177,6 @@ class TestsGroupInfo(unittest.TestCase):
         self.assertEqual(2, group_info.layer_count)
 
     # remove layer errors when targeting input layer
-    @capture_logging
     def test_group_info__remove_input(self) -> None:
         """Test that remove_layer errors when given the input layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -203,7 +186,6 @@ class TestsGroupInfo(unittest.TestCase):
             group_info.remove_layer(0)
 
     # remove layer errors when targeting output layer
-    @capture_logging
     def test_group_info__remove_output(self) -> None:
         """Test that remove_layer errors when given the output layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -213,7 +195,6 @@ class TestsGroupInfo(unittest.TestCase):
             group_info.remove_layer(1)
 
     # remove layer errors when targeting oob layer
-    @capture_logging
     def test_group_info__remove_out_of_bounds(self) -> None:
         """Test that remove_layer errors when given an out-of-bounds layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -225,7 +206,6 @@ class TestsGroupInfo(unittest.TestCase):
             group_info.remove_layer(13)
 
     # get layer size works for input layer
-    @capture_logging
     def test_group_info__get_size_input(self) -> None:
         """Test that get_layer_size functions on the input layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -238,7 +218,6 @@ class TestsGroupInfo(unittest.TestCase):
         self.assertEqual(len(group_info.features), group_info.get_layer_size(0))
 
     # get layer size works for output layer
-    @capture_logging
     def test_group_info__get_size_output(self) -> None:
         """Test that get_layer_size functions on the output layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -247,7 +226,6 @@ class TestsGroupInfo(unittest.TestCase):
         self.assertEqual(len(labels), group_info.get_layer_size(1))
 
     # get layer size works for hidden layers
-    @capture_logging
     def test_group_info__get_size_hidden(self) -> None:
         """Test that get_layer_size functions on a hidden layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -257,7 +235,6 @@ class TestsGroupInfo(unittest.TestCase):
         self.assertEqual(13, group_info.get_layer_size(1))
 
     # get layer size works for oob layers
-    @capture_logging
     def test_group_info__get_size_out_of_bounds(self) -> None:
         """Test that get_layer_size functions on an out-of-bounds layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -269,7 +246,6 @@ class TestsGroupInfo(unittest.TestCase):
             group_info.get_layer_size(-5)
 
     # set layer size works
-    @capture_logging
     def test_group_info__set_size(self) -> None:
         """Test that set_layer_size works on a hidden layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -280,7 +256,6 @@ class TestsGroupInfo(unittest.TestCase):
         self.assertEqual(7, group_info.get_layer_size(1))
 
     # set layer size errors on a too-small size
-    @capture_logging
     def test_group_info__set_size_too_small(self) -> None:
         """Test that set_layer_size errors on a non-positive size."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -291,7 +266,6 @@ class TestsGroupInfo(unittest.TestCase):
             group_info.set_layer_size(1, -5)
 
     # set layer size errors on input layer
-    @capture_logging
     def test_group_info__set_size_input(self) -> None:
         """Test that set_layer_size errors on the input layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -301,7 +275,6 @@ class TestsGroupInfo(unittest.TestCase):
             group_info.set_layer_size(0, 7)
 
     # set layer size errors on output layer
-    @capture_logging
     def test_group_info__set_size_output(self) -> None:
         """Test that set_layer_size errors on the output layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -311,7 +284,6 @@ class TestsGroupInfo(unittest.TestCase):
             group_info.set_layer_size(1, 7)
 
     # set layer size works for oob layers
-    @capture_logging
     def test_group_info__set_size_out_of_bounds(self) -> None:
         """Test that set_layer_size functions on an out-of-bounds layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -323,7 +295,6 @@ class TestsGroupInfo(unittest.TestCase):
             group_info.set_layer_size(-5, 7)
 
     # change layer size works
-    @capture_logging
     def test_group_info__change_size(self) -> None:
         """Test that change_layer_size works on a hidden layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -338,7 +309,6 @@ class TestsGroupInfo(unittest.TestCase):
         self.assertEqual(13, group_info.get_layer_size(1))
 
     # change layer size errors on input layer
-    @capture_logging
     def test_group_info__change_size_too_small(self) -> None:
         """Test that change_layer_size errors on a too-big negative change."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -349,7 +319,6 @@ class TestsGroupInfo(unittest.TestCase):
             group_info.change_layer_size(1, -40)
 
     # change layer size errors on input layer
-    @capture_logging
     def test_group_info__change_size_input(self) -> None:
         """Test that change_layer_size errors on the input layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -359,7 +328,6 @@ class TestsGroupInfo(unittest.TestCase):
             group_info.change_layer_size(0, 7)
 
     # change layer size errors on output layer
-    @capture_logging
     def test_group_info__change_size_output(self) -> None:
         """Test that change_layer_size errors on the output layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -369,7 +337,6 @@ class TestsGroupInfo(unittest.TestCase):
             group_info.change_layer_size(1, 7)
 
     # change layer size errors on oob layer
-    @capture_logging
     def test_group_info__change_size_oob(self) -> None:
         """Test that change_layer_size errors on an out-of-bounds layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -381,7 +348,6 @@ class TestsGroupInfo(unittest.TestCase):
             group_info.change_layer_size(-5, 7)
 
     # get layer activation works on output layer
-    @capture_logging
     def test_group_info__get_activation_output(self) -> None:
         """Test that get_layer_activation works on the output layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -392,7 +358,6 @@ class TestsGroupInfo(unittest.TestCase):
         )
 
     # get layer activation errors on input layer
-    @capture_logging
     def test_group_info__get_activation_input(self) -> None:
         """Test that get_layer_activation errors on the input layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -402,7 +367,6 @@ class TestsGroupInfo(unittest.TestCase):
             group_info.get_layer_activation(0)
 
     # get layer activation works on hidden layer
-    @capture_logging
     def test_group_info__get_activation_hidden(self) -> None:
         """Test that get_layer_activation works on hidden layers."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -412,7 +376,6 @@ class TestsGroupInfo(unittest.TestCase):
         self.assertEqual("aleph", group_info.get_layer_activation(1))
 
     # get layer activation errors on oob layer
-    @capture_logging
     def test_group_info__get_activation_oob(self) -> None:
         """Test that get_layer_activation errors on an out-of-bounds layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -424,7 +387,6 @@ class TestsGroupInfo(unittest.TestCase):
             group_info.get_layer_activation(13)
 
     # set layer activation works on output layer
-    @capture_logging
     def test_group_info__set_activation_output(self) -> None:
         """Test that set_layer_activation works on the output layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -434,7 +396,6 @@ class TestsGroupInfo(unittest.TestCase):
         self.assertEqual("aleph", group_info.get_layer_activation(1))
 
     # set layer activation errors on input layer
-    @capture_logging
     def test_group_info__set_activation_input(self) -> None:
         """Test that set_layer_activation works on the input layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -444,7 +405,6 @@ class TestsGroupInfo(unittest.TestCase):
             group_info.set_layer_activation(0, "aleph")
 
     # set layer activation works on hidden layer
-    @capture_logging
     def test_group_info__set_activation_hidden(self) -> None:
         """Test that set_layer_activation works on hidden layers."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
@@ -455,7 +415,6 @@ class TestsGroupInfo(unittest.TestCase):
         self.assertEqual("aleph", group_info.get_layer_activation(1))
 
     # get layer activation errors on oob layer
-    @capture_logging
     def test_group_info__set_activation_oob(self) -> None:
         """Test that set_layer_activation errors on an out-of-bounds layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])

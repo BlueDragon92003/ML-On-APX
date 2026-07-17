@@ -2,8 +2,6 @@
 
 import unittest
 
-from eliot.testing import capture_logging
-
 from ml_on_apx.model_management.stop_functions import StopFunction
 from ml_on_apx.model_management.training_job import TrainingJob
 
@@ -12,7 +10,6 @@ class TestsTrainingJob(unittest.TestCase):
     """Tests for the TrainingJob class."""
 
     # minimal functions
-    @capture_logging
     def test_training_job__minimal_build(self) -> None:
         """Test that a minimal valid build builds properly."""
         group_name = "grp"
@@ -35,7 +32,6 @@ class TestsTrainingJob(unittest.TestCase):
         self.assertEqual(None, job.base_model_name)
 
     # missing group name
-    @capture_logging
     def test_training_job__missing_group(self) -> None:
         """Test that a build missing its group does not build properly."""
         # group_name = "grp"
@@ -51,7 +47,6 @@ class TestsTrainingJob(unittest.TestCase):
             builder.build()
 
     # missing dataset
-    @capture_logging
     def test_training_job__missing_dataset(self) -> None:
         """Test that a build missing its dataset does not build properly."""
         group_name = "grp"
@@ -67,7 +62,6 @@ class TestsTrainingJob(unittest.TestCase):
             builder.build()
 
     # missing stop function
-    @capture_logging
     def test_training_job__missing_stop(self) -> None:
         """Test that a build missing its stop_function does not build properly."""
         group_name = "grp"
@@ -83,7 +77,6 @@ class TestsTrainingJob(unittest.TestCase):
             builder.build()
 
     # functions + lookback
-    @capture_logging
     def test_training_job__lookback_build(self) -> None:
         """Test that a build with a set lookback distance builds properly."""
         group_name = "grp"
@@ -108,7 +101,6 @@ class TestsTrainingJob(unittest.TestCase):
         self.assertEqual(None, job.base_model_name)
 
     # functions + batch size
-    @capture_logging
     def test_training_job__batch_size_build(self) -> None:
         """Test that a build with a set batch size builds properly."""
         group_name = "grp"
@@ -133,7 +125,6 @@ class TestsTrainingJob(unittest.TestCase):
         self.assertEqual(None, job.base_model_name)
 
     # functions + checkpoint
-    @capture_logging
     def test_training_job__checkpoint_build(self) -> None:
         """Test that a build with a set checkpoint rate builds properly."""
         group_name = "grp"
@@ -158,7 +149,6 @@ class TestsTrainingJob(unittest.TestCase):
         self.assertEqual(None, job.base_model_name)
 
     # functions + learning rate
-    @capture_logging
     def test_training_job__learning_build(self) -> None:
         """Test that a build with a set learning rate builds properly."""
         group_name = "grp"
@@ -183,7 +173,6 @@ class TestsTrainingJob(unittest.TestCase):
         self.assertEqual(None, job.base_model_name)
 
     # invalid lookback
-    @capture_logging
     def test_training_job__invalid_lookback(self) -> None:
         """Test that a build with an invalid lookback does not build properly."""
         group_name = "grp"
@@ -204,7 +193,6 @@ class TestsTrainingJob(unittest.TestCase):
             builder.build()
 
     # invalid batch size
-    @capture_logging
     def test_training_job__invalid_batch(self) -> None:
         """Test that a build with an invalid batch size does not build properly."""
         group_name = "grp"
@@ -225,7 +213,6 @@ class TestsTrainingJob(unittest.TestCase):
             builder.build()
 
     # invalid checkpoint rate
-    @capture_logging
     def test_training_job__invalid_checkpoint(self) -> None:
         """Test that a build with an invalid checkpoint rate does not build properly."""
         group_name = "grp"
@@ -246,7 +233,6 @@ class TestsTrainingJob(unittest.TestCase):
             builder.build()
 
     # invalid learning rate
-    @capture_logging
     def test_training_job__invalid_learn(self) -> None:
         """Test that a build with an invalid learning rate does not build properly."""
         group_name = "grp"
@@ -267,7 +253,6 @@ class TestsTrainingJob(unittest.TestCase):
             builder.build()
 
     # functions + testing set
-    @capture_logging
     def test_training_job__testing_build(self) -> None:
         """Test that a build with a set testing dataset builds properly."""
         group_name = "grp"
@@ -292,7 +277,6 @@ class TestsTrainingJob(unittest.TestCase):
         self.assertEqual(None, job.base_model_name)
 
     # functions + base model
-    @capture_logging
     def test_training_job__base_model_build(self) -> None:
         """Test that a build with a set base model builds properly."""
         group_name = "grp"
@@ -317,7 +301,6 @@ class TestsTrainingJob(unittest.TestCase):
         self.assertEqual(base_model, job.base_model_name)
 
     # maximal functions
-    @capture_logging
     def test_training_job__maximal_build(self) -> None:
         """Test that a build with all properties set builds properly."""
         group_name = "grp"

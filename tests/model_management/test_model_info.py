@@ -4,6 +4,7 @@ import datetime
 import unittest
 
 from ml_on_apx.model_management.model_info import ModelInfo, ModelTestInfo
+from ml_on_apx.model_management.stop_functions import StopFunction
 
 
 class TestsModelInfo(unittest.TestCase):
@@ -22,6 +23,28 @@ class TestsModelInfo(unittest.TestCase):
         self.assertEqual(group, model_info.group)
         self.assertEqual(tds, model_info.training_dataset)
         self.assertEqual(0, len(model_info.testing_information))
+        self.assertIsNone(model_info.stopped_with_error)
+
+    def test_model_info__with_error(self) -> None:
+        """Test that the ModelInfo object is created properly."""
+        start = datetime.date(2026, 7, 17)
+        fork = datetime.datetime(2026, 7, 17, 8, 26, 00)
+        group = "group_i"
+        tds = "dataset_1"
+        model_info = ModelInfo(
+            start,
+            fork,
+            group,
+            tds,
+            stop_function_errored=StopFunction.EvaluationError(),
+        )
+
+        self.assertEqual(start, model_info.training_start_date)
+        self.assertEqual(fork, model_info.model_fork_time)
+        self.assertEqual(group, model_info.group)
+        self.assertEqual(tds, model_info.training_dataset)
+        self.assertEqual(0, len(model_info.testing_information))
+        self.assertIsNotNone(model_info.stopped_with_error)
 
     def test_model_info__add_test_info(self) -> None:
         """Test that adding a ModelTestInfo object functions properly."""

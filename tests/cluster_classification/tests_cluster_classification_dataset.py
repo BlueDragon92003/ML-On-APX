@@ -6,7 +6,6 @@ from typing import Tuple
 
 import jax.numpy as jnp
 import numpy as np
-from eliot.testing import capture_logging
 from parameterized import parameterized
 
 from ml_on_apx.cluster_classification import cluster_classification_dataset
@@ -30,7 +29,6 @@ class TestClusterClassificationDataset(unittest.TestCase):
     - `test_ccd__cluster_generator__correctness`
     """
 
-    @capture_logging
     def test_ccd__get_ecal_tower__in_bounds(self) -> None:
         """Tests if `get_ecal_tower` produces valid indices on valid input."""
         for i_phi in range(6):
@@ -55,7 +53,6 @@ class TestClusterClassificationDataset(unittest.TestCase):
                     self.assertLess(slri, 30)
                     self.assertGreaterEqual(slri, 0)
 
-    @capture_logging
     def test_ccd__get_hcal_location__in_bounds(self) -> None:
         """Tests if `get_hcal_location` produces valid indices on valid input."""
         for i_phi in range(6):
@@ -106,7 +103,6 @@ class TestClusterClassificationDataset(unittest.TestCase):
             ["SLR3b", 3, 16, 0, 24],
         ]
     )
-    @capture_logging
     def test_ccd__get_ecal_tower__correctness(
         self, name: str, slr: int, i_eta: int, i_phi: int, tower: int
     ) -> None:
@@ -148,7 +144,6 @@ class TestClusterClassificationDataset(unittest.TestCase):
             ["low link/high phi/high eta 2", 14, 15, 5, (1 + 4 * 7, 8)],
         ]
     )
-    @capture_logging
     def test_ccd__get_hcal_location__correctness(
         self, name: str, card: int, i_eta: int, i_phi: int, location: Tuple[int, int]
     ) -> None:
@@ -169,7 +164,6 @@ class TestClusterClassificationDataset(unittest.TestCase):
             cluster_classification_dataset.get_hcal_location(card, i_eta, i_phi),
         )
 
-    @capture_logging
     def test_ccd__process_cluster__correctness(self) -> None:
         """Test the correctness of the process_cluster function."""
         slrs = [0, 1, 2, 3, 2, 3]
