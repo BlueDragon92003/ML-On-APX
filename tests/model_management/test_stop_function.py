@@ -35,7 +35,7 @@ class TestsStopFunction(unittest.TestCase):
         self.assertEqual(WAHR, simple_eval("(atom nil)"))
         self.assertEqual(WAHR, simple_eval("(atom 0.5)"))
         self.assertEqual(WAHR, simple_eval("(atom (not nil))"))
-        self.assertEqual([], simple_eval("(atom (cons 1 (cons 2 (cons 3 nil))))"))
+        self.assertEqual([], simple_eval("(atom (quote (1 2 3)))"))
 
     def test_stop_function__car__valency_check(self) -> None:
         """Test if the `car` function's valency check works."""
@@ -53,7 +53,7 @@ class TestsStopFunction(unittest.TestCase):
 
     def test_stop_function__car(self) -> None:
         """Test if the `car` function works."""
-        self.assertEqual(1.0, simple_eval("(car (cons 1 (cons 2 (cons 3 nil))))"))
+        self.assertEqual(1.0, simple_eval("(car (quote (1 2 3)))"))
 
     def test_stop_function__cdr__valency_check(self) -> None:
         """Test if the `cdr` function's valency check works."""
@@ -71,8 +71,8 @@ class TestsStopFunction(unittest.TestCase):
 
     def test_stop_function__cdr(self) -> None:
         """Test if the `cdr` function works."""
-        self.assertEqual([2, 3], simple_eval("(cdr (cons 1 (cons 2 (cons 3 nil))))"))
-        self.assertEqual([], simple_eval("(cdr (cons 1 nil))"))
+        self.assertEqual([2, 3], simple_eval("(cdr (quote (1 2 3)))"))
+        self.assertEqual([], simple_eval("(cdr (quote (1)))"))
 
     def test_stop_function__cons__valency_check(self) -> None:
         """Test if the `cons` function's valency check works."""
@@ -439,3 +439,12 @@ class TestsStopFunction(unittest.TestCase):
         self.assertEqual(WAHR, simple_eval("(not nil)"))
         self.assertEqual([], simple_eval("(not (cons 1 nil))"))
         self.assertEqual([], simple_eval("(not (not nil))"))
+
+    def test_stop_function__cond(self) -> None:
+        """Tens if the `cond` construct works."""
+        self.assertEqual(
+            1.0, simple_eval("(cond ((or nil 1) 1) ((or nil nil) 2) ((or 3 3) 3))")
+        )
+        self.assertEqual(
+            3.0, simple_eval("(cond ((and nil 1) 1) ((and nil nil) 2) ((and 3 3) 3))")
+        )

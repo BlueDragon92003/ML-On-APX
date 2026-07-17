@@ -578,8 +578,8 @@ class StopFunction:
             return x
         elif type(x) is str:
             return StopFunction.assoc(x, local_vars)
-        # elif type(x) is list and x[0] == "quote":
-        #     return x[1]
+        elif type(x) is list and x[0] == "quote":
+            return x[1]
         elif type(x) is list and x[0] == "cond":
             return StopFunction.evcon(x[1:], local_vars)
         # elif type(x) is list and x[0] == "label":
