@@ -33,25 +33,25 @@ class ModelTestInfo:
         self._accuracy: float = accuracy
         self._average_loss: float = average_loss
 
-        @property
-        def test_time(self: "ModelTestInfo") -> datetime:
-            """When the test was run."""
-            return self._test_time
+    @property
+    def test_time(self: "ModelTestInfo") -> datetime:
+        """When the test was run."""
+        return self._test_time
 
-        @property
-        def run_by_user(self: "ModelTestInfo") -> bool:
-            """If the test was run by the user or as part of the checkpoint process."""
-            return self._run_by_user
+    @property
+    def run_by_user(self: "ModelTestInfo") -> bool:
+        """If the test was run by the user or as part of the checkpoint process."""
+        return self._run_by_user
 
-        @property
-        def accuracy(self: "ModelTestInfo") -> float:
-            """The test's accuracy."""
-            return self._accuracy
+    @property
+    def accuracy(self: "ModelTestInfo") -> float:
+        """The test's accuracy."""
+        return self._accuracy
 
-        @property
-        def average_loss(self: "ModelTestInfo") -> float:
-            """The average loss across the test."""
-            return self._average_loss
+    @property
+    def average_loss(self: "ModelTestInfo") -> float:
+        """The average loss across the test."""
+        return self._average_loss
 
 
 class ModelInfo:
@@ -61,7 +61,7 @@ class ModelInfo:
         self,
         start_date: date,
         fork_time: datetime,
-        labels: str,
+        group: str,
         training_datasets: list[str],
     ) -> None:
         """Create a new object to store information on a model.
@@ -70,14 +70,14 @@ class ModelInfo:
             start_date (date): When the model training cycle started.
             fork_time (datetime): When this set of weights was extracted from the
                 training process.
-            labels (Labels): The labels this model uses.
+            group (str): The name of the parent group for this model.
             training_datasets (List[str]): The dataset namess the model pulled from.
 
         """
         # Training information
         self._training_start_date: date = start_date
         self._model_fork_time: datetime = fork_time
-        self._group: str = labels
+        self._group: str = group
         self._training_datasets: list[str] = training_datasets
         # Testing information
         self._testing_information: list[ModelTestInfo] = []
