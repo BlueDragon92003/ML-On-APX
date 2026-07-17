@@ -62,7 +62,7 @@ class ModelInfo:
         start_date: date,
         fork_time: datetime,
         group: str,
-        training_datasets: list[str],
+        training_dataset: str,
     ) -> None:
         """Create a new object to store information on a model.
 
@@ -71,14 +71,14 @@ class ModelInfo:
             fork_time (datetime): When this set of weights was extracted from the
                 training process.
             group (str): The name of the parent group for this model.
-            training_datasets (List[str]): The dataset namess the model pulled from.
+            training_dataset (str): The dataset name the model pulled from.
 
         """
         # Training information
         self._training_start_date: date = start_date
         self._model_fork_time: datetime = fork_time
         self._group: str = group
-        self._training_datasets: list[str] = training_datasets
+        self._training_dataset: str = training_dataset
         # Testing information
         self._testing_information: list[ModelTestInfo] = []
 
@@ -98,9 +98,9 @@ class ModelInfo:
         return self._group
 
     @property
-    def training_datasets(self: "ModelInfo") -> list[str]:
+    def training_dataset(self: "ModelInfo") -> str:
         """The date the training job started."""
-        return self._training_datasets
+        return self._training_dataset
 
     @property
     def testing_information(self: "ModelInfo") -> list[ModelTestInfo]:

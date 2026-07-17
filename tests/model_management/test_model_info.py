@@ -14,13 +14,13 @@ class TestsModelInfo(unittest.TestCase):
         start = datetime.date(2026, 7, 17)
         fork = datetime.datetime(2026, 7, 17, 8, 26, 00)
         group = "group_i"
-        tds = ["dataset_1", "dataset_2"]
+        tds = "dataset_1"
         model_info = ModelInfo(start, fork, group, tds)
 
         self.assertEqual(start, model_info.training_start_date)
         self.assertEqual(fork, model_info.model_fork_time)
         self.assertEqual(group, model_info.group)
-        self.assertListEqual(tds, model_info.training_datasets)
+        self.assertEqual(tds, model_info.training_dataset)
         self.assertEqual(0, len(model_info.testing_information))
 
     def test_model_info__add_test_info(self) -> None:
@@ -29,7 +29,7 @@ class TestsModelInfo(unittest.TestCase):
             datetime.date(2026, 7, 17),
             datetime.datetime(2026, 7, 17, 8, 26, 00),
             "group_i",
-            ["dataset_1", "dataset_2"],
+            "dataset_1",
         )
         self.assertEqual(0, len(model_info.testing_information))
         test = ModelTestInfo(
