@@ -11,6 +11,8 @@ LispVars = List[Tuple[str, LispType]]
 
 _STOP_FUNCTIONS = "stopfn" @ _MODEL
 
+WAHR = "t"
+
 
 class StopFunction:
     """Represents an expression that determines if training should stop.
@@ -37,7 +39,7 @@ class StopFunction:
     use them.
 
     Functions also expect certain types, and reject if the types are incorrect. The
-    three types encountered in this program are Numeric, List, and "t" (a truethy atom).
+    three types encountered in this program are Numeric, List, and "t" (a truthy atom).
     The indicated type must be provided to a function to avoid an
     InvalidArgumentTypeError.
 
@@ -74,10 +76,10 @@ class StopFunction:
         The list with the first item removed.
 
     ### cons
-        Valency: 2 [Any, List<Any>]
+        Valency: 2 [Any, List<Any> | nil]
         Return: List<Any>
 
-        The first item prepended to the given list as an item.
+        The first item prepended to a given list (or nil) as an item.
 
     ### eq
         Valency: 2 [Atomic, Any]
@@ -159,7 +161,7 @@ class StopFunction:
         Valency: n [Any*]
         Return: Boolean
 
-        The first falsy argument, or True if they are all truthy.
+        The first falsy argument, or the last argument if they are all truthy.
 
     ### not
         Valency: 1 [Any]
@@ -174,6 +176,9 @@ class StopFunction:
 
     class InvalidArgumentTypeError(EvaluationError):
         """If an argument is of the incorrect type."""
+
+    class InvalidArgumentValueError(EvaluationError):
+        """If an argument has an improper value."""
 
     class InvalidArgumentNumberError(EvaluationError):
         """If there are too few arguments provided."""
@@ -340,7 +345,7 @@ class StopFunction:
             LispType: The lisp boolean (`t` or `nil`) if x was atomic.
 
         """
-        return "t" if (type(x) is not list) or len(x) == 0 else []
+        return WAHR if (type(x) is not list) or len(x) == 0 else []
 
     @staticmethod
     def is_nil(x: LispType) -> bool:
@@ -377,14 +382,14 @@ class StopFunction:
         Raises:
             EvaluationError: If the arguments are incorrect or if the function does not
                 exist.
-            ValueError: If, during log evaluation, the base is non-positive.
-            ZeroDivisionError: If, during division, the denominator is 0.
 
         Returns:
             LispType: The result of the function.
 
         """
         if f == "atom":
+            if len(args) <= 0:
+                raise StopFunction.InvalidArgumentNumberError(f, len(args))
             return StopFunction.atom(args[0])
         elif f == "car":
             if len(args) <= 0:
@@ -395,7 +400,7 @@ class StopFunction:
         elif f == "cdr":
             if len(args) <= 0:
                 raise StopFunction.InvalidArgumentNumberError(f, len(args))
-            if type(args[0]) is not list or len(args[0]) <= 1:
+            if type(args[0]) is not list or len(args[0]) <= 0:
                 raise StopFunction.InvalidArgumentTypeError(f, args, _local_vars)
             return args[0][1:]
         elif f == "cons":
@@ -407,7 +412,7 @@ class StopFunction:
         elif f == "eq":
             if len(args) <= 1:
                 raise StopFunction.InvalidArgumentNumberError(f, len(args))
-            return "t" if StopFunction.atom(args[0]) and args[0] == args[1] else []
+            return WAHR if StopFunction.atom(args[0]) and args[0] == args[1] else []
         elif f == "+":
             if len(args) <= 1:
                 raise StopFunction.InvalidArgumentNumberError(f, len(args))
@@ -431,6 +436,8 @@ class StopFunction:
                 raise StopFunction.InvalidArgumentNumberError(f, len(args))
             if type(args[0]) is not float or type(args[1]) is not float:
                 raise StopFunction.InvalidArgumentTypeError(f, args, _local_vars)
+            if args[1] == 0:
+                raise StopFunction.InvalidArgumentValueError(f, args, _local_vars)
             return args[0] / args[1]
         elif f == "**":
             if len(args) <= 1:
@@ -441,27 +448,29 @@ class StopFunction:
         elif f == "log":
             if len(args) <= 1:
                 raise StopFunction.InvalidArgumentNumberError(f, len(args))
-            if type(args[0]) is not float or type(args[1]) is not float or args[1] <= 0:
+            if type(args[0]) is not float or type(args[1]) is not float:
                 raise StopFunction.InvalidArgumentTypeError(f, args, _local_vars)
+            if args[0] <= 0 or args[1] <= 0:
+                raise StopFunction.InvalidArgumentValueError(f, args, _local_vars)
             return math.log(args[0], args[1])
         elif f == "<":
             if len(args) <= 1:
                 raise StopFunction.InvalidArgumentNumberError(f, len(args))
             if type(args[0]) is not float or type(args[1]) is not float:
                 raise StopFunction.InvalidArgumentTypeError(f, args, _local_vars)
-            return "t" if args[0] < args[1] else []
+            return WAHR if args[0] < args[1] else []
         elif f == "<=":
             if len(args) <= 1:
                 raise StopFunction.InvalidArgumentNumberError(f, len(args))
             if type(args[0]) is not float or type(args[1]) is not float:
                 raise StopFunction.InvalidArgumentTypeError(f, args, _local_vars)
-            return "t" if args[0] <= args[1] else []
+            return WAHR if args[0] <= args[1] else []
         elif f == ">":
             if len(args) <= 1:
                 raise StopFunction.InvalidArgumentNumberError(f, len(args))
             if type(args[0]) is not float or type(args[1]) is not float:
                 raise StopFunction.InvalidArgumentTypeError(f, args, _local_vars)
-            return "t" if args[0] > args[1] else []
+            return WAHR if args[0] > args[1] else []
         elif f == ">=":
             if len(args) <= 1:
                 raise StopFunction.InvalidArgumentNumberError(f, len(args))
@@ -477,9 +486,9 @@ class StopFunction:
                 raise StopFunction.InvalidArgumentNumberError(f, len(args))
             return args[0] if StopFunction.is_nil(args[0]) else args[1]
         elif f == "not":
-            if len(args) <= 1:
+            if len(args) <= 0:
                 raise StopFunction.InvalidArgumentNumberError(f, len(args))
-            return "t" if StopFunction.is_nil(args[0]) else []
+            return WAHR if StopFunction.is_nil(args[0]) else []
         else:  # StopFunction.is_nil(f):
             raise StopFunction.MissingFunctionError(f)
         # elif (type(f) is list) and f[0] == "lambda":
@@ -565,12 +574,12 @@ class StopFunction:
         """
         if x == "nil":
             return []
-        elif x == "t" or type(x) is float:
+        elif x == WAHR or type(x) is float:
             return x
         elif type(x) is str:
             return StopFunction.assoc(x, local_vars)
-        elif type(x) is list and x[0] == "quote":
-            return x[1]
+        # elif type(x) is list and x[0] == "quote":
+        #     return x[1]
         elif type(x) is list and x[0] == "cond":
             return StopFunction.evcon(x[1:], local_vars)
         # elif type(x) is list and x[0] == "label":
