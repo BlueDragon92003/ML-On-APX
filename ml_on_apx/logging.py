@@ -157,7 +157,14 @@ def initialize_file_logging(
             newest = log_files[-1].stem if len(log_files) != 0 else None
             today = datetime.date.today()
             base = f"{today.year:04d}-{today.month:02d}-{today.day:02d}"
-            count = int(newest.split("-")[3]) if newest is not None else 0
+            if newest:
+                split = newest.split("-")
+                if today != datetime.date(int(split[0]), int(split[1]), int(split[2])):
+                    count = 0
+                else:
+                    count = int(split[3])
+            else:
+                count = 0
             stem = f"{base}-{count}"
             target = log_file / f"{stem}.log"
             while target.exists():
