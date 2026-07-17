@@ -120,122 +120,86 @@ class TrainingJobBuilder:
         self._testing_dataset: str | None = None
         self._base_model_name: str | None = None
 
-    def group_name(self, group_name: str) -> "TrainingJobBuilder":
+    def group_name(self, group_name: str) -> None:
         """Specify the group name for the training job.
 
         Args:
             group_name (str): The name of the group.
 
-        Returns:
-            TrainingJobBuilder: The builder.
-
         """
         self._group_name = group_name
-        return self
 
-    def dataset(self, dataset: str) -> "TrainingJobBuilder":
+    def dataset(self, dataset: str) -> None:
         """Specify the dataset for the training job.
 
         Args:
             dataset (str): The name of the dataset to use.
 
-        Returns:
-            TrainingJobBuilder: The builder.
-
         """
         self._dataset = dataset
-        return self
 
-    def stop_function(self, stop_function: StopFunction) -> "TrainingJobBuilder":
+    def stop_function(self, stop_function: StopFunction) -> None:
         """Specify the stop function for the training job.
 
         Args:
             stop_function (StopFunction): The stop function.
 
-        Returns:
-            TrainingJobBuilder: The builder.
-
         """
         self._stop_function = stop_function
-        return self
 
-    def lookback_distance(self, lookback_distance: int) -> "TrainingJobBuilder":
+    def lookback_distance(self, lookback_distance: int) -> None:
         """Specify the lookback distance for the training job.
 
         Args:
             lookback_distance (int): The lookback distance.
 
-        Returns:
-            TrainingJobBuilder: The builder.
-
         """
         self._lookback_distance = lookback_distance
-        return self
 
-    def batch_size(self, batch_size: int) -> "TrainingJobBuilder":
+    def batch_size(self, batch_size: int) -> None:
         """Specify the batch size for the training job.
 
         Args:
             batch_size (int): The batch size.
 
-        Returns:
-            TrainingJobBuilder: The builder.
-
         """
         self._batch_size = batch_size
-        return self
 
-    def checkpoint_rate(self, checkpoint_rate: int) -> "TrainingJobBuilder":
+    def checkpoint_rate(self, checkpoint_rate: int) -> None:
         """Specify the checkpoint rate for the training job.
 
         Args:
             checkpoint_rate (int): The checkpoint rate.
 
-        Returns:
-            TrainingJobBuilder: The builder.
-
         """
         self._checkpoint_rate = checkpoint_rate
-        return self
 
-    def learning_rate(self, learning_rate: float) -> "TrainingJobBuilder":
+    def learning_rate(self, learning_rate: float) -> None:
         """Specify the learning rate for the training job.
 
         Args:
             learning_rate (float): The learning rate.
 
-        Returns:
-            TrainingJobBuilder: The builder.
-
         """
         self._learning_rate = learning_rate
-        return self
 
-    def testing_dataset(self, testing_dataset: str | None) -> "TrainingJobBuilder":
+    def testing_dataset(self, testing_dataset: str | None) -> None:
         """Specify the testing dataset for the training job.
 
         Args:
             testing_dataset (str | None): The name of the testing dataset.
 
-        Returns:
-            TrainingJobBuilder: The builder.
-
         """
         self._testing_dataset = testing_dataset
-        return self
 
-    def base_model_name(self, base_model_name: str | None) -> "TrainingJobBuilder":
+    def base_model_name(self, base_model_name: str | None) -> None:
         """Specify the base model for the training job.
 
         Args:
             base_model_name (str | None): The name of the base model.
 
-        Returns:
-            TrainingJobBuilder: The builder.
-
         """
         self._base_model_name = base_model_name
-        return self
 
     @log_call(action_type="build_job" > _TRAINING)
     def build(self) -> TrainingJob:
