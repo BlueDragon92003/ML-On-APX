@@ -15,17 +15,158 @@ _STOP_FUNCTIONS = "stopfn" @ _MODEL
 class StopFunction:
     """Represents an expression that determines if training should stop.
 
-    WARNING! THIS IMPLEMENTATION DOES NOT CHECK THE INPUTTED CODE.
-    Any call to a `StopFunction` must catch the following exceptions:
-    - TypeError
-    - ValueError
-    - IndexError
-    Many of these will occur from user errors, but some are due to the fact that
-    my type checker cannot properly consider the union types used :/
+    WARNING! THIS IMPLEMENTATION DOES NOT VERIFY THE INPUTTED CODE.
+    Any call to a `StopFunction` must catch the EvaluationErrors this class defines.
 
     An odd extention of the Lisp implementation from
-    https://zserge.com/posts/langs-lisp/
-    modified for this use case.
+    https://zserge.com/posts/langs-lisp/, modified for this use case.
+
+    ## Function API
+
+    This dialect of lisp expects single-expression programs. The result of a program
+    will be interpreted as a boolean value. Truthy values (non-nil) indicate that the
+    training process will stop. Falsy values (nil, and empty list) indicate that the
+    program should continue to execute.
+
+    As noted before, this implementation is not type-checked at compile time. Training
+    will stop early if the stop function encounters an error during evaluation.
+
+    All functions have a valency. Any time such function is called, it will process
+    exactly that many arguments, or raise an InvalidArgumentNumberError if there are too
+    few. Arguments beyond the valency are currently ignored; it is best practice not to
+    use them.
+
+    Functions also expect certain types, and reject if the types are incorrect. The
+    three types encountered in this program are Numeric, List, and "t" (a truethy atom).
+    The indicated type must be provided to a function to avoid an
+    InvalidArgumentTypeError.
+
+    The "Boolean" type is, for arguments, any of these, as they are all either truthy or
+    falsy. In return types, Boolean indicates the function will provide the true atom
+    "t" or nil.
+
+    The "Atomic" type represents all types that are non-empty lists.
+
+    If a string is given indicating a missing function, a MissingFunctionError is
+    raised. If a string is given that does not resolve to a valid variable or function,
+    depending on its location within a list, an UnevaluateableError is raised.
+
+    As programs are single expressions, no user-defined functions are available.
+
+    A list of functions, their valencies, and their return values can be found below.
+
+    ### atom
+        Valency: 1 [Any]
+        Return: Boolean
+
+        True if the first argument is Atomic.
+
+    ### car
+        Valency: 1 [List<T: Any>]
+        Return: T
+
+        The first item from the provided list.
+
+    ### cdr
+        Valency: 1 [List<T: Any>]
+        Return: List<T>
+
+        The list with the first item removed.
+
+    ### cons
+        Valency: 2 [Any, List<Any>]
+        Return: List<Any>
+
+        The first item prepended to the given list as an item.
+
+    ### eq
+        Valency: 2 [Atomic, Any]
+        Return: Boolean
+
+        True if the first argument is atomic and equal to the second.
+
+    ### +
+        Valency: 2 [Numeric, Numeric]
+        Return: Numeric
+
+        The sum of the two arguments.
+
+    ### -
+        Valency: 2 [Numeric, Numeric]
+        Return: Numeric
+
+        The second argument subtracted from the first.
+
+    ### *
+        Valency: 2 [Numeric, Numeric]
+        Return: Numeric
+
+        The product of the two arguments.
+
+    ### /
+        Valency: 2 [Numeric, Numeric]
+        Return: Numeric
+
+        The first argument divided by the second.
+
+        Raises an InvalidArgumentTypeError if the second argument is 0.
+
+    ### **
+        Valency: 2 [Numeric, Numeric]
+        Return: Numeric
+
+        The first argument raised to the power of the second.
+
+    ### log
+        Valency: 2 [Numeric, Numeric]
+        Return: Numeric
+
+        The log of the first argument, with a base of the second.
+
+        Raises an InvalidArgumentTypeError if the second argument is nonpositive.
+
+    ### <
+        Valency: 2 [Numeric, Numeric]
+        Return: Boolean
+
+        True if first argument is strictly less than the second.
+
+    ### <=
+        Valency: 2 [Numeric, Numeric]
+        Return: Boolean
+
+        True if first argument is less than or equal to the second.
+
+    ### >
+        Valency: 2 [Numeric, Numeric]
+        Return: Boolean
+
+        True if first argument is strictly greater than the second.
+
+    ### >=
+        Valency: 2 [Numeric, Numeric]
+        Return: Boolean
+
+        True if first argument is greater than or equal to the second.
+
+    ### or
+        Valency: n [Any*]
+        Return: Any
+
+        The first truthy argument, or nil if they are all falsy.
+
+    ### and
+        Valency: n [Any*]
+        Return: Boolean
+
+        The first falsy argument, or True if they are all truthy.
+
+    ### not
+        Valency: 1 [Any]
+        Return: Boolean
+
+        True if first argument is falsy, nil otherwise
+
     """
 
     class EvaluationError(Exception):
@@ -57,7 +198,7 @@ class StopFunction:
         self._parsed = StopFunction.parse(StopFunction.lex(self._code))
 
     @log_call(action_type="call" > _STOP_FUNCTIONS)
-    def __call__(self, **kwargs: float) -> bool:
+    def __call__(self, **kwargs: list[float]) -> bool:
         """Call the stop function.
 
         Args:
@@ -74,7 +215,7 @@ class StopFunction:
         return not StopFunction.is_nil(value)
 
     @staticmethod
-    def execute(code: str, **kwargs: float) -> bool:
+    def execute(code: str, **kwargs: list[float]) -> bool:
         """Execute a one-off stop function.
 
         Args:
@@ -98,7 +239,7 @@ class StopFunction:
 
     @staticmethod
     @log_call(action_type="kwargs" > _STOP_FUNCTIONS)
-    def convert_kwargs(kwargs: Dict[str, float]) -> LispVars:
+    def convert_kwargs(kwargs: Dict[str, list[float]]) -> LispVars:
         """Convert a keyword argument dict to the interpreter's variable format.
 
         Args:
@@ -300,7 +441,7 @@ class StopFunction:
         elif f == "log":
             if len(args) <= 1:
                 raise StopFunction.InvalidArgumentNumberError(f, len(args))
-            if type(args[0]) is not float or type(args[1]) is not float:
+            if type(args[0]) is not float or type(args[1]) is not float or args[1] <= 0:
                 raise StopFunction.InvalidArgumentTypeError(f, args, _local_vars)
             return math.log(args[0], args[1])
         elif f == "<":

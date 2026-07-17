@@ -4,6 +4,7 @@ from datetime import date, datetime
 
 from ml_on_apx.logging import log_call
 from ml_on_apx.model_management import _MODEL
+from ml_on_apx.model_management.stop_functions import StopFunction
 
 _MODEL_INFO = "model" @ _MODEL
 
@@ -63,6 +64,7 @@ class ModelInfo:
         fork_time: datetime,
         group: str,
         training_dataset: str,
+        stop_function_errored: StopFunction.EvaluationError | None = None,
     ) -> None:
         """Create a new object to store information on a model.
 
@@ -72,6 +74,8 @@ class ModelInfo:
                 training process.
             group (str): The name of the parent group for this model.
             training_dataset (str): The dataset name the model pulled from.
+            stop_function_errored (bool): If the stop function errored during
+                evaluation. Defaults to False.
 
         """
         # Training information
@@ -79,6 +83,8 @@ class ModelInfo:
         self._model_fork_time: datetime = fork_time
         self._group: str = group
         self._training_dataset: str = training_dataset
+        self._stop_function_error: StopFunction.EvaluationError | None
+        self._stop_function_error = stop_function_errored
         # Testing information
         self._testing_information: list[ModelTestInfo] = []
 
@@ -106,6 +112,11 @@ class ModelInfo:
     def testing_information(self: "ModelInfo") -> list[ModelTestInfo]:
         """The date the training job started."""
         return self._testing_information
+
+    @property
+    def stopped_with_error(self) -> StopFunction.EvaluationError | None:
+        """If training stopped due to an error during stop function evaluation."""
+        return self._stop_function_error
 
     @log_call(action_type="add" > _MODEL_INFO)
     def add_testing_information(self, new_test: ModelTestInfo) -> None:
