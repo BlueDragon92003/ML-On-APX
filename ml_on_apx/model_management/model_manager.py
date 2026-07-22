@@ -77,8 +77,9 @@ class ModelManager:
         self._group_infos: dict[str, GroupInfo]
         self._model_infos: dict[str, dict[str, ModelInfo]]
         # Read Jobs
-        with open(self._jobs_path, mode="rb") as file:
-            self._training_job, self.testing_job = pickle.load(file)
+        if self._jobs_path.exists():
+            with open(self._jobs_path, mode="rb") as file:
+                self._training_job, self.testing_job = pickle.load(file)
         # For each folder:
         for file in self._models_path.iterdir():
             if not file.is_dir():
@@ -180,9 +181,16 @@ class ModelManager:
             group_name (str): The name of the group to rename.
             new_name (str): The new name of the group.
 
+        Raises:
+            GroupLookupError: When the specified group name is not associated with a
+                group.
+            ValueError: When the new name provided is already in use.
+
         """
         if group_name not in self._group_infos.keys():
             raise self.GroupLookupError("No such group!")
+        if new_name in self._group_infos.keys():
+            raise ValueError(f"Name `{new_name}` already in use!")
         group_model_infos = self._model_infos.pop(group_name)
         self._model_infos.update({new_name: group_model_infos})
 
@@ -199,7 +207,13 @@ class ModelManager:
         Args:
             group_name (str): The group to delete.
 
+        Raises:
+            GroupLookupError: When the specified group name is not associated with a
+                group.
+
         """
+        if group_name not in self._group_infos.keys():
+            raise self.GroupLookupError("No such group!")
         for model_name in self.get_model_names(group_name):
             self.delete_model(group_name, model_name)
         self._group_infos.pop(group_name)
@@ -229,7 +243,7 @@ class ModelManager:
         return list(self._model_infos[group_name].keys())
 
     @log_call(action_type="get" > _MODEL)
-    def get_model(self, group_name: str, model_name: str) -> ModelInfo:
+    def get_model_info(self, group_name: str, model_name: str) -> ModelInfo:
         """Return an existing model's settings with the provided name.
 
         Args:
@@ -251,6 +265,29 @@ class ModelManager:
         if model_name not in self._model_infos[group_name].keys():
             raise self.ModelLookupError(f"No such model in group {group_name}!")
         return self._model_infos[group_name][model_name]
+
+    def get_model(self, group_name: str, model_name: str) -> nn.Module:
+        """Return an existing model's representation with the provided name.
+
+        Args:
+            group_name (str): The name of the group to get a model from.
+            model_name (str): The name of the model in that group to get.
+
+        Raises:
+            GroupLookupError: When the specified group name is not associated with a
+                group.
+            ModelLookupError: When the specified model name is not associated with a
+                model in the group.
+
+        Returns:
+            torch.nn.Module: The the model
+
+        """
+        if group_name not in self._group_infos.keys():
+            raise self.GroupLookupError("No such group!")
+        if model_name not in self._model_infos[group_name].keys():
+            raise self.ModelLookupError(f"No such model in group {group_name}!")
+        return torch.load(self.get_model_path(group_name, model_name))
 
     @log_call(action_type="create" > _MODEL)
     def create_model(
