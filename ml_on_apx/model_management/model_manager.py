@@ -22,9 +22,9 @@ _MODEL = "model" @ _MANAGER
 models/
     classification/
         jobs.pckl
+        group_info.pckl
+        model_infos.pckl
         ex_group/
-            group_info.pckl
-            model_infos.pckl
             ~checkpoint-2020-01-01-000.pth
             ⋮
             ⋮
@@ -74,8 +74,8 @@ class ModelManager:
             ModelManager: The fully-initialized model manager.
 
         """
-        self._group_infos: dict[str, GroupInfo]
-        self._model_infos: dict[str, dict[str, ModelInfo]]
+        self._group_infos: dict[str, GroupInfo] = {}
+        self._model_infos: dict[str, dict[str, ModelInfo]] = {}
         # Read Jobs
         if self._jobs_path.exists():
             with open(self._jobs_path, mode="rb") as file:
@@ -91,11 +91,15 @@ class ModelManager:
             if not (group_info_path.exists() and models_info_path.exists()):
                 continue  # incomplete information in this folder
             with open(group_info_path, mode="rb") as file:
-                group_info = pickle.load(file)
+                group_info: GroupInfo = pickle.load(file)
                 self._group_infos.update({group_name: group_info})
             # Read model_infos.pckl
             with open(models_info_path, mode="rb") as file:
-                models_info = pickle.load(file)
+                models_info: dict[str, ModelInfo] = pickle.load(file)
+                for model in list(models_info.keys()):
+                    model_path = self.get_model_path(group_name, model)
+                    if not model_path.exists():
+                        models_info.pop(model)
                 self._model_infos.update({group_name: models_info})
         return self
 
@@ -118,9 +122,12 @@ class ModelManager:
             pickle.dump((self._training_job, self._testing_job), file)
         # For each group info name:
         for group_name in self.group_names:
-            group_info_path = self.get_group_path(group_name) / self.GROUP_INFO_FILE
-            model_infos_path = self.get_group_path(group_name) / self.MODEL_INFOS_FILE
+            group_path = self.get_group_path(group_name)
+            group_info_path = group_path / self.GROUP_INFO_FILE
+            model_infos_path = group_path / self.MODEL_INFOS_FILE
             # Pickle & write group_info.pckl
+            if not group_path.exists():
+                group_path.mkdir(parents=True)
             with open(group_info_path, mode="wb") as file:
                 pickle.dump(self._group_infos[group_name], file)
             # Pickle & write model_infos.pckl
@@ -137,11 +144,10 @@ class ModelManager:
             group_info (GroupInfo): The info of the group being create.
 
         """
-        if group_name in self._model_infos[group_name].keys():
-            raise ValueError(
-                f"Model {group_name} already exists in group {group_name}!"
-            )
+        if group_name in self._group_infos.keys():
+            raise ValueError(f"Group {group_name} already exists in!")
         self._group_infos.update({group_name: group_info})
+        self._model_infos.update({group_name: {}})
         self.get_group_path(group_name).mkdir()
 
     @property
@@ -198,7 +204,7 @@ class ModelManager:
         self._group_infos.update({new_name: group_info})
 
         path = self.get_group_path(group_name)
-        path.move(self.get_model_path(group_name, new_name))
+        path.move(self.get_group_path(new_name))
 
     @log_call(action_type="name" > _GROUP)
     def delete_group(self, group_name: str) -> None:

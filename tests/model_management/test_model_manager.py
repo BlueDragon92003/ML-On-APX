@@ -1,5 +1,6 @@
 """Tests for the model manager class."""
 
+import datetime
 import pickle
 import unittest
 from pathlib import Path
@@ -13,6 +14,7 @@ from ml_on_apx.labelling import Label, Labels
 from ml_on_apx.model_management.group_info import GroupInfo
 from ml_on_apx.model_management.model_info import ModelInfo
 from ml_on_apx.model_management.model_manager import ModelManager
+from ml_on_apx.model_management.stop_functions import StopFunction
 from ml_on_apx.model_management.testing_job import TestingJob
 from ml_on_apx.model_management.training_job import TrainingJob
 from ml_on_apx.modes import Mode
@@ -48,6 +50,8 @@ class TestsModelManager(
         path.mkdir()
         with open(path / ModelManager.GROUP_INFO_FILE, mode="wb") as file:
             pickle.dump(group_info, file)
+        with open(path / ModelManager.MODEL_INFOS_FILE, mode="wb") as file:
+            pickle.dump({}, file)
 
     def _create_fs_model(
         self, group_name: str, model_name: str, model_info: ModelInfo
@@ -58,17 +62,36 @@ class TestsModelManager(
                 group_name, GroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
             )
         model_infos_path = group_path / ModelManager.MODEL_INFOS_FILE
-        with open(model_infos_path, mode="w+b") as file:
+        with open(model_infos_path, mode="rb") as file:
             model_infos: dict[str, ModelInfo] = pickle.load(file)
-            model_infos.update({model_name: model_info})
+        model_infos.update({model_name: model_info})
+        with open(model_infos_path, mode="wb") as file:
             pickle.dump(model_infos, file)
         model_path = group_path / (model_name + ModelManager.PYTORCH_SUFFIX)
         with open(model_path, mode="wb") as file:
             torch.save(nn.Module(), file)
 
-    def _set_training_job(self, training_job: TrainingJob) -> None: ...
+    def _set_training_job(self, training_job: TrainingJob | None) -> None:
+        jobs = (training_job, None)
+        if self.jobs_pickle.exists():
+            with open(self.jobs_pickle, mode="rb") as file:
+                cur_jobs: tuple[TrainingJob | None, TestingJob | None] = pickle.load(
+                    file
+                )
+                jobs = (training_job, cur_jobs[1])
+        with open(self.jobs_pickle, mode="wb") as file:
+            pickle.dump(jobs, file)
 
-    def _set_testing_job(self, testing_job: TestingJob) -> None: ...
+    def _set_testing_job(self, testing_job: TestingJob | None) -> None:
+        jobs = (None, testing_job)
+        if self.jobs_pickle.exists():
+            with open(self.jobs_pickle, mode="rb") as file:
+                cur_jobs: tuple[TrainingJob | None, TestingJob | None] = pickle.load(
+                    file
+                )
+                jobs = (cur_jobs[0], testing_job)
+        with open(self.jobs_pickle, mode="wb") as file:
+            pickle.dump(jobs, file)
 
     # ========================================================================
     #                                 ENTERING
@@ -77,40 +100,156 @@ class TestsModelManager(
     # Without jobs file (Lists are None)
     def test_model_manager__enter__no_jobs_file(self) -> None:
         """Test that the model manager does not error if the jobs file is missing."""
-        raise TODOError  # TODO
+        with ModelManager(self.models_path, Mode.Testing) as _:
+            pass
 
     # With jobs file (lists appear as expected)
     def test_model_manager__enter__r_jobs_file(self) -> None:
         """Test that the model manager successfully loads a training job."""
-        raise TODOError  # TODO
+        job = TrainingJob.new()
+        job.group_name("grp")
+        job.dataset("data")
+        job.stop_function(StopFunction("(quote nil)"))
+        job = job.build()
+        self._set_training_job(job)
+        with ModelManager(self.models_path, Mode.Testing) as manager:
+            saved = manager.training_job
+            assert saved is not None  # Only here because my typechecker isn't too smart
+            self.assertEqual(job._group_name, saved._group_name)
+            self.assertEqual(job._dataset, saved._dataset)
+            self.assertEqual(job._stop_function._code, saved._stop_function._code)
+            self.assertEqual(job._lookback_distance, saved._lookback_distance)
+            self.assertEqual(job._batch_size, saved._batch_size)
+            self.assertEqual(job._checkpoint_rate, saved._checkpoint_rate)
+            self.assertEqual(job._learning_rate, saved._learning_rate)
+            self.assertEqual(job._testing_dataset, saved._testing_dataset)
+            self.assertEqual(job._base_model_name, saved._base_model_name)
 
     def test_model_manager__enter__e_jobs_file(self) -> None:
         """Test that the model manager successfully loads a testing job."""
-        raise TODOError  # TODO
+        job = TestingJob(Path("/ignore"), "dataset")
+        self._set_testing_job(job)
+        with ModelManager(self.models_path, Mode.Testing) as manager:
+            testing = manager.testing_job
+            assert testing is not None
+            self.assertEqual(job._target, testing._target)
+            self.assertEqual(job._dataset, testing._dataset)
 
     def test_model_manager__enter__re_jobs_file(self) -> None:
         """Test that the model manager successfully loads both jobs."""
-        raise TODOError  # TODO
+        training_job = TrainingJob.new()
+        training_job.group_name("grp")
+        training_job.dataset("data")
+        training_job.stop_function(StopFunction("(quote nil)"))
+        training_job = training_job.build()
+        testing_job = TestingJob(Path("/ignore"), "dataset")
+        self._set_training_job(training_job)
+        self._set_testing_job(testing_job)
+        with ModelManager(self.models_path, Mode.Testing) as manager:
+            saved_training = manager.training_job
+            saved_testing = manager.testing_job
+            assert saved_training is not None
+            assert saved_testing is not None
+            self.assertEqual(training_job._group_name, saved_training._group_name)
+            self.assertEqual(training_job._dataset, saved_training._dataset)
+            self.assertEqual(
+                training_job._stop_function._code, saved_training._stop_function._code
+            )
+            self.assertEqual(
+                training_job._lookback_distance, saved_training._lookback_distance
+            )
+            self.assertEqual(training_job._batch_size, saved_training._batch_size)
+            self.assertEqual(
+                training_job._checkpoint_rate, saved_training._checkpoint_rate
+            )
+            self.assertEqual(training_job._learning_rate, saved_training._learning_rate)
+            self.assertEqual(
+                training_job._testing_dataset, saved_training._testing_dataset
+            )
+            self.assertEqual(
+                training_job._base_model_name, saved_training._base_model_name
+            )
+            self.assertEqual(testing_job._target, saved_testing._target)
+            self.assertEqual(testing_job._dataset, saved_testing._dataset)
 
     # Filters out files in group dir (`group_names`)
     def test_model_manager__enter__group_folders_only(self) -> None:
         """Test that the model manager loads only directories, not files, as groups."""
-        raise TODOError  # TODO
+        valid_group_names = ["group_a", "group_c", "group_d", "group_g"]
+        for group_name in valid_group_names:
+            self._create_fs_group(
+                group_name, GroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
+            )
+        for group_name in ["group_b", "group_e", "group_f"]:
+            self._create_fs_group(
+                group_name, GroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
+            )
+            path = self.mode_path / group_name
+            for file in path.iterdir():
+                file.unlink()
+            path.rmdir()
+            path.touch()
+        with ModelManager(self.models_path, Mode.Testing) as manager:
+            self.assertEqual(valid_group_names, manager.group_names)
 
     # Filters out missing group info
     def test_model_manager__enter__filter_missing_group_info(self) -> None:
         """Test that the model manager skips groups missing `group_info.pckl`."""
-        raise TODOError  # TODO
+        valid_group_names = ["group_a", "group_c", "group_e", "group_g"]
+        for group_name in valid_group_names:
+            self._create_fs_group(
+                group_name, GroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
+            )
+        for group_name in ["group_b", "group_d", "group_f"]:
+            self._create_fs_group(
+                group_name, GroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
+            )
+            path = self.mode_path / group_name / ModelManager.GROUP_INFO_FILE
+            path.unlink()
+        with ModelManager(self.models_path, Mode.Testing) as manager:
+            self.assertEqual(valid_group_names, manager.group_names)
 
     # Filters out missing model info
     def test_model_manager__enter__filter_missing_model_infos(self) -> None:
         """Test that the model manager skips groups missing `model_infos`.pckl."""
-        raise TODOError  # TODO
+        valid_group_names = ["group_b", "group_c", "group_d", "group_g"]
+        for group_name in valid_group_names:
+            self._create_fs_group(
+                group_name, GroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
+            )
+        for group_name in ["group_a", "group_e", "group_f"]:
+            self._create_fs_group(
+                group_name, GroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
+            )
+            path = self.mode_path / group_name / ModelManager.MODEL_INFOS_FILE
+            path.unlink()
+        with ModelManager(self.models_path, Mode.Testing) as manager:
+            self.assertEqual(valid_group_names, manager.group_names)
 
     # Filters out `model_info`s missing `model`s
     def test_model_manager__enter__filter_missing_models(self) -> None:
         """Test that the model manager filters out model infos without `.pth` models."""
-        raise TODOError  # TODO
+        group = "grp"
+        valid_model_names = ["model_1", "model_3", "model_4", "model_7"]
+        for name in valid_model_names:
+            self._create_fs_model(
+                group,
+                name,
+                ModelInfo(
+                    datetime.date.today(), datetime.datetime.now(), group, "data"
+                ),
+            )
+        for name in ["model_2", "model_5", "model_6", "model_8"]:
+            self._create_fs_model(
+                group,
+                name,
+                ModelInfo(
+                    datetime.date.today(), datetime.datetime.now(), group, "data"
+                ),
+            )
+            (self.mode_path / group / (name + ModelManager.PYTORCH_SUFFIX)).unlink()
+        with ModelManager(self.models_path, Mode.Testing) as manager:
+            self.assertEqual(valid_model_names, manager.get_model_names(group))
 
     # ========================================================================
     #                               CREATE GROUP
@@ -119,12 +258,26 @@ class TestsModelManager(
     # Name already exists
     def test_model_manager__cg__name_exists(self) -> None:
         """Test group creation with a pre-existing name."""
-        raise TODOError  # TODO
+        self._create_fs_group(
+            "group_a", GroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
+        )
+        with ModelManager(self.models_path, Mode.Testing) as manager:
+            with self.assertRaises(ValueError):
+                manager.create_group(
+                    "group_a", GroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
+                )
 
     # OK
     def test_model_manager__cg__okay(self) -> None:
         """Test functioning group creation."""
-        raise TODOError  # TODO
+        self._create_fs_group(
+            "group_a", GroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
+        )
+        with ModelManager(self.models_path, Mode.Testing) as manager:
+            manager.create_group(
+                "group_b", GroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
+            )
+            self.assertTrue((self.mode_path / "group_b").exists())
 
     # ========================================================================
     #                                READ GROUP
@@ -133,46 +286,62 @@ class TestsModelManager(
     # No such group
     def test_model_manager__rg__missing_group(self) -> None:
         """Test that read group errors if given a nonexistent group."""
-        raise TODOError  # TODO
+        with ModelManager(self.models_path, Mode.Testing) as manager:
+            with self.assertRaises(ModelManager.GroupLookupError):
+                manager.get_group_info("group_a")
 
     # OK
     def test_model_manager__rg__ok(self) -> None:
         """Test that read group behaves as expeced in normal circumstances."""
-        raise TODOError  # TODO
-
-    # Get model names
-    def test_model_manager__rg__model_names(self) -> None:
-        """Test that the model names in a group can sucessfully be read."""
-        raise TODOError  # TODO
+        label_2 = Labels([Label("a"), Label("b")])
+        feature_2 = {"omega", "sigma"}
+        self._create_fs_group("group_a", GroupInfo(self.DEFAULT_LABELS, feature_2))
+        with ModelManager(self.models_path, Mode.Testing) as manager:
+            manager.create_group("group_b", GroupInfo(label_2, self.DEFAULT_FEATURES))
+            info = manager.get_group_info("group_a")
+            self.assertEqual(self.DEFAULT_LABELS, info.labels)
+            self.assertEqual(feature_2, info.all_features)
+            info = manager.get_group_info("group_b")
+            self.assertEqual(label_2, info.labels)
+            self.assertEqual(self.DEFAULT_FEATURES, info.all_features)
 
     # ========================================================================
     #                               UPDATE GROUP
     # ========================================================================
 
-    # Rename::Group DNE
+    # Group DNE
     def test_model_manager__urg__missing_group(self) -> None:
         """Test that rename group errors if given a nonexistent source group."""
-        raise TODOError  # TODO
+        with ModelManager(self.models_path, Mode.Testing) as manager:
+            with self.assertRaises(ModelManager.GroupLookupError):
+                manager.rename_group("group_a", "group_b")
 
-    # Rename::Name already used
+    # Name already used
     def test_model_manager__urg__used_name(self) -> None:
         """Test that rename group errors if given a extant target group."""
-        raise TODOError  # TODO
+        with ModelManager(self.models_path, Mode.Testing) as manager:
+            manager.create_group(
+                "group_a", GroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
+            )
+            manager.create_group(
+                "group_b", GroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
+            )
+            with self.assertRaises(ValueError):
+                manager.rename_group("group_a", "group_b")
 
-    # Rename::OK
+    # OK
     def test_model_manager__urg__ok(self) -> None:
         """Test that rename group behaves as expeced."""
-        raise TODOError  # TODO
-
-    # Update::GROUP DNE
-    def test_model_manager__ug__missing_group(self) -> None:
-        """Test that update group errors if given a nonexistent group."""
-        raise TODOError  # TODO
-
-    # Update::OK
-    def test_model_manager__ug__okay(self) -> None:
-        """Test that update group behaves as expected."""
-        raise TODOError  # TODO
+        with ModelManager(self.models_path, Mode.Testing) as manager:
+            manager.create_group(
+                "group_a", GroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
+            )
+            manager.rename_group("group_a", "group_b")
+            with self.assertRaises(ModelManager.GroupLookupError):
+                manager.get_group_info("group_a")
+            info = manager.get_group_info("group_b")
+            self.assertEqual(self.DEFAULT_LABELS, info.labels)
+            self.assertEqual(self.DEFAULT_FEATURES, info.all_features)
 
     # ========================================================================
     #                               DELETE GROUP
@@ -181,12 +350,20 @@ class TestsModelManager(
     # Group DNE
     def test_model_manager__dg__missing_group(self) -> None:
         """Test that delete group errors if given a nonexistent group."""
-        raise TODOError  # TODO
+        with ModelManager(self.models_path, Mode.Testing) as manager:
+            with self.assertRaises(ModelManager.GroupLookupError):
+                manager.delete_group("group_a")
 
     # OK
     def test_model_manager__dg__ok(self) -> None:
         """Test that delete group behaves as expected."""
-        raise TODOError  # TODO
+        with ModelManager(self.models_path, Mode.Testing) as manager:
+            manager.create_group(
+                "group_a", GroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
+            )
+            manager.delete_group("group_a")
+            with self.assertRaises(ModelManager.GroupLookupError):
+                manager.get_group_info("group_a")
 
     # ========================================================================
     #                               CREATE MODEL
@@ -305,10 +482,35 @@ class TestsModelManager(
 
     # Training Job setter works
     def test_model_manager__job_setter__training(self) -> None:
-        """Test that read group errors if given a nonexistent group."""
-        raise TODOError  # TODO
+        """Test that the setter for the training job works."""
+        job = TrainingJob.new()
+        job.group_name("grp")
+        job.dataset("data")
+        job.stop_function(StopFunction("(quote nil)"))
+        job = job.build()
+        with ModelManager(self.models_path, Mode.Testing) as manager:
+            self.assertIsNone(manager.training_job)
+            manager.training_job = job
+            set = manager.training_job
+            assert set is not None  # Only here because my typechecker isn't too smart
+            self.assertEqual(job._group_name, set._group_name)
+            self.assertEqual(job._dataset, set._dataset)
+            self.assertEqual(job._stop_function._code, set._stop_function._code)
+            self.assertEqual(job._lookback_distance, set._lookback_distance)
+            self.assertEqual(job._batch_size, set._batch_size)
+            self.assertEqual(job._checkpoint_rate, set._checkpoint_rate)
+            self.assertEqual(job._learning_rate, set._learning_rate)
+            self.assertEqual(job._testing_dataset, set._testing_dataset)
+            self.assertEqual(job._base_model_name, set._base_model_name)
 
     # Testing Job setter works
     def test_model_manager__job_setter__testing(self) -> None:
-        """Test that read group errors if given a nonexistent group."""
-        raise TODOError  # TODO
+        """Test that the setter for the testing job works."""
+        job = TestingJob(Path("/ignore"), "dataset")
+        with ModelManager(self.models_path, Mode.Testing) as manager:
+            self.assertIsNone(manager.testing_job)
+            manager.testing_job = job
+            testing = manager.testing_job
+            assert testing is not None
+            self.assertEqual(job._target, testing._target)
+            self.assertEqual(job._dataset, testing._dataset)
