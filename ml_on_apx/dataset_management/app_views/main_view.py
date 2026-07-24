@@ -31,9 +31,13 @@ Press (control + p) to view additional information.
 
 _MAIN_VIEW = "main" @ _TUI
 _NEW_DS = "new_ds" @ _MAIN_VIEW
+_NEW_CALLBACK = "callback" > _NEW_DS
 _EDIT_DS = "edit_ds" @ _MAIN_VIEW
+_EDIT_CALLBACK = "callback" > _EDIT_DS
 _RENAME_DS = "rename_ds" @ _MAIN_VIEW
+_RENAME_CALLBACK = "callback" > _RENAME_DS
 _DELETE_DS = "delete_ds" @ _MAIN_VIEW
+_DELETE_CALLBACK = "callback" > _DELETE_DS
 
 
 class MainView(Screen[None]):
@@ -197,7 +201,7 @@ class MainView(Screen[None]):
     def action_new_dataset(self) -> None:
         """Process the action `new_dataset`."""
 
-        @log_call(action_type="callback" > _NEW_DS)
+        @log_call(action_type=_NEW_CALLBACK)
         async def callback(_: None) -> None:
             await self.remake_dataset_list()
 
@@ -207,7 +211,7 @@ class MainView(Screen[None]):
     def action_edit_dataset(self) -> None:
         """Process the action `edit_dataset`."""
 
-        @log_call(action_type="callback" > _EDIT_DS)
+        @log_call(action_type=_EDIT_CALLBACK)
         async def callback(_: None) -> None:
             await self.remake_dataset_list()
 
@@ -224,7 +228,7 @@ class MainView(Screen[None]):
     def action_rename_dataset(self) -> None:
         """Process the action `rename_dataset`."""
 
-        @log_call(action_type="callback" > _RENAME_DS)
+        @log_call(action_type=_RENAME_CALLBACK)
         async def callback(new_name: str | None) -> None:
             if new_name == self.dataset_name:
                 self.app.notify("The dataset is already named that.")
@@ -255,7 +259,7 @@ class MainView(Screen[None]):
     def action_delete_dataset(self) -> None:
         """Process the action `delete_dataset`."""
 
-        @log_call(action_type="callback" > _DELETE_DS)
+        @log_call(action_type=_DELETE_CALLBACK)
         async def check_delete(delete: bool | None) -> None:
             if delete:
                 assert self.dataset_name is not None

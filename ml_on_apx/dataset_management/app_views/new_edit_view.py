@@ -44,11 +44,16 @@ from ml_on_apx.tui_common.list_select_question import (
 
 _NEW_EDIT_VIEW = "new_edit" @ _TUI
 _SOURCE_SELECT = "source_select" @ _NEW_EDIT_VIEW
+
 _DELETE_LABEL = "delete_label" @ _NEW_EDIT_VIEW
+_DELETE_LABEL_CALLBACK = "callback" > _DELETE_LABEL
 
 _DIRECT = "direct" @ _SOURCE_SELECT
+_DIRECT_CALLBACK = "callback" > _DIRECT
 _ANCESTOR = "ancestor" @ _SOURCE_SELECT
+_ANCESTOR_CALLBACK = "callback" > _ANCESTOR
 _NOT_INCL = "not" @ _SOURCE_SELECT
+_NOT_INCL_CALLBACK = "callback" > _NOT_INCL
 
 
 class NewEditView(Screen[None]):
@@ -243,7 +248,7 @@ class NewEditView(Screen[None]):
         self, node: TreeNode[SourceTreeData], data: SourceTreeData
     ) -> None:
 
-        @log_call(action_type="callback" > _DIRECT)
+        @log_call(action_type=_DIRECT_CALLBACK)
         def included_node(
             selected: SourceLabel | Literal[False] | None,
         ) -> None:
@@ -278,7 +283,7 @@ class NewEditView(Screen[None]):
         self, node: TreeNode[SourceTreeData], data: SourceTreeData
     ) -> None:
 
-        @log_call(action_type="callback" > _ANCESTOR)
+        @log_call(action_type=_ANCESTOR_CALLBACK)
         def ancestrally_included_node(
             selected: SourceLabel | Literal[False] | None,
         ) -> None:
@@ -315,7 +320,7 @@ class NewEditView(Screen[None]):
         self, node: TreeNode[SourceTreeData], data: SourceTreeData
     ) -> None:
 
-        @log_call(action_type="callback" > _NOT_INCL)
+        @log_call(action_type=_NOT_INCL_CALLBACK)
         def not_included_node(selected: SourceLabel | None) -> None:
             if not selected:
                 return
@@ -397,7 +402,7 @@ class NewEditView(Screen[None]):
     def action_delete_label(self) -> None:
         """Process the `delete_label` action."""
 
-        @log_call(action_type="callback" > _DELETE_LABEL)
+        @log_call(action_type=_DELETE_LABEL_CALLBACK)
         def delete_label(delete: bool | None) -> None:
             if not delete:
                 return
