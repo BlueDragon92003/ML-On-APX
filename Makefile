@@ -16,10 +16,16 @@ export readme
 _readme:
 	@echo "$$readme"
 
+clean-install-dependencies:
+	@echo -e "import sys\nif not sys.version_info >= (3,11):\n\tprint('Python version 3.11 or greater is required.')\n\texit(1)" | python3 -
+	python3 -m ensurepip
+	python3 -m pip freeze | xargs python3 -m pip uninstall -y
+	python3 -m pip install --upgrade pip
+	python3 -m pip install -r requirements.txt
+
 install-dependencies:
 	@echo -e "import sys\nif not sys.version_info >= (3,11):\n\tprint('Python version 3.11 or greater is required.')\n\texit(1)" | python3 -
 	python3 -m ensurepip
-	python3 -m pip freeze | xargs python3 -m pip uninstall
 	python3 -m pip install --upgrade pip
 	python3 -m pip install -r requirements.txt
 
