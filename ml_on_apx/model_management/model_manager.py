@@ -16,7 +16,7 @@ from ml_on_apx.modes import Mode
 
 _MANAGER = "manager" @ _MODEL
 _GROUP = "group" @ _MANAGER
-_MODEL = "model" @ _MANAGER
+_M_MODEL = "model" @ _MANAGER
 
 """
 models/
@@ -233,7 +233,7 @@ class ModelManager:
             file.unlink()
         group_info_dir.rmdir()
 
-    @log_call(action_type="list" > _MODEL)
+    @log_call(action_type="list" > _M_MODEL)
     def get_model_names(self, group_name: str) -> list[str]:
         """Return a list of tracked models.
 
@@ -252,7 +252,7 @@ class ModelManager:
             raise self.GroupLookupError("No such group!")
         return list(self._model_infos[group_name].keys())
 
-    @log_call(action_type="get" > _MODEL)
+    @log_call(action_type="get" > _M_MODEL)
     def get_model_info(self, group_name: str, model_name: str) -> ModelInfo:
         """Return an existing model's settings with the provided name.
 
@@ -299,7 +299,7 @@ class ModelManager:
             raise self.ModelLookupError(f"No such model in group {group_name}!")
         return torch.load(self.get_model_path(group_name, model_name))
 
-    @log_call(action_type="create" > _MODEL)
+    @log_call(action_type="create" > _M_MODEL)
     def create_model(
         self, group_name: str, model_name: str, model_info: ModelInfo, model: nn.Module
     ) -> None:
@@ -326,7 +326,7 @@ class ModelManager:
         self._model_infos[group_name].update({model_name: model_info})
         torch.save(model, self.get_model_path(group_name, model_name))
 
-    @log_call(action_type="rename" > _MODEL)
+    @log_call(action_type="rename" > _M_MODEL)
     def rename_model(self, group_name: str, model_name: str, new_name: str) -> None:
         """Change a model's name.
 
@@ -353,7 +353,7 @@ class ModelManager:
         path = self.get_model_path(group_name, model_name)
         path.move(self.get_model_path(group_name, new_name))
 
-    @log_call(action_type="delete" > _MODEL)
+    @log_call(action_type="delete" > _M_MODEL)
     def delete_model(self, group_name: str, model_name: str) -> None:
         """Delete a model.
 
@@ -408,7 +408,7 @@ class ModelManager:
         """
         return self._models_path / group_name
 
-    @log_call(action_type="path" > _MODEL)
+    @log_call(action_type="path" > _M_MODEL)
     def get_model_path(self, group_name: str, model_name: str) -> Path:
         """Get the path to a model specified by its name and group name.
 

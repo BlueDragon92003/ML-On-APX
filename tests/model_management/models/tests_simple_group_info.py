@@ -1,12 +1,12 @@
-"""Tests for the GroupInfo class."""
+"""Tests for the SimpleGroupInfo class."""
 
 import unittest
 
 from ml_on_apx.labelling import Label, Labels
-from ml_on_apx.model_management.group_info import GroupInfo
+from ml_on_apx.model_management.models.simple_model import SimpleGroupInfo
 
 
-class TestsGroupInfo(unittest.TestCase):
+class TestsSimpleGroupInfo(unittest.TestCase):
     """Tests for the GroupInfo class."""
 
     # All features same as input
@@ -17,7 +17,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that the GroupInfo object is insatiated correctly."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         self.assertEqual(labels, group_info.labels)
         self.assertEqual(features, group_info.all_features)
         self.assertEqual(0, len(group_info.features))
@@ -29,7 +29,7 @@ class TestsGroupInfo(unittest.TestCase):
         feature = "alpha"
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {feature, "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         group_info.enable_feature(feature)
         self.assertEqual(1, len(group_info.features))
         self.assertIn(feature, group_info.features)
@@ -40,7 +40,7 @@ class TestsGroupInfo(unittest.TestCase):
         feature = "alpha"
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {feature, "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         group_info.enable_feature(feature)
         group_info.disable_feature(feature)
         self.assertEqual(0, len(group_info.features))
@@ -52,7 +52,7 @@ class TestsGroupInfo(unittest.TestCase):
         feature = "jeff"
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         with self.assertRaises(ValueError):
             group_info.enable_feature(feature)
 
@@ -62,7 +62,7 @@ class TestsGroupInfo(unittest.TestCase):
         feature = "jeff"
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         with self.assertRaises(ValueError):
             group_info.disable_feature(feature)
 
@@ -72,7 +72,7 @@ class TestsGroupInfo(unittest.TestCase):
         feature = "alpha"
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {feature, "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         group_info.enable_feature(feature)
         self.assertEqual(1, len(group_info.features))
         self.assertIn(feature, group_info.features)
@@ -86,7 +86,7 @@ class TestsGroupInfo(unittest.TestCase):
         feature = "alpha"
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {feature, "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         group_info.enable_feature(feature)
         group_info.disable_feature(feature)
         self.assertEqual(0, len(group_info.features))
@@ -100,7 +100,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that insert_layer_above adds a layer above the target."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         group_info.insert_layer_above(1, "aleph", 13)
         self.assertEqual(3, group_info.layer_count)
         self.assertEqual("aleph", group_info.get_layer_activation(1))
@@ -117,7 +117,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that insert_layer_above errors when given the input layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         with self.assertRaises(IndexError):
             group_info.insert_layer_above(0, "aleph", 13)
 
@@ -126,7 +126,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that insert_layer_above errors when given an out-of-bounds layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         with self.assertRaises(IndexError):
             group_info.insert_layer_above(13, "aleph", 13)
         with self.assertRaises(IndexError):
@@ -137,7 +137,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that insert_layer_below adds a layer below the target."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         group_info.insert_layer_below(0, "aleph", 13)
         self.assertEqual(3, group_info.layer_count)
         self.assertEqual("aleph", group_info.get_layer_activation(1))
@@ -151,7 +151,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that insert_layer_below erros when given the output layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         with self.assertRaises(IndexError):
             group_info.insert_layer_below(1, "aleph", 13)
 
@@ -160,7 +160,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that insert_layer_below errors when given an out-of-bounds layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         with self.assertRaises(IndexError):
             group_info.insert_layer_below(13, "aleph", 13)
         with self.assertRaises(IndexError):
@@ -171,7 +171,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that remove_layer removes a layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         group_info.insert_layer_above(1, "aleph", 13)
         group_info.remove_layer(1)
         self.assertEqual(2, group_info.layer_count)
@@ -181,7 +181,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that remove_layer errors when given the input layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         with self.assertRaises(ValueError):
             group_info.remove_layer(0)
 
@@ -190,7 +190,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that remove_layer errors when given the output layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         with self.assertRaises(ValueError):
             group_info.remove_layer(1)
 
@@ -199,7 +199,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that remove_layer errors when given an out-of-bounds layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         with self.assertRaises(IndexError):
             group_info.remove_layer(-5)
         with self.assertRaises(IndexError):
@@ -210,7 +210,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that get_layer_size functions on the input layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         self.assertEqual(len(group_info.features), group_info.get_layer_size(0))
         group_info.enable_feature("alpha")
         self.assertEqual(len(group_info.features), group_info.get_layer_size(0))
@@ -222,7 +222,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that get_layer_size functions on the output layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         self.assertEqual(len(labels), group_info.get_layer_size(1))
 
     # get layer size works for hidden layers
@@ -230,7 +230,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that get_layer_size functions on a hidden layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         group_info.insert_layer_above(1, "aleph", 13)
         self.assertEqual(13, group_info.get_layer_size(1))
 
@@ -239,7 +239,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that get_layer_size functions on an out-of-bounds layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         with self.assertRaises(IndexError):
             group_info.get_layer_size(13)
         with self.assertRaises(IndexError):
@@ -250,7 +250,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that set_layer_size works on a hidden layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         group_info.insert_layer_above(1, "aleph", 13)
         group_info.set_layer_size(1, 7)
         self.assertEqual(7, group_info.get_layer_size(1))
@@ -260,7 +260,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that set_layer_size errors on a non-positive size."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         group_info.insert_layer_above(1, "aleph", 13)
         with self.assertRaises(ValueError):
             group_info.set_layer_size(1, -5)
@@ -270,7 +270,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that set_layer_size errors on the input layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         with self.assertRaises(IndexError):
             group_info.set_layer_size(0, 7)
 
@@ -279,7 +279,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that set_layer_size errors on the output layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         with self.assertRaises(IndexError):
             group_info.set_layer_size(1, 7)
 
@@ -288,7 +288,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that set_layer_size functions on an out-of-bounds layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         with self.assertRaises(IndexError):
             group_info.set_layer_size(13, 7)
         with self.assertRaises(IndexError):
@@ -299,7 +299,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that change_layer_size works on a hidden layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         group_info.insert_layer_above(1, "aleph", 13)
         group_info.change_layer_size(1, -6)
         self.assertEqual(7, group_info.get_layer_size(1))
@@ -313,7 +313,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that change_layer_size errors on a too-big negative change."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         group_info.insert_layer_above(1, "aleph", 13)
         with self.assertRaises(ValueError):
             group_info.change_layer_size(1, -40)
@@ -323,7 +323,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that change_layer_size errors on the input layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         with self.assertRaises(IndexError):
             group_info.change_layer_size(0, 7)
 
@@ -332,7 +332,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that change_layer_size errors on the output layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         with self.assertRaises(IndexError):
             group_info.change_layer_size(1, 7)
 
@@ -341,7 +341,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that change_layer_size errors on an out-of-bounds layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         with self.assertRaises(IndexError):
             group_info.change_layer_size(13, 7)
         with self.assertRaises(IndexError):
@@ -352,9 +352,9 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that get_layer_activation works on the output layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         self.assertEqual(
-            GroupInfo.DEFAULT_ACTIVATION, group_info.get_layer_activation(1)
+            SimpleGroupInfo.DEFAULT_ACTIVATION, group_info.get_layer_activation(1)
         )
 
     # get layer activation errors on input layer
@@ -362,7 +362,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that get_layer_activation errors on the input layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         with self.assertRaises(ValueError):
             group_info.get_layer_activation(0)
 
@@ -371,7 +371,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that get_layer_activation works on hidden layers."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         group_info.insert_layer_above(1, "aleph", 13)
         self.assertEqual("aleph", group_info.get_layer_activation(1))
 
@@ -380,7 +380,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that get_layer_activation errors on an out-of-bounds layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         with self.assertRaises(IndexError):
             group_info.get_layer_activation(-5)
         with self.assertRaises(IndexError):
@@ -391,7 +391,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that set_layer_activation works on the output layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         group_info.set_layer_activation(1, "aleph")
         self.assertEqual("aleph", group_info.get_layer_activation(1))
 
@@ -400,7 +400,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that set_layer_activation works on the input layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         with self.assertRaises(ValueError):
             group_info.set_layer_activation(0, "aleph")
 
@@ -409,7 +409,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that set_layer_activation works on hidden layers."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         group_info.insert_layer_above(1, "bet", 7)
         group_info.set_layer_activation(1, "aleph")
         self.assertEqual("aleph", group_info.get_layer_activation(1))
@@ -419,7 +419,7 @@ class TestsGroupInfo(unittest.TestCase):
         """Test that set_layer_activation errors on an out-of-bounds layer."""
         labels = Labels([Label("a"), Label("b"), Label("c")])
         features = {"alpha", "beta", "gamma"}
-        group_info = GroupInfo(labels, features)
+        group_info = SimpleGroupInfo(labels, features)
         with self.assertRaises(IndexError):
             group_info.set_layer_activation(-5, "aleph")
         with self.assertRaises(IndexError):
