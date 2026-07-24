@@ -20,8 +20,46 @@ from ml_on_apx.model_management.training_job import TrainingJob
 from ml_on_apx.modes import Mode
 
 
-class TODOError(Exception):
-    """Stuff I still need to do."""
+class _MockModel(nn.Module):
+    """The structure of the classification model."""
+
+    def __init__(self) -> None:
+        """Create a new model."""
+        super().__init__()
+        # Other layers to try: Dropout and batch normalization,
+        # if they make any sense. It's a small model though, so likely not
+        self.stack = nn.Sequential(
+            # Output based on what was provided by the CCD
+            nn.Linear(18, 16),
+            nn.ReLU(),
+            nn.Linear(16, 8),
+            nn.ReLU(),
+            nn.Linear(8, 2),
+            # em similarity, tau similarity
+        )
+
+    def forward(self, x):  # noqa: ANN202 ANN001
+        """Execute the forward pass.
+
+        Args:
+            x: The input vector for the model to process..
+
+        Returns:
+            _type_: The certainty of the model for each label.
+
+        """
+        certainties = self.stack(x)
+        return certainties
+
+
+def _mock_torch_save(obj: object, file: Path) -> None:
+    with open(file, mode="wb") as f:
+        pickle.dump(repr(obj), f)
+
+
+def _mock_torch_load(file: Path) -> object:
+    with open(file, mode="rb") as f:
+        return pickle.load(f)
 
 
 class TestsModelManager(
@@ -36,6 +74,13 @@ class TestsModelManager(
         "feature_3",
         "feature_4",
     }
+
+    def __init__(self, method_name: str = "runTest") -> None:
+        """Initialize the test case."""
+        super().__init__(method_name)
+        # self.modules_to_reload = [torch]  # Ideal solution that does not work.
+        # Pytorch does not go though the os module
+        # to save and load files.
 
     def setUp(self) -> None:
         """Set up the filesystem for each test case."""
@@ -69,7 +114,7 @@ class TestsModelManager(
             pickle.dump(model_infos, file)
         model_path = group_path / (model_name + ModelManager.PYTORCH_SUFFIX)
         with open(model_path, mode="wb") as file:
-            torch.save(nn.Module(), file)
+            torch.save(_MockModel(), file)
 
     def _set_training_job(self, training_job: TrainingJob | None) -> None:
         jobs = (training_job, None)
@@ -372,17 +417,70 @@ class TestsModelManager(
     # Group DNE
     def test_model_manager__cm__missing_group(self) -> None:
         """Test that create model errors if given a nonexistent group."""
-        raise TODOError  # TODO
+        with ModelManager(self.models_path, Mode.Testing) as model:
+            with self.assertRaises(ModelManager.GroupLookupError):
+                model.create_model(
+                    "group",
+                    "model",
+                    ModelInfo(
+                        datetime.date.today(), datetime.datetime.now(), "group", "data"
+                    ),
+                    _MockModel(),
+                )
 
     # Name already used
     def test_model_manager__cm__name_used(self) -> None:
         """Test that create model errors the model name is already in use."""
-        raise TODOError  # TODO
+        self._create_fs_model(
+            "group",
+            "model",
+            ModelInfo(datetime.date.today(), datetime.datetime.now(), "group", "data"),
+        )
+        with ModelManager(self.models_path, Mode.Testing) as model:
+            with self.assertRaises(ValueError):
+                model.create_model(
+                    "group",
+                    "model",
+                    ModelInfo(
+                        datetime.date.today(), datetime.datetime.now(), "group", "data"
+                    ),
+                    _MockModel(),
+                )
 
     # OK
     def test_model_manager__cm__ok(self) -> None:
         """Test that create model behaves as expected."""
-        raise TODOError  # TODO
+        self._create_fs_group(
+            "group_a", GroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
+        )
+        with ModelManager(
+            self.models_path,
+            Mode.Testing,
+            _save_and_load=(_mock_torch_save, _mock_torch_load),
+        ) as manager:
+            manager.create_group(
+                "group_b", GroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
+            )
+            manager.create_model(
+                "group_b",
+                "model",
+                ModelInfo(
+                    datetime.date.today(), datetime.datetime.now(), "group", "data"
+                ),
+                _MockModel(),
+            )
+            manager.create_model(
+                "group_a",
+                "model",
+                ModelInfo(
+                    datetime.date.today(), datetime.datetime.now(), "group", "data"
+                ),
+                _MockModel(),
+            )
+            self.assertTrue(manager.get_model_path("group_a", "model").exists())
+            self.assertTrue(manager.get_model_path("group_b", "model").exists())
+            self.assertIn("model", manager.get_model_names("group_a"))
+            self.assertIn("model", manager.get_model_names("group_b"))
 
     # ========================================================================
     #                                READ MODEL
@@ -391,71 +489,111 @@ class TestsModelManager(
     # Info::Group DNE
     def test_model_manager__rmi__missing_group(self) -> None:
         """Test that read model info errors if given a nonexistent group."""
-        raise TODOError  # TODO
+        with ModelManager(self.models_path, mode=Mode.Testing) as manager:
+            with self.assertRaises(ModelManager.GroupLookupError):
+                manager.get_model_info("group", "model")
 
     # Info::Model DNE
     def test_model_manager__rmi__missing_model(self) -> None:
         """Test that read model info errors if given a nonexistent model."""
-        raise TODOError  # TODO
+        self._create_fs_group(
+            "group", GroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
+        )
+        with ModelManager(self.models_path, mode=Mode.Testing) as manager:
+            with self.assertRaises(ModelManager.ModelLookupError):
+                manager.get_model_info("group", "model")
 
     # Info::OK
     def test_model_manager__rmi__ok(self) -> None:
         """Test that read model info behaves as expected."""
-        raise TODOError  # TODO
+        self._create_fs_model(
+            "group",
+            "model",
+            ModelInfo(datetime.date.today(), datetime.datetime.now(), "group", "data"),
+        )
+        with ModelManager(self.models_path, mode=Mode.Testing) as manager:
+            model_info = manager.get_model_info("group", "model")
+            self.assertEqual("group", model_info.group)
+            self.assertEqual("data", model_info.training_dataset)
 
     # Model::Group DNE
     def test_model_manager__rm__missing_group(self) -> None:
         """Test that read model errors if given a nonexistent group."""
-        raise TODOError  # TODO
+        with ModelManager(self.models_path, mode=Mode.Testing) as manager:
+            with self.assertRaises(ModelManager.GroupLookupError):
+                manager.get_model("group", "model")
 
     # Model::Model DNE
     def test_model_manager__rm__missing_model(self) -> None:
         """Test that read model errors if given a nonexistent model."""
-        raise TODOError  # TODO
+        self._create_fs_group(
+            "group", GroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
+        )
+        with ModelManager(self.models_path, mode=Mode.Testing) as manager:
+            with self.assertRaises(ModelManager.ModelLookupError):
+                manager.get_model("group", "model")
 
     # Model::OK
     def test_model_manager__rm__ok(self) -> None:
         """Test that read model behaves as expected."""
-        raise TODOError  # TODO
+        self._create_fs_model(
+            "group",
+            "model",
+            ModelInfo(datetime.date.today(), datetime.datetime.now(), "group", "data"),
+        )
+        with ModelManager(self.models_path, mode=Mode.Testing) as manager:
+            model = manager.get_model("group", "model")
+            self.assertIsInstance(model, _MockModel)
 
     # ========================================================================
     #                               UPDATE MODEL
     # ========================================================================
 
-    # Rename::Group DNE
+    # Group DNE
     def test_model_manager__urm__missing_group(self) -> None:
         """Test that rename model errors if given a nonexistent group."""
-        raise TODOError  # TODO
+        with ModelManager(self.models_path, mode=Mode.Testing) as manager:
+            with self.assertRaises(ModelManager.GroupLookupError):
+                manager.rename_model("group", "model", "new")
 
-    # Rename::Model DNE
+    # Model DNE
     def test_model_manager__urm__missing_model(self) -> None:
         """Test that rename model errors if given a nonexistent model."""
-        raise TODOError  # TODO
+        self._create_fs_group(
+            "group", GroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
+        )
+        with ModelManager(self.models_path, mode=Mode.Testing) as manager:
+            with self.assertRaises(ModelManager.ModelLookupError):
+                manager.rename_model("group", "model", "new")
 
-    # Rename::Name already used
+    # Name already used
     def test_model_manager__urm__name_used(self) -> None:
         """Test that rename model errors if the name is already in use."""
-        raise TODOError  # TODO
+        self._create_fs_model(
+            "group",
+            "model",
+            ModelInfo(datetime.date.today(), datetime.datetime.now(), "group", "data"),
+        )
+        self._create_fs_model(
+            "group",
+            "new",
+            ModelInfo(datetime.date.today(), datetime.datetime.now(), "group", "data"),
+        )
+        with ModelManager(self.models_path, mode=Mode.Testing) as manager:
+            with self.assertRaises(ValueError):
+                manager.rename_model("group", "model", "new")
 
-    # Rename::OK
+    # OK
     def test_model_manager__urm__ok(self) -> None:
         """Test that rename model behaves as expected."""
-        raise TODOError  # TODO
-
-    # Update::Group DNE
-    def test_model_manager__um__missing_group(self) -> None:
-        """Test that update model errors if given a nonexistent group."""
-        raise TODOError  # TODO
-
-    # Update::Model DNE
-    def test_model_manager__um__missing_model(self) -> None:
-        """Test that update model errors if given a nonexistent model."""
-        raise TODOError  # TODO
-
-    # Update::OK
-    def test_model_manager__um__ok(self) -> None:
-        """Test that update model behaves as expected."""
-        raise TODOError  # TODO
+        self._create_fs_model(
+            "group",
+            "model",
+            ModelInfo(datetime.date.today(), datetime.datetime.now(), "group", "data"),
+        )
+        with ModelManager(self.models_path, mode=Mode.Testing) as manager:
+            manager.rename_model("group", "model", "new")
+            self.assertIn("new", manager.get_model_names("group"))
 
     # ========================================================================
     #                               DELETE MODEL
@@ -464,17 +602,32 @@ class TestsModelManager(
     # Group DNE
     def test_model_manager__dm__missing_group(self) -> None:
         """Test that delete model errors if given a nonexistent group."""
-        raise TODOError  # TODO
+        with ModelManager(self.models_path, mode=Mode.Testing) as manager:
+            with self.assertRaises(ModelManager.GroupLookupError):
+                manager.delete_model("group", "model")
 
     # Model DNE
     def test_model_manager__dm__missing_model(self) -> None:
         """Test that delete model errors if given a nonexistent model."""
-        raise TODOError  # TODO
+        self._create_fs_group(
+            "group", GroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
+        )
+        with ModelManager(self.models_path, mode=Mode.Testing) as manager:
+            with self.assertRaises(ModelManager.ModelLookupError):
+                manager.delete_model("group", "model")
 
     # OK
     def test_model_manager__dm__ok(self) -> None:
         """Test that delete model behaves as expected."""
-        raise TODOError  # TODO
+        self._create_fs_model(
+            "group",
+            "model",
+            ModelInfo(datetime.date.today(), datetime.datetime.now(), "group", "data"),
+        )
+        with ModelManager(self.models_path, mode=Mode.Testing) as manager:
+            manager.delete_model("group", "model")
+            self.assertFalse(manager.get_model_path("group", "model").exists())
+            self.assertNotIn("model", manager.get_model_names("group"))
 
     # ========================================================================
     #                                   JOBS
