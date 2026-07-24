@@ -7,7 +7,6 @@ import torch
 from torch import nn
 
 from ml_on_apx.cluster_classification import _CLASS
-from ml_on_apx.cluster_classification.model import Model
 from ml_on_apx.cluster_classification.test import test_loop
 from ml_on_apx.cluster_classification.train import train_loop
 from ml_on_apx.logging import log_call
@@ -38,7 +37,7 @@ def main() -> None:
     temp = 2
 
     # Instantiate a Model object:
-    model = Model()
+    model = None  # Model()
 
     # Set device
     current_device = torch.accelerator.current_accelerator(check_available=True)
