@@ -4,8 +4,6 @@ import argparse
 import os
 from pathlib import Path
 
-from eliot import ActionType, fields
-
 import ml_on_apx.cluster_classification.main
 import ml_on_apx.dataset_management.app
 from ml_on_apx.cluster_classification.cluster_classification_dataset import (
@@ -16,19 +14,8 @@ from ml_on_apx.modes import Mode
 
 _MAIN = Namespace("main")
 
-_HANDLE_ARGS = ActionType(
-    action_type="handle_args" @ _MAIN,
-    startFields=fields(),
-    successFields=fields(data_dir=Path, model_dir=Path, log_path=Path, mode=Mode),
-    description="Handle the args from argparse.",
-)
-
-_SUBCOMMANDS = ActionType(
-    action_type="run_subcommand" @ _MAIN,
-    startFields=fields(),
-    successFields=fields(),
-    description="Determine and run the necessary subcommand.",
-)
+_HANDLE_ARGS = "handle_args" > _MAIN
+_SUBCOMMANDS = "run_subcommand" > _MAIN
 
 LL_DEVELOPMENT = "DEBUG"
 LL_PRODUCTION = "INFO"
@@ -162,10 +149,11 @@ def main() -> int:
     argparser = get_parser()
     args = argparser.parse_args()
 
-    with _HANDLE_ARGS() as action:
+    @log_call(action_type=_HANDLE_ARGS)
+    def handle_subcommand() -> int | tuple[Path, Path, Mode]:
         if "subcommand" not in args:
             argparser.print_help()
-            return -1
+            return 1
 
         application_dir: Path = (
             args.application_dir
@@ -173,10 +161,10 @@ def main() -> int:
             else Path(os.getcwd())
         )
         os.environ["APP_DIR"] = str(application_dir)
-        data_dir: Path = (
+        data_dir = (
             args.data_dir if args.data_dir is not None else application_dir / "data"
         )
-        model_dir: Path = (
+        model_dir = (
             args.model_dir if args.model_dir is not None else application_dir / "model"
         )
 
@@ -189,14 +177,14 @@ def main() -> int:
                     f"{args.log_dir} must not exist or be a regular file.", end="\n\n"
                 )
                 argparser.print_help()
-                return -1
+                return 1
         elif args.log_dir is not None:
             if os.path.isdir(args.log_dir):
                 log_path: Path = args.log_dir
             else:
                 print(f"{args.log_dir} is not a directory.", end="\n\n")
                 argparser.print_help()
-                return -1
+                return 1
 
         initialize_file_logging(log_path, append=args.append)
 
@@ -206,44 +194,52 @@ def main() -> int:
                 mode = Mode.Classification
             case argsmode if argsmode == MODE_IDENTIFICATION:
                 mode = Mode.Identification
+        return (data_dir, model_dir, mode)
 
-        action.add_success_fields(
-            data_dir=data_dir, model_dir=model_dir, log_path=log_path, mode=mode
-        )
+    result = handle_subcommand()
+    if type(result) is int:
+        return result
+    elif type(result) is tuple:
 
-    with _SUBCOMMANDS():
-        match args.subcommand:
-            case subcommand if subcommand == SUBCOMMAND_TRAIN:
-                match mode:
-                    case mode if mode is Mode.Classification:
-                        print("`train classification` not yet implemeneted")
-                        return 0
-                        ml_on_apx.cluster_classification.main.main(data_dir, model_dir)
-                    case mode if mode is Mode.Identification:
-                        print("`train identification` not yet implemeneted")
-                        return 0
-            case subcommand if subcommand == SUBCOMMAND_MNG_DATA:
-                match mode:
-                    case m if m == Mode.Classification:
-                        dataset_class = ClusterClassificationDataset
-                    case m if m == Mode.Identification:
-                        print("`manage identification data` not yet implemented")
-                        return 0
-                ml_on_apx.dataset_management.app.main(
-                    data_dir,
-                    mode,
-                    dataset_class,
-                )
-                return 0
-            case subcommand if subcommand == SUBCOMMAND_MNG_MODEL:
-                print("`manage ___ models` not yet implemeneted")
-                return 0
-                ml_on_apx.dataset_management.app.main(model_dir, mode)
-            case _:
-                argparser.print_help()
-                return -1
+        @log_call(action_type=_SUBCOMMANDS)
+        def handle_subcommand(
+            data_dir: Path, model_dir: Path, mode: Mode
+        ) -> int | None:
+            match args.subcommand:
+                case subcommand if subcommand == SUBCOMMAND_TRAIN:
+                    match mode:
+                        case mode if mode is Mode.Classification:
+                            print("`train classification` not yet implemeneted")
+                            return 0
+                            ml_on_apx.cluster_classification.main.main(
+                                data_dir, model_dir
+                            )
+                        case mode if mode is Mode.Identification:
+                            print("`train identification` not yet implemeneted")
+                            return 0
+                case subcommand if subcommand == SUBCOMMAND_MNG_DATA:
+                    match mode:
+                        case m if m == Mode.Classification:
+                            dataset_class = ClusterClassificationDataset
+                        case m if m == Mode.Identification:
+                            print("`manage identification data` not yet implemented")
+                            return 0
+                    ml_on_apx.dataset_management.app.main(
+                        data_dir,
+                        mode,
+                        dataset_class,
+                    )
+                    return 0
+                case subcommand if subcommand == SUBCOMMAND_MNG_MODEL:
+                    print("`manage ___ models` not yet implemeneted")
+                    return 0
+                    ml_on_apx.dataset_management.app.main(model_dir, mode)
+                case _:
+                    argparser.print_help()
+                    return 1
 
-    return 0
+        result_2 = handle_subcommand(*result)
+    return result_2 if result_2 is not None else 0
 
 
 if __name__ == "__main__":
