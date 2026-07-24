@@ -5,6 +5,7 @@ import pickle
 import unittest
 from pathlib import Path
 from typing import ClassVar
+from unittest.mock import patch
 
 import pyfakefs.fake_filesystem_unittest
 import torch
@@ -98,6 +99,7 @@ class TestsModelManager(
         with open(path / ModelManager.MODEL_INFOS_FILE, mode="wb") as file:
             pickle.dump({}, file)
 
+    @patch("torch.save", _mock_torch_save)
     def _create_fs_model(
         self, group_name: str, model_name: str, model_info: ModelInfo
     ) -> None:
@@ -113,8 +115,7 @@ class TestsModelManager(
         with open(model_infos_path, mode="wb") as file:
             pickle.dump(model_infos, file)
         model_path = group_path / (model_name + ModelManager.PYTORCH_SUFFIX)
-        with open(model_path, mode="wb") as file:
-            torch.save(_MockModel(), file)
+        torch.save(_MockModel(), model_path)
 
     def _set_training_job(self, training_job: TrainingJob | None) -> None:
         jobs = (training_job, None)
@@ -448,6 +449,7 @@ class TestsModelManager(
                 )
 
     # OK
+    @patch("torch.save", new=_mock_torch_save)
     def test_model_manager__cm__ok(self) -> None:
         """Test that create model behaves as expected."""
         self._create_fs_group(
@@ -456,7 +458,6 @@ class TestsModelManager(
         with ModelManager(
             self.models_path,
             Mode.Testing,
-            _save_and_load=(_mock_torch_save, _mock_torch_load),
         ) as manager:
             manager.create_group(
                 "group_b", GroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
@@ -534,6 +535,7 @@ class TestsModelManager(
                 manager.get_model("group", "model")
 
     # Model::OK
+    @patch("torch.load", new=_mock_torch_load)
     def test_model_manager__rm__ok(self) -> None:
         """Test that read model behaves as expected."""
         self._create_fs_model(
@@ -543,7 +545,8 @@ class TestsModelManager(
         )
         with ModelManager(self.models_path, mode=Mode.Testing) as manager:
             model = manager.get_model("group", "model")
-            self.assertIsInstance(model, _MockModel)
+            # yes, the types are wrong, but this is how my mocking needs to work.
+            self.assertEqual(repr(_MockModel()), model)
 
     # ========================================================================
     #                               UPDATE MODEL

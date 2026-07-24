@@ -52,12 +52,10 @@ class ModelManager:
     class GroupLookupError(LookupError):
         """A lookup error for a model group."""
 
-    # TODO figure out a way to test the PyTorch IO methods with PyFakeFS better
     def __init__(
         self,
         models_dir: Path,
         mode: Mode,
-        _save_and_load: tuple = (torch.save, torch.load),
     ) -> None:
         """Create a new model manager for use in an environment.
 
@@ -71,8 +69,6 @@ class ModelManager:
         self._testing_job: TestingJob | None = None
         self._models_path: Path = models_dir / mode.value
         self._jobs_path: Path = self._models_path / self.JOBS_FILE
-        self._t_save = _save_and_load[0]
-        self._t_load = _save_and_load[1]
 
     @log_call(action_type="open" > _MANAGER)
     def __enter__(self) -> "ModelManager":
@@ -301,9 +297,7 @@ class ModelManager:
             raise self.GroupLookupError("No such group!")
         if model_name not in self._model_infos[group_name].keys():
             raise self.ModelLookupError(f"No such model in group {group_name}!")
-        return self._t_load(
-            self.get_model_path(group_name, model_name), weights_only=False
-        )  # TODO return to default weights-only once you have a safe-globals Model
+        return torch.load(self.get_model_path(group_name, model_name))
 
     @log_call(action_type="create" > _MODEL)
     def create_model(
@@ -330,7 +324,7 @@ class ModelManager:
                 f"Model {model_name} already exists in group {group_name}!"
             )
         self._model_infos[group_name].update({model_name: model_info})
-        self._t_save(model, self.get_model_path(group_name, model_name))
+        torch.save(model, self.get_model_path(group_name, model_name))
 
     @log_call(action_type="rename" > _MODEL)
     def rename_model(self, group_name: str, model_name: str, new_name: str) -> None:
