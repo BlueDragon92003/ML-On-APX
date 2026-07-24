@@ -169,20 +169,11 @@ def main() -> int:
         )
 
         log_path: Path = application_dir / "logs"
-        if args.log_file is not None:
-            if os.path.isfile(args.log_file) or not os.path.exists(args.log_file):
-                log_path: Path = args.log_file
+        if args.log_to is not None:
+            if os.path.isfile(args.log_to) or not os.path.exists(args.log_to):
+                log_path: Path = args.log_to
             else:
-                print(
-                    f"{args.log_dir} must not exist or be a regular file.", end="\n\n"
-                )
-                argparser.print_help()
-                return 1
-        elif args.log_dir is not None:
-            if os.path.isdir(args.log_dir):
-                log_path: Path = args.log_dir
-            else:
-                print(f"{args.log_dir} is not a directory.", end="\n\n")
+                print(f"{args.log_to} must not exist or be a regular file.", end="\n\n")
                 argparser.print_help()
                 return 1
 

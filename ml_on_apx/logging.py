@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Callable, ParamSpec, TypeVar
 
 import eliot
-from eliot import Action, ActionType, fields
 
 _R = TypeVar("_R")
 _P = ParamSpec("_P")
@@ -73,19 +72,7 @@ class Namespace:
 _LOG = Namespace("log")
 _LOG_SETUP = "setup" @ _LOG
 
-_LOG_SETUP_FILE = ActionType(
-    action_type="file" @ _LOG_SETUP,
-    startFields=fields(filepath=str, append=bool),
-    successFields=fields(),
-    description="Setup logging to one file",
-)
-
-_LOG_SETUP_DIRECTORY = ActionType(
-    action_type="dir" @ _LOG_SETUP,
-    startFields=fields(filepath=str, file_count=int),
-    successFields=fields(newfile=str, deleted=list),
-    description="",
-)
+_LOG_SETUP_DIRECTORY = "dir" > _LOG_SETUP
 
 
 def log_call(
@@ -133,11 +120,11 @@ def initialize_file_logging(
 
     """
     if log_file.is_file():
-        with _LOG_SETUP_FILE(filepath=log_file, append=append):
-            eliot.to_file(open(log_file, "ab" if append else "wb"))
+        eliot.to_file(open(log_file, "ab" if append else "wb"))
     else:
-        with _LOG_SETUP_DIRECTORY(filepath=log_file, file_count=file_count) as action:
-            assert type(action) is Action
+
+        @log_call(action_type=_LOG_SETUP_DIRECTORY)
+        def log_setup_directory() -> None:
             log_files = list(
                 filter(
                     lambda path: re.fullmatch(r"\d{4,}-\d\d-\d\d-\d+.log", path.name),
@@ -149,11 +136,8 @@ def initialize_file_logging(
                 if (diff := len(log_files) + 1 - file_count) > 0:
                     to_delete = log_files[:diff]
                     log_files = log_files[diff:]
-                    action.add_success_fields(deleted=to_delete)
                     for td in to_delete:
                         os.unlink(td)
-                else:
-                    action.add_success_fields(deleted=None)
             newest = log_files[-1].stem if len(log_files) != 0 else None
             today = datetime.date.today()
             base = f"{today.year:04d}-{today.month:02d}-{today.day:02d}"
@@ -178,4 +162,3 @@ def initialize_file_logging(
                 log_file / "latest.log",
                 target_is_directory=False,
             )
-            action.add_success_fields(newfile=str(target))
