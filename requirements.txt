@@ -1,22 +1,28 @@
 awkward==2.9.1
 awkward_cpp==53
 blessings==1.7
+boltons==26.0.0
 certifi==2026.5.20
 cfgv==3.5.0
 charset-normalizer==3.4.7
+colored==2.3.2
 colour-runner==0.1.1
 cramjam==2.11.0
 distlib==0.4.2
+eliot==1.18.0
+eliot-tree==24.0.0
 filelock==3.29.2
 fsspec==2026.4.0
 identify==2.6.19
 idna==3.18
+iso8601==2.1.0
 jax==0.10.1
 jax-cuda12-pjrt==0.10.1
 jax-cuda12-plugin==0.10.1
 jaxlib==0.10.1
 jaxtyping==0.3.10
 Jinja2==3.1.6
+jmespath==1.1.0
 linkify-it-py==2.1.0
 markdown-it-py==4.2.0
 MarkupSafe==3.0.3
@@ -45,6 +51,7 @@ nvidia-nvjitlink-cu12==12.8.93
 nvidia-nvshmem-cu12==3.3.20
 nvidia-nvtx-cu12==12.8.90
 opt_einsum==3.4.0
+orjson==3.11.9
 packaging==26.2
 parameterized==0.9.0
 pip-licenses==5.5.5
@@ -54,6 +61,7 @@ prettytable==3.17.0
 pyfakefs==6.2.0
 Pygments==2.20.0
 pyreqver==0.1.0
+pyrsistent==0.20.0
 python-discovery==1.4.0
 PyYAML==6.0.3
 requests==2.34.2
@@ -63,6 +71,7 @@ setuptools==82.0.1
 six==1.17.0
 sympy==1.14.0
 textual==8.2.7
+toolz==1.1.0
 torch==2.9.1
 triton==3.5.1
 typing_extensions==4.15.0
@@ -73,3 +82,4 @@ virtualenv==21.4.1
 wadler_lindig==0.1.7
 wcwidth==0.8.1
 xxhash==3.7.0
+zope.interface==8.5
