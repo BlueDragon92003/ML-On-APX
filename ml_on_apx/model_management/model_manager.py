@@ -90,12 +90,12 @@ class ModelManager:
             self._models_path.mkdir(parents=True)
         if self._models_path.is_file():
             # TODO test for error from file at dir path
-            raise NotADirectoryError("Expected a directory at ", self._models_path)
-        for file in self._models_path.iterdir():
-            if not file.is_dir():
+            raise NotADirectoryError(self._models_path)
+        for group_file in self._models_path.iterdir():
+            if not group_file.is_dir():
                 continue  # not a group folder
             # Check for & read group_info.pckl
-            group_name = file.name
+            group_name = group_file.name
             group_info_path = self.get_group_path(group_name) / self.GROUP_INFO_FILE
             models_info_path = self.get_group_path(group_name) / self.MODEL_INFOS_FILE
             if not (group_info_path.exists() and models_info_path.exists()):
@@ -155,7 +155,7 @@ class ModelManager:
 
         """
         if group_name in self._group_infos.keys():
-            raise ValueError(f"Group {group_name} already exists in!")
+            raise ValueError()
         self._group_infos.update({group_name: group_info})
         self._model_infos.update({group_name: {}})
         self.get_group_path(group_name).mkdir()
@@ -186,7 +186,7 @@ class ModelManager:
 
         """
         if group_name not in self._group_infos.keys():
-            raise self.GroupLookupError("No such group!")
+            raise self.GroupLookupError()
         return self._group_infos[group_name]
 
     @log_call(action_type="rename" > _GROUP)
@@ -204,9 +204,9 @@ class ModelManager:
 
         """
         if group_name not in self._group_infos.keys():
-            raise self.GroupLookupError("No such group!")
+            raise self.GroupLookupError()
         if new_name in self._group_infos.keys():
-            raise ValueError(f"Name `{new_name}` already in use!")
+            raise ValueError()
         group_model_infos = self._model_infos.pop(group_name)
         self._model_infos.update({new_name: group_model_infos})
 
@@ -229,7 +229,7 @@ class ModelManager:
 
         """
         if group_name not in self._group_infos.keys():
-            raise self.GroupLookupError("No such group!")
+            raise self.GroupLookupError()
         for model_name in self.get_model_names(group_name):
             self.delete_model(group_name, model_name)
         self._group_infos.pop(group_name)
@@ -255,7 +255,7 @@ class ModelManager:
 
         """
         if group_name not in self._group_infos.keys():
-            raise self.GroupLookupError("No such group!")
+            raise self.GroupLookupError()
         return list(self._model_infos[group_name].keys())
 
     @log_call(action_type="get" > _M_MODEL)
@@ -277,9 +277,9 @@ class ModelManager:
 
         """
         if group_name not in self._group_infos.keys():
-            raise self.GroupLookupError("No such group!")
+            raise self.GroupLookupError()
         if model_name not in self._model_infos[group_name].keys():
-            raise self.ModelLookupError(f"No such model in group {group_name}!")
+            raise self.ModelLookupError()
         return self._model_infos[group_name][model_name]
 
     def get_model(self, group_name: str, model_name: str) -> nn.Module:
@@ -300,9 +300,9 @@ class ModelManager:
 
         """
         if group_name not in self._group_infos.keys():
-            raise self.GroupLookupError("No such group!")
+            raise self.GroupLookupError()
         if model_name not in self._model_infos[group_name].keys():
-            raise self.ModelLookupError(f"No such model in group {group_name}!")
+            raise self.ModelLookupError()
         return torch.load(self.get_model_path(group_name, model_name))
 
     @log_call(action_type="create" > _M_MODEL)
@@ -324,11 +324,9 @@ class ModelManager:
 
         """
         if group_name not in self._group_infos.keys():
-            raise self.GroupLookupError("No such group!")
+            raise self.GroupLookupError()
         if model_name in self._model_infos[group_name].keys():
-            raise ValueError(
-                f"Model {model_name} already exists in group {group_name}!"
-            )
+            raise ValueError()
         self._model_infos[group_name].update({model_name: model_info})
         torch.save(model, self.get_model_path(group_name, model_name))
 
@@ -349,11 +347,11 @@ class ModelManager:
 
         """
         if group_name not in self._group_infos.keys():
-            raise self.GroupLookupError("No such group!")
+            raise self.GroupLookupError()
         if model_name not in self._model_infos[group_name].keys():
-            raise self.ModelLookupError(f"No such model in group {group_name}!")
+            raise self.ModelLookupError()
         if new_name in self._model_infos[group_name].keys():
-            raise ValueError("Model name already in use!")
+            raise ValueError()
         info = self._model_infos[group_name].pop(model_name)
         self._model_infos[group_name].update({new_name: info})
         path = self.get_model_path(group_name, model_name)
@@ -375,9 +373,9 @@ class ModelManager:
 
         """
         if group_name not in self._group_infos.keys():
-            raise self.GroupLookupError("No such group!")
+            raise self.GroupLookupError()
         if model_name not in self._model_infos[group_name].keys():
-            raise self.ModelLookupError(f"No such model in group {group_name}!")
+            raise self.ModelLookupError()
         self._model_infos[group_name].pop(model_name)
         path = self.get_model_path(group_name, model_name)
         if path.exists():
