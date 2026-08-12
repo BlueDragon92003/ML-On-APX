@@ -85,6 +85,12 @@ class ModelManager:
             with open(self._jobs_path, mode="rb") as file:
                 self._training_job, self.testing_job = pickle.load(file)
         # For each folder:
+        if not self._models_path.exists():
+            # TODO test for making missing dir
+            self._models_path.mkdir(parents=True)
+        if self._models_path.is_file():
+            # TODO test for error from file at dir path
+            raise NotADirectoryError("Expected a directory at ", self._models_path)
         for file in self._models_path.iterdir():
             if not file.is_dir():
                 continue  # not a group folder
