@@ -1,6 +1,6 @@
 """The screen for managing of groups."""
 
-from typing import ClassVar
+from typing import ClassVar, Type
 
 from textual import on
 from textual.app import ComposeResult
@@ -21,7 +21,11 @@ from textual.widgets import (
 
 from ml_on_apx.logging import log_call
 from ml_on_apx.model_management import _TUI
+from ml_on_apx.model_management.group_info import GroupInfo
 from ml_on_apx.model_management.model_manager import ModelManager
+from ml_on_apx.model_management.models.simple_model import SimpleGroupInfo
+from ml_on_apx.tui_common.get_string_question import GetStringQuestion
+from ml_on_apx.tui_common.list_select_question import ListSelectQuestion
 
 """
 -----------------------------------------------------------------------------
@@ -40,6 +44,10 @@ from ml_on_apx.model_management.model_manager import ModelManager
 """
 
 _GROUP_VIEW = "group" @ _TUI
+_NEW_GROUP = "new" @ _GROUP_VIEW
+_CALLBACK_NEW_GROUP = "type_callback" > _NEW_GROUP
+_WRITE_GROUP = "write_new" @ _GROUP_VIEW
+_CALLBACK_WRITE_GROUP = "write_new" > _WRITE_GROUP
 
 DEFAULT_MESSAGE = """Select a group from the list to the right, or press the
 button to create a new one.
@@ -52,10 +60,10 @@ class GroupView(Screen[None]):
     """The view for the available groups."""
 
     BINDINGS: ClassVar[list[tuple[str, str, str] | Binding]] = [
-        ("n", "new_group", "Create a new group"),
-        ("m", "manage_group", "Manage selected gorup"),
-        ("r", "rename_group", "Rename group"),
-        ("d", "delete_group", "Delete group"),
+        ("N", "new_group", "Create a new group"),
+        ("M", "manage_group", "Manage selected gorup"),
+        ("R", "rename_group", "Rename group"),
+        ("D", "delete_group", "Delete group"),
     ]
 
     selected_group: reactive[str | None] = reactive(None, bindings=True)
@@ -170,8 +178,7 @@ class GroupView(Screen[None]):
         button_id = message.button.id
         match button_id:
             case "new-group-button":
-                pass
-                # TODO self.action_new_group()
+                self.action_new_group()
             case "manage-group-button":
                 pass
                 # TODO self.action_manage_group()
@@ -218,3 +225,39 @@ class GroupView(Screen[None]):
 
         title.content = "Group Management"
         markdown.update(DEFAULT_MESSAGE)
+
+    @log_call(action_type=str(_NEW_GROUP))
+    def action_new_group(self) -> None:
+        """Create a new group."""
+
+        @log_call(action_type=_CALLBACK_NEW_GROUP)
+        def callback_new_group_type(result: Type[GroupInfo] | None) -> None:
+            if result is not None:
+                self.app.push_screen(
+                    result.screen(),
+                    lambda x: self.write_group(x) if x is not None else x,
+                )
+
+        self.app.push_screen(
+            ListSelectQuestion(
+                [("Simple (Linear, Sequential) Model", SimpleGroupInfo)]
+            ),
+            callback=callback_new_group_type,
+        )
+
+    @log_call(action_type=str(_WRITE_GROUP))
+    def write_group(self, group: GroupInfo) -> None:
+        """Save a group with the manager."""
+
+        @log_call(action_type=_CALLBACK_WRITE_GROUP)
+        def callback_write_group(name: str | None) -> None:
+            if name is not None:
+                self._manager.create_group(name, group)
+
+        self.app.push_screen(
+            GetStringQuestion(
+                title="The group name?",
+                subtitle="Warning: Canceling will delete any changes!",
+            ),
+            callback=callback_write_group,
+        )
