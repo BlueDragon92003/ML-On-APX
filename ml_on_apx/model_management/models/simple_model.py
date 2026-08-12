@@ -19,6 +19,18 @@ _LAYER_ACTIVATION = "activation" @ _LAYER
 _LAYER_SIZE = "size" @ _LAYER
 
 
+class InputLayerReadError(Exception):
+    """Raised when the InputLayer is used where it cannot be."""
+
+
+class InputLayerModificationError(Exception):
+    """Raised when the InputLayer is used where it cannot be."""
+
+
+class OutputLayerModificationError(Exception):
+    """Raised when the InputLayer is used where it cannot be."""
+
+
 class SimpleGroupInfo(GroupInfo["SimpleModel"]):
     """Stores training data about the group."""
 
@@ -45,6 +57,10 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
     @classmethod
     def screen(cls) -> Screen[GroupInfo["SimpleModel"]]:
         """Create a screen to visually create a Simple Model."""
+        raise NotImplementedError
+
+    def screen_with_presets(self) -> Screen[GroupInfo["SimpleModel"]]:
+        """Create a screen with presets based on this object."""
         raise NotImplementedError
 
     def model(self) -> "SimpleModel":
@@ -99,7 +115,7 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
 
         """
         if feature not in self._all_features:
-            raise ValueError("No such feature!")
+            raise ValueError()
         self._features.add(feature)
         self._input_layer_size += 1
 
@@ -112,7 +128,7 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
 
         """
         if feature not in self._all_features:
-            raise ValueError("No such feature!")
+            raise ValueError()
         if feature in self._features:
             self._features.remove(feature)
             self._input_layer_size -= 1
@@ -130,9 +146,9 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
 
         """
         if layer < 0:
-            raise IndexError(f"Index {layer} out of bounds!")
+            raise IndexError()
         if layer >= len(self._hidden_layer_sizes) + 1:
-            raise IndexError("Cannot add below output layer!")
+            raise IndexError()
         self._hidden_layer_sizes.insert(layer, size)
         self._hidden_layer_activations.insert(layer, activation_name)
 
@@ -149,9 +165,9 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
 
         """
         if layer <= 0:
-            raise IndexError("Cannot add above input layer!")
+            raise IndexError()
         if layer > len(self._hidden_layer_sizes) + 1:
-            raise IndexError(f"Index {layer} out of bounds!")
+            raise IndexError()
         self._hidden_layer_sizes.insert(layer - 1, size)
         self._hidden_layer_activations.insert(layer - 1, activation_name)
 
@@ -168,11 +184,11 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
 
         """
         if layer < 0 or layer > len(self._hidden_layer_sizes) + 1:
-            raise IndexError(f"Index {layer} out of bounds!")
+            raise IndexError()
         if layer == 0:
-            raise ValueError("Cannot remove input layer!")
+            raise InputLayerModificationError()
         if layer == len(self._hidden_layer_sizes) + 1:
-            raise ValueError("Cannot remove output layer!")
+            raise OutputLayerModificationError
         self._hidden_layer_sizes.pop(layer - 1)
         self._hidden_layer_activations.pop(layer - 1)
 
@@ -191,7 +207,7 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
 
         """
         if layer < 0:
-            raise IndexError(f"Index {layer} out of bounds!")
+            raise IndexError(layer)
         elif layer == 0:
             return self._input_layer_size  # layer 0 is "input"
         elif layer <= len(self._hidden_layer_sizes):
@@ -199,7 +215,7 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
         elif layer == len(self._hidden_layer_sizes) + 1:
             return self._output_layer_size
         else:
-            raise IndexError(f"Index {layer} out of bounds!")
+            raise IndexError(layer)
 
     @log_call(action_type="set" > _LAYER_SIZE)
     def set_layer_size(self, layer: int, size: int) -> None:
@@ -216,24 +232,18 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
 
         """
         if layer < 0:
-            raise IndexError(f"Index {layer} out of bounds!")
+            raise IndexError()
         elif layer == 0:
             # layer 0 is "input"
-            raise IndexError(
-                "Index 0 is the input layer. \
-                Change its size by enabling or disabling features."
-            )
+            raise InputLayerModificationError()
         elif layer <= len(self._hidden_layer_sizes):
             if size <= 0:
-                raise ValueError("Invalid layer size!")
+                raise ValueError(size)
             self._hidden_layer_sizes[layer - 1] = size  # layer 1 is hidden layer 0
         elif layer == len(self._hidden_layer_sizes) + 1:
-            raise IndexError(
-                f"Index {layer} is the output layer. \
-                Its size was determined by dataset labels."
-            )
+            raise OutputLayerModificationError()
         else:
-            raise IndexError(f"Index {layer} out of bounds!")
+            raise IndexError()
 
     @log_call(action_type="delta" > _LAYER_SIZE)
     def change_layer_size(self, layer: int, by: int) -> None:
@@ -251,24 +261,18 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
 
         """
         if layer < 0:
-            raise IndexError(f"Index {layer} out of bounds!")
+            raise IndexError()
         elif layer == 0:
             # layer 0 is "input"
-            raise IndexError(
-                "Index 0 is the input layer. \
-                Change its size by enabling or disabling features."
-            )
+            raise InputLayerModificationError()
         elif layer <= len(self._hidden_layer_sizes):
             if (new := self._hidden_layer_sizes[layer - 1] + by) <= 0:
-                raise ValueError(f"Underset layer size by {by} to {new}!")
+                raise ValueError(new)
             self._hidden_layer_sizes[layer - 1] += by  # layer 1 is hidden layer 0
         elif layer == len(self._hidden_layer_sizes) + 1:
-            raise IndexError(
-                f"Index {layer} is the output layer. \
-                Its size was determined by dataset labels."
-            )
+            raise OutputLayerModificationError()
         else:
-            raise IndexError(f"Index {layer} out of bounds!")
+            raise IndexError()
 
     @log_call(action_type="get" > _LAYER_ACTIVATION)
     def get_layer_activation(self, layer: int) -> str:
@@ -286,9 +290,9 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
 
         """
         if layer < 0:
-            raise IndexError(f"Index {layer} out of bounds!")
+            raise IndexError()
         elif layer == 0:
-            raise ValueError("Input layer does not have an activation!")
+            raise InputLayerReadError
         elif layer <= len(self._hidden_layer_sizes):
             return self._hidden_layer_activations[
                 layer - 1
@@ -296,7 +300,7 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
         elif layer == len(self._hidden_layer_sizes) + 1:
             return self._output_activation
         else:
-            raise IndexError(f"Index {layer} out of bounds!")
+            raise IndexError()
 
     @log_call(action_type="set" > _LAYER_ACTIVATION)
     def set_layer_activation(self, layer: int, activation_name: str) -> None:
@@ -312,16 +316,16 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
 
         """
         if layer < 0:
-            raise IndexError(f"Index {layer} out of bounds!")
+            raise IndexError()
         elif layer == 0:
-            raise ValueError("Input layer does not have an activation!")
+            raise InputLayerReadError
         elif layer <= len(self._hidden_layer_sizes):
             # layer 1 is hidden layer 0
             self._hidden_layer_activations[layer - 1] = activation_name
         elif layer == len(self._hidden_layer_sizes) + 1:
             self._output_activation = activation_name
         else:
-            raise IndexError(f"Index {layer} out of bounds!")
+            raise IndexError()
 
     @property
     def labels(self) -> Labels:

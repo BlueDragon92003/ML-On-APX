@@ -41,7 +41,7 @@ class Namespace:
 
         """
         if name in self._names:
-            raise KeyError("Name already defined!")
+            raise KeyError()
         self._names.add(name)
         return self._path + ":" + name
 
@@ -59,7 +59,7 @@ class Namespace:
 
         """
         if namespace_name in self._names:
-            raise KeyError("Name already defined!")
+            raise KeyError()
         self._namespaces.add(namespace_name)
         self._names.add(namespace_name)
         return Namespace(self._path + ":" + namespace_name)
@@ -88,9 +88,9 @@ def log_call(
 def _compare_files(file1: Path, file2: Path) -> int:
     stem1 = file1.stem.split("-")
     stem2 = file2.stem.split("-")
-    if len(stem1) == 3:
+    if len(stem1) == 3:  # noqa: PLR2004
         stem1.append("0")
-    if len(stem2) == 3:
+    if len(stem2) == 3:  # noqa: PLR2004
         stem2.append("0")
     for i in range(4):
         if int(stem2[i]) != int(stem1[i]):

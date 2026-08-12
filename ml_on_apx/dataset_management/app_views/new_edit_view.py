@@ -146,7 +146,7 @@ class NewEditView(Screen[None]):
                 yield self._tree
 
     @log_call(action_type="check_action" > _NEW_EDIT_VIEW, include_args=["action"])
-    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:  # noqa: PLR0911, PLR0912
         """Check to see if an action can be performed.
 
         Args:
@@ -233,7 +233,6 @@ class NewEditView(Screen[None]):
         # or child in message.node.children:
         #             self.disinclude(child)
 
-        #
         match data.inclusion:
             case _inclusion if _inclusion == data.InclusionType.DIRECTLY_INCLUDED:
                 self._handle_source_selection_direct_inclusion(node, data)

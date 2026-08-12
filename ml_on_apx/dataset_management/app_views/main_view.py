@@ -107,12 +107,12 @@ class MainView(Screen[None]):
         """
         if action == "new_dataset":
             return True
-        if (
-            action == "edit_dataset"
-            or action == "rename_dataset"
-            or action == "delete_dataset"
-            or action == "recompile_dataset"
-        ):
+        if action in {
+            "edit_dataset",
+            "rename_dataset",
+            "delete_dataset",
+            "recompile_dataset",
+        }:
             return self.dataset_name is not None
 
     def validate_dataset_name(self, new_name: str | None) -> str | None:

@@ -1,6 +1,6 @@
 """Human-readable machine learning labels."""
 
-from typing import Dict, Iterable, Iterator
+from typing import Iterable, Iterator
 
 
 class Label(str):
@@ -17,7 +17,7 @@ class Labels:
             labels (Iterable[Label]): The labels in this label set.
 
         """
-        self._data: Dict[Label, int] = {}
+        self._data: dict[Label, int] = {}
         temp = []
         for label in labels:
             temp.append(label)
@@ -90,3 +90,7 @@ class Labels:
             except KeyError:
                 return False
         return True
+
+    def __hash__(self) -> int:
+        """Generate the hash for this object."""
+        return hash(sorted(self._data.items()))

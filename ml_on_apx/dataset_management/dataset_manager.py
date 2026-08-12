@@ -70,18 +70,14 @@ class DatasetManager(Generic[ManagedDataset]):
             self._root_dir_path.mkdir(parents=True)
         elif not self._root_dir_path.is_dir():
             # Error
-            raise NotADirectoryError(
-                f"Expected a directory at `{self._root_dir_path}`."
-            )
+            raise NotADirectoryError(self._root_dir_path)
 
         if not self._sets_dir_path.exists():
             # Create
             self._sets_dir_path.mkdir(parents=True)
         elif not self._sets_dir_path.is_dir():
             # Error
-            raise NotADirectoryError(
-                f"Expected a directory at `{self._sets_dir_path}`."
-            )
+            raise NotADirectoryError(self._sets_dir_path)
 
         self._sources = TreeNode.from_filesystem(
             self._root_dir_path.parent.name, self._root_dir_path.iterdir()
@@ -158,7 +154,7 @@ class DatasetManager(Generic[ManagedDataset]):
 
         """
         if name in self._set_info.keys():
-            raise ValueError("Set already exists!")
+            raise ValueError()
         self._set_info[name] = dataset
         self._to_recompile.append(name)
 
@@ -183,7 +179,7 @@ class DatasetManager(Generic[ManagedDataset]):
 
         """
         if dataset_name not in self._set_info.keys():
-            raise LookupError("No such set!")
+            raise LookupError()
         return self._set_info[dataset_name]
 
     @log_call(action_type="get" > _MANAGER)
@@ -201,7 +197,7 @@ class DatasetManager(Generic[ManagedDataset]):
 
         """
         if dataset_name not in self._set_info.keys():
-            raise LookupError("No such set!")
+            raise LookupError()
         set_path = self._get_dataset_path(dataset_name)
         if dataset_name in self._to_recompile:
             self._recompile_dataset(set_path, self._set_info[dataset_name])
@@ -222,7 +218,7 @@ class DatasetManager(Generic[ManagedDataset]):
 
         """
         if dataset_name not in self._set_info.keys():
-            raise LookupError("No such set!")
+            raise LookupError()
         self._to_recompile.append(dataset_name)
         self._set_info[dataset_name] = dataset_info
 
@@ -240,9 +236,9 @@ class DatasetManager(Generic[ManagedDataset]):
 
         """
         if dataset_name not in self._set_info.keys():
-            raise LookupError(f"No such set `{dataset_name}`!")
+            raise LookupError()
         if new_name in self._set_info.keys():
-            raise ValueError(f"Set `{new_name}` already exists!")
+            raise ValueError()
         path = self._get_dataset_path(dataset_name)
         if path.exists():
             path.move(self._get_dataset_path(new_name))
@@ -264,7 +260,7 @@ class DatasetManager(Generic[ManagedDataset]):
 
         """
         if dataset_name not in self._set_info.keys():
-            raise LookupError(f"No such set `{dataset_name}`!")
+            raise LookupError()
         path = self._get_dataset_path(dataset_name)
         if path.exists():
             path.unlink()

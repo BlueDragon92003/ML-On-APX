@@ -32,10 +32,10 @@ class DatasetInfo:
 
         """
         self._labels = labels
-        self._sources = set(sources)
+        self._sources = frozenset(sources)
         for source in self._sources:
             if source[1] not in labels:
-                raise ValueError(f"Label {source[1]} not found in provided labels!")
+                raise ValueError(source[1])
 
     @property
     @log_call(action_type="get_labels" > _DS_INFO)
@@ -67,21 +67,6 @@ class DatasetInfo:
             labled_sources.add((path, label))
         return labled_sources
 
-    def __eq__(self, other: object) -> bool:
-        """Compare this dataset to another object.
-
-        Args:
-            other (object): The other object to compare to.
-
-        Returns:
-            bool: True if the other object is a DatasetInfo object with the same
-                information.
-
-        """
-        if type(other) is not DatasetInfo:
-            return False
-        return self._labels == other._labels and self._sources == other._sources
-
     @log_call(action_type="markdown" > _DS_INFO)
     def get_markdown(self, manager: DatasetManager) -> str:
         """Produce a markdown summary from a DatasetInfo object.
@@ -104,3 +89,22 @@ class DatasetInfo:
                 f"  - {source[0].relative_to(manager.root_dir_path)} ({source[1]})\n"
             )
         return markdown
+
+    def __eq__(self, other: object) -> bool:
+        """Compare this dataset to another object.
+
+        Args:
+            other (object): The other object to compare to.
+
+        Returns:
+            bool: True if the other object is a DatasetInfo object with the same
+                information.
+
+        """
+        if type(other) is not DatasetInfo:
+            return False
+        return self._labels == other._labels and self._sources == other._sources
+
+    def __hash__(self) -> int:
+        """Hash this object."""
+        return hash(self._labels) + hash(self._sources)

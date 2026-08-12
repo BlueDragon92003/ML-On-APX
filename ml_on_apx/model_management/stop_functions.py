@@ -371,7 +371,7 @@ class StopFunction:
     #        eq[car[fn];LAMBDA] → eval[caddr[fn]; pairlis[cadr[fn];x;a]]];
     #
     @staticmethod
-    def apply(f: str, args: list[LispType], _local_vars: LispVars) -> LispType:
+    def apply(f: str, args: list[LispType], _local_vars: LispVars) -> LispType:  # noqa: PLR0911, PLR0912, PLR0915
         """Apply a function `f` to the arguments.
 
         Args:

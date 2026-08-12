@@ -17,7 +17,7 @@ class TrainingJob:
 
     # Stop function: accuracy[lookback_distance], average loss[lookback_distance],
     # this_epoch,
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         group_name: str,
         dataset: str,
@@ -214,19 +214,19 @@ class TrainingJobBuilder:
 
         """
         if self._group_name is None:
-            raise TypeError("A group name must be set.")
+            raise TypeError()
         if self._dataset is None:
-            raise TypeError("A dataset must be set.")
+            raise TypeError()
         if self._stop_function is None:
-            raise TypeError("A stop function must be set.")
+            raise TypeError()
         if self._lookback_distance <= 0:
-            raise ValueError("Lookback distance must be positive.")
+            raise ValueError()
         if self._batch_size < 1:
-            raise ValueError("Batch size must be positive.")
+            raise ValueError()
         if self._checkpoint_rate < 1:
-            raise ValueError("Checkpoint rate must be positive.")
+            raise ValueError()
         if self._learning_rate <= 0:
-            raise ValueError("Learning rate must be positive.")
+            raise ValueError()
         return TrainingJob(
             self._group_name,
             self._dataset,

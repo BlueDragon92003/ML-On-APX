@@ -117,11 +117,7 @@ class GroupView(Screen[None]):
         """
         if action == "new_group":
             return True
-        if (
-            action == "mange_group"
-            or action == "rename_group"
-            or action == "delete_group"
-        ):
+        if action in {"mange_group", "rename_group", "delete_group"}:
             return self.selected_group is not None
 
     def validate_selected_group(self, new_name: str | None) -> str | None:

@@ -250,10 +250,10 @@ def get_hcal_location(card: int, i_eta: int, i_phi: int) -> tuple[int, int]:
     # it's only ever actually used times 6 plus i_phi, so may as well do it here
 
     return jax.lax.cond(
-        i_eta > 15,  # cond
+        i_eta > 15,  # cond  # noqa: PLR2004
         lambda: (-1, -1),  # true -- no HCAL data for i_eta 16
         lambda: jax.lax.cond(  # false -- HCAL data may exist
-            i_eta > 7,  # cond -- Link 5/7 or 6/8?
+            i_eta > 7,  # cond -- Link 5/7 or 6/8? # noqa: PLR2004
             lambda: (  # true -- link 6 or 8
                 4 * (i_eta - 8) + high_link % 4,  # tower_index
                 6 + (high_link // 4 % 2 * 2),  # link
@@ -280,7 +280,7 @@ def get_hcal_location(card: int, i_eta: int, i_phi: int) -> tuple[int, int]:
 
 @jax.jit
 @jax.vmap
-def process_clusters(
+def process_clusters(  # noqa: PLR0913
     slr: int,
     event: int,
     card: int,

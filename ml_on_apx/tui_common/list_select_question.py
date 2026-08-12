@@ -1,6 +1,6 @@
 """A question where the user selects from a list of options."""
 
-from typing import ClassVar, TypeVar
+from typing import ClassVar, Hashable, TypeVar
 
 from textual import on
 from textual.app import ComposeResult
@@ -15,7 +15,7 @@ from ml_on_apx.tui_common import _TUI
 
 _LSQ = "lsq" @ _TUI
 
-ListItem = TypeVar("ListItem")
+ListItem = TypeVar("ListItem", bound=Hashable)
 
 
 class ListSelectQuestion(ModalScreen[ListItem]):

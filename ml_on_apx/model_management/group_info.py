@@ -57,6 +57,10 @@ class Activation:
             return self.activation == other.activation
         return False
 
+    def __hash__(self) -> int:
+        """Generate the hash for this function."""
+        return hash(self._name) + hash(self._activation)
+
     @staticmethod
     @log_call(action_type="list" > _ACTIVATION)
     def get_activations() -> dict[str, "Activation"]:
@@ -103,6 +107,11 @@ class GroupInfo(ABC, Generic[T]):
     @abstractmethod
     def screen(cls) -> Screen[Self]:
         """Create a screen to visually create a GroupInfo object."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def screen_with_presets(self) -> Screen[Self]:
+        """Create a screen with presets based on this object."""
         raise NotImplementedError
 
     @abstractmethod

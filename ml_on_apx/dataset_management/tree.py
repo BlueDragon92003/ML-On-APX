@@ -70,6 +70,10 @@ class TreeNode:
                 return False
         return True
 
+    def __hash__(self) -> int:
+        """TreeNode is mutable and does not have a hash."""
+        raise TypeError
+
     @staticmethod
     @log_call(action_type="from_fs" > _TREE)
     def from_filesystem(name: str, sources: Iterable[Path]) -> "TreeNode":
