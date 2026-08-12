@@ -24,7 +24,7 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
 
     DEFAULT_ACTIVATION = "ReLU"
 
-    def __init__(self, labels: Labels, possible_features: set[str]) -> None:
+    def __init__(self, labels: Labels, possible_features: list[str]) -> None:
         """Create a new group info object.
 
         Args:
@@ -39,7 +39,7 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
         self._hidden_layer_activations: list[str] = []
         self._output_activation: str = self.DEFAULT_ACTIVATION
         self._output_layer_size = len(labels)
-        self._features: set = set()
+        self._features: set[str] = set()
         self._all_features = possible_features
 
     @classmethod
@@ -83,7 +83,7 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
         return self._features
 
     @property
-    def all_features(self) -> set[str]:
+    def all_features(self) -> list[str]:
         """The features available to this group."""
         return self._all_features
 
@@ -339,7 +339,6 @@ class SimpleModel(nn.Module):
 
     def __init__(self, group_info: SimpleGroupInfo) -> None:
         """Initialize a model."""
-        # TODO mask out unused inputs instead of pretending that's what will be given
         super(SimpleModel, self).__init__()
         activations = Activation.get_activations()
         stack: list[nn.Module] = []
@@ -350,9 +349,12 @@ class SimpleModel(nn.Module):
             stack.append(activations[group_info.get_layer_activation(i)].activation())
             start_size = end_size
         self.stack = nn.Sequential(*stack)
-
-        group_info.features
-        group_info.all_features
+        self.mask = torch.Tensor(
+            [  # TODO test masking system
+                group_info.all_features[x] in group_info.features
+                for x in range(len(group_info.all_features))
+            ]
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Execute the forward pass.
@@ -364,5 +366,5 @@ class SimpleModel(nn.Module):
             Tensor: The certainty of the model for each label.
 
         """
-        certainties = self.stack(x)
+        certainties = self.stack(x[self.mask])
         return certainties
