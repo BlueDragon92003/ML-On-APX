@@ -6,6 +6,7 @@ from pathlib import Path
 
 import ml_on_apx.cluster_classification.main
 import ml_on_apx.dataset_management.app
+import ml_on_apx.model_management.app
 from ml_on_apx.cluster_classification.cluster_classification_dataset import (
     ClusterClassificationDataset,
 )
@@ -222,9 +223,7 @@ def main() -> int:
                     )
                     return 0
                 case subcommand if subcommand == SUBCOMMAND_MNG_MODEL:
-                    print("`manage ___ models` not yet implemeneted")
-                    return 0
-                    ml_on_apx.dataset_management.app.main(model_dir, mode)
+                    ml_on_apx.model_management.app.main(model_dir, mode)
                 case _:
                     argparser.print_help()
                     return 1

@@ -1,7 +1,7 @@
 """Information on a model group, including activations."""
 
 from abc import ABC, abstractmethod
-from typing import Generic, Self, Type, TypeVar
+from typing import TYPE_CHECKING, Generic, Self, Type, TypeVar
 
 import torch.nn
 from textual.screen import Screen
@@ -9,6 +9,9 @@ from torch import nn
 
 from ml_on_apx.logging import log_call
 from ml_on_apx.model_management import _MODEL
+
+if TYPE_CHECKING:
+    from ml_on_apx.model_management.model_manager import ModelManager
 
 _GROUP_INFO = "group" @ _MODEL
 _ACTIVATION = "activation" @ _MODEL
@@ -102,5 +105,10 @@ class GroupInfo(ABC, Generic[T]):
 
     @abstractmethod
     def model(self) -> T:
+        """Generate the ML model this group uses."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_markdown(self, manager: ModelManager) -> str:
         """Generate the ML model this group uses."""
         raise NotImplementedError
