@@ -17,7 +17,7 @@ class TrainingJob:
 
     # Stop function: accuracy[lookback_distance], average loss[lookback_distance],
     # this_epoch,
-    def __init__(  # noqa: PLR0913
+    def __init__(  # noqa: PLR0913, PLR0917
         self,
         group_name: str,
         dataset: str,

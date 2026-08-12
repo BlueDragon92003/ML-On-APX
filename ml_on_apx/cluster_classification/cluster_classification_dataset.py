@@ -280,7 +280,7 @@ def get_hcal_location(card: int, i_eta: int, i_phi: int) -> tuple[int, int]:
 
 @jax.jit
 @jax.vmap
-def process_clusters(  # noqa: PLR0913
+def process_clusters(  # noqa: PLR0913, PLR0917
     slr: int,
     event: int,
     card: int,
