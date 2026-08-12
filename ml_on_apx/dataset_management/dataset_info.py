@@ -1,11 +1,17 @@
 """Stores informaiton relating to a dataset."""
 
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Iterable
+from typing import TYPE_CHECKING, Iterable
 
 from ml_on_apx.dataset_management import _DS_INFO
 from ml_on_apx.labelling import Label, Labels
 from ml_on_apx.logging import log_call
+
+if TYPE_CHECKING:
+    from ml_on_apx.dataset_management.dataset_manager import DatasetManager
+
 
 DATASET_NAME_REGEX = r"[\w]([\w\s-]*[\w-])?"
 
@@ -75,3 +81,26 @@ class DatasetInfo:
         if type(other) is not DatasetInfo:
             return False
         return self._labels == other._labels and self._sources == other._sources
+
+    @log_call(action_type="markdown" > _DS_INFO)
+    def get_markdown(self, manager: DatasetManager) -> str:
+        """Produce a markdown summary from a DatasetInfo object.
+
+        Args:
+            dsinfo (DatasetInfo): The DatasetInfo object the markdown should be produced
+                from.
+            manager (DatasetManager): The DatasetManager that owns `dsinfo`
+
+        Returns:
+            str: The markdown string for `dsinfo`.
+
+        """
+        markdown = "The dataset uses the following labels:\n"
+        for label in self.labels:
+            markdown += f"  - {label}\n"
+        markdown += "\nThe dataset uses the following sources:\n"
+        for source in self.labeled_sources:
+            markdown += (
+                f"  - {source[0].relative_to(manager.root_dir_path)} ({source[1]})\n"
+            )
+        return markdown

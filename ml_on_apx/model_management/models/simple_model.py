@@ -1,5 +1,7 @@
 """A simple, linear sequential ML model."""
 
+from typing import Iterable
+
 import torch
 from textual.screen import Screen
 from torch import nn
@@ -7,6 +9,7 @@ from torch import nn
 from ml_on_apx.labelling import Labels
 from ml_on_apx.logging import log_call
 from ml_on_apx.model_management.group_info import Activation, GroupInfo
+from ml_on_apx.model_management.model_manager import ModelManager
 from ml_on_apx.model_management.models import _MODELS
 
 _SIMPLE_GROUP_INFO = "simple" @ _MODELS
@@ -47,6 +50,32 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
     def model(self) -> "SimpleModel":
         """Get the simple model this group uses."""
         return SimpleModel(self)
+
+    @log_call(action_type="markdown" > _SIMPLE_GROUP_INFO)
+    def get_markdown(self, manager: ModelManager) -> str:
+        """Produce the markdown representation of this group."""
+
+        def format_hidden_layers(zipped: zip[tuple[int, str]]) -> Iterable[str]:
+            for zsize, zact in zipped:
+                yield f"{zsize} ({zact})"
+
+        def list_print(the_list: Iterable[str]) -> str:
+            out = ""
+            for li in the_list:
+                out += li + ", "
+            return out[:-2]
+
+        hl = list_print(
+            format_hidden_layers(
+                zip(self._hidden_layer_sizes, self._hidden_layer_activations)
+            )
+        )
+
+        return f"""**_Simple model_**
+**Inputs**: {self._input_layer_size} ({list_print(self._features)})
+**Outputs**: {list_print(self._labels)} ({self._output_activation})
+**Hidden Layers**: {len(self._hidden_layer_sizes)} ({hl})
+"""
 
     @property
     def features(self) -> set[str]:
@@ -310,6 +339,7 @@ class SimpleModel(nn.Module):
 
     def __init__(self, group_info: SimpleGroupInfo) -> None:
         """Initialize a model."""
+        # TODO mask out unused inputs instead of pretending that's what will be given
         super(SimpleModel, self).__init__()
         activations = Activation.get_activations()
         stack: list[nn.Module] = []

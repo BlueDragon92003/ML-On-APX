@@ -12,7 +12,6 @@ from textual.screen import Screen
 from textual.widgets import Button, Footer, Header, Label, ListItem, ListView, Markdown
 
 from ml_on_apx.dataset_management import _TUI
-from ml_on_apx.dataset_management.app_views import get_dataset_info_markdown
 from ml_on_apx.dataset_management.app_views.new_edit_view import NewEditView
 from ml_on_apx.dataset_management.dataset import Dataset
 from ml_on_apx.dataset_management.dataset_info import DATASET_NAME_REGEX
@@ -152,9 +151,7 @@ class MainView(Screen[None]):
             dataset_info = self._manager.get_dataset_info(new_name)
 
             title_label.content = new_name
-            content_markdown.update(
-                get_dataset_info_markdown(dataset_info, self._manager)
-            )
+            content_markdown.update(dataset_info.get_markdown(self._manager))
 
     @log_call(action_type="mount" > _MAIN_VIEW)
     async def on_mount(self) -> None:

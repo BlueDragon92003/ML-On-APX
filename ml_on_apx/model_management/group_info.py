@@ -1,5 +1,7 @@
 """Information on a model group, including activations."""
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Generic, Self, Type, TypeVar
 
