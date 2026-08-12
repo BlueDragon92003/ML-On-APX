@@ -4,12 +4,11 @@ from pathlib import Path
 from typing import ClassVar, Type
 
 import textual.widgets
-from eliot import Action
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.widgets import Label
 
-from ml_on_apx.dataset_management import _ACTION_SHOW_QUIT_SCREEN, _APP, _TUI
+from ml_on_apx.dataset_management import _APP, _TUI
 from ml_on_apx.dataset_management.app_views.main_view import MainView
 from ml_on_apx.dataset_management.dataset import Dataset
 from ml_on_apx.dataset_management.dataset_manager import DatasetManager
@@ -18,6 +17,9 @@ from ml_on_apx.modes import Mode
 from ml_on_apx.tui_common.binary_modal_question import (
     BinaryModalQuestion,
 )
+
+_SHOW_QUIT_SCREEN = "quit" @ _APP
+_QUIT_SCREEN_CALLBACK = "callback" > _SHOW_QUIT_SCREEN
 
 
 class DatasetManagerApp(App):
@@ -57,20 +59,18 @@ class DatasetManagerApp(App):
         self.theme = "gruvbox"
         self.push_screen(MainView(self._manager))
 
+    @log_call(action_type=str(_SHOW_QUIT_SCREEN))
     def action_show_quit_screen(self) -> None:
         """Process the action `show_quit_screen`."""
-        action: Action = _ACTION_SHOW_QUIT_SCREEN()
 
+        @log_call(action_type=_QUIT_SCREEN_CALLBACK)
         def check_quit(sentinal: bool | None) -> None:
-            with action.context():
-                if sentinal:
-                    self.exit()
-            action.finish()
+            if sentinal:
+                self.exit()
 
-        with action.context():
-            self.push_screen(
-                BinaryModalQuestion(Label("Quit dataset management?")), check_quit
-            )
+        self.push_screen(
+            BinaryModalQuestion(Label("Quit dataset management?")), check_quit
+        )
 
 
 @log_call(action_type="start" > _TUI)
