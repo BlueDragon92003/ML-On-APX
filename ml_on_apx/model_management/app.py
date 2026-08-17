@@ -72,18 +72,26 @@ class ModelManagerApp(App):
 
 @log_call(action_type="start" > _TUI)
 def main(
-    dataset_dir: Path,
+    model_dir: Path,
     mode: Mode,
 ) -> None:
     """Run the dataset manager app.
 
     Args:
+        model_dir (Path): The directory all model information is stored under.
         dataset_dir (Path): The directory all dataset information is stored under.
-        mode (Mode): The mode of datasets this app is managing.
-        dataset_class (Type[Dataset]): The class that should be used for datasets.
-        log_level (LogLevel): The logging level to use.
+        mode (Mode): The mode of models this app is managing.
 
     """
-    with ModelManager(dataset_dir, mode) as manager:
+    # datasets: list[DatasetInfo] = []
+
+    # class FalseDataset(Dataset):
+    #     pass
+
+    # with DatasetManager(dataset_dir, mode, FalseDataset) as data_manager:
+    #     for name in data_manager.dataset_names:
+    #         datasets.append(data_manager.get_dataset_info(name))
+
+    with ModelManager(model_dir, mode) as manager:
         app = ModelManagerApp(manager)
         app.run()

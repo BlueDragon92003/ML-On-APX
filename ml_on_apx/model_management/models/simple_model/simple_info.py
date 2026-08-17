@@ -1,25 +1,27 @@
-"""A simple, linear sequential ML model."""
+"""A simple, linear sequential ML model info object."""
 
-from typing import Iterable
+from __future__ import annotations
 
-import torch
+from typing import TYPE_CHECKING, Iterable
+
 from textual.screen import Screen
-from torch import nn
 
 from ml_on_apx.labelling import Labels
 from ml_on_apx.logging import log_call
 from ml_on_apx.model_management.group_info import Activation, GroupInfo
 from ml_on_apx.model_management.model_manager import ModelManager
-from ml_on_apx.model_management.models import _MODELS
+from ml_on_apx.model_management.models.simple_model import _SIMPLE
 
-_SIMPLE_GROUP_INFO = "simple" @ _MODELS
-_FEATURE = "feature" @ _SIMPLE_GROUP_INFO
-_LAYER = "layer" @ _SIMPLE_GROUP_INFO
+if TYPE_CHECKING:
+    from ml_on_apx.model_management.models.simple_model.simple_model import SimpleModel
+
+_FEATURE = "feature" @ _SIMPLE
+_LAYER = "layer" @ _SIMPLE
 _LAYER_ACTIVATION = "activation" @ _LAYER
 _LAYER_SIZE = "size" @ _LAYER
 
 
-class InputLayerReadError(Exception):
+class InputLayerNoActivationError(Exception):
     """Raised when the InputLayer is used where it cannot be."""
 
 
@@ -34,9 +36,10 @@ class OutputLayerModificationError(Exception):
 class SimpleGroupInfo(GroupInfo["SimpleModel"]):
     """Stores training data about the group."""
 
-    DEFAULT_ACTIVATION = "ReLU"
+    DEFAULT_ACTIVATION = Activation.get_activations()["ReLU"].name
+    # `get_activations` call to ensure the default activation exists.
 
-    def __init__(self, labels: Labels, possible_features: list[str]) -> None:
+    def __init__(self, possible_features: list[str]) -> None:
         """Create a new group info object.
 
         Args:
@@ -45,12 +48,12 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
                 model input.
 
         """
-        self._labels = labels
+        self._labels = Labels()
         self._input_layer_size = 0
         self._hidden_layer_sizes: list[int] = []
         self._hidden_layer_activations: list[str] = []
         self._output_activation: str = self.DEFAULT_ACTIVATION
-        self._output_layer_size = len(labels)
+        self._output_layer_size = len(self._labels)
         self._features: set[str] = set()
         self._all_features = possible_features
 
@@ -67,7 +70,7 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
         """Get the simple model this group uses."""
         return SimpleModel(self)
 
-    @log_call(action_type="markdown" > _SIMPLE_GROUP_INFO)
+    @log_call(action_type="markdown" > _SIMPLE)
     def get_markdown(self, manager: ModelManager) -> str:
         """Produce the markdown representation of this group."""
 
@@ -292,7 +295,7 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
         if layer < 0:
             raise IndexError()
         elif layer == 0:
-            raise InputLayerReadError
+            raise InputLayerNoActivationError
         elif layer <= len(self._hidden_layer_sizes):
             return self._hidden_layer_activations[
                 layer - 1
@@ -318,7 +321,7 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
         if layer < 0:
             raise IndexError()
         elif layer == 0:
-            raise InputLayerReadError
+            raise InputLayerNoActivationError
         elif layer <= len(self._hidden_layer_sizes):
             # layer 1 is hidden layer 0
             self._hidden_layer_activations[layer - 1] = activation_name
@@ -332,43 +335,12 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
         """The labels models in this group train on."""
         return self._labels
 
+    @labels.setter
+    def labels(self, new: Labels) -> None:
+        self._labels = new
+        self._output_layer_size = len(self._labels)
+
     @property
     def layer_count(self) -> int:
         """The number of layers for the models in this group."""
         return len(self._hidden_layer_sizes) + 2
-
-
-class SimpleModel(nn.Module):
-    """A machine-learning model."""
-
-    def __init__(self, group_info: SimpleGroupInfo) -> None:
-        """Initialize a model."""
-        super(SimpleModel, self).__init__()
-        activations = Activation.get_activations()
-        stack: list[nn.Module] = []
-        start_size = group_info.get_layer_size(0)
-        for i in range(1, group_info.layer_count):
-            end_size = group_info.get_layer_size(i)
-            stack.append(nn.Linear(start_size, end_size))
-            stack.append(activations[group_info.get_layer_activation(i)].activation())
-            start_size = end_size
-        self.stack = nn.Sequential(*stack)
-        self.mask = torch.Tensor(
-            [  # TODO test masking system
-                group_info.all_features[x] in group_info.features
-                for x in range(len(group_info.all_features))
-            ]
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Execute the forward pass.
-
-        Args:
-            x: The input vector for the model to process..
-
-        Returns:
-            Tensor: The certainty of the model for each label.
-
-        """
-        certainties = self.stack(x[self.mask])
-        return certainties
