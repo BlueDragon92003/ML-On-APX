@@ -20,12 +20,12 @@ class TestLabels(unittest.TestCase):
     @capture_logging
     def test_labelling__instantiation(self) -> None:
         """Test the creation of a valid Labels object does not error."""
-        Labels({Label("a"), Label("b")})
+        Labels("a", "b")
 
     @capture_logging
     def test_labelling__contains(self) -> None:
         """Test that the __contains__ magic method works as expected."""
-        labels = Labels({Label("a"), Label("b")})
+        labels = Labels("a", "b")
         self.assertTrue(Label("a") in labels)
         self.assertTrue(Label("b") in labels)
         self.assertFalse(Label("c") in labels)
@@ -33,7 +33,7 @@ class TestLabels(unittest.TestCase):
     @capture_logging
     def test_labelling__get_item(self) -> None:
         """Test that the __getitem__ magic method works as expeced."""
-        labels = Labels({Label("a"), Label("b")})
+        labels = Labels("a", "b")
         self.assertEqual(0, labels[Label("a")])
         self.assertEqual(1, labels[Label("b")])
         with self.assertRaises(KeyError):
@@ -42,6 +42,6 @@ class TestLabels(unittest.TestCase):
     @capture_logging
     def test_labelling__test_labels_eq(self) -> None:
         """Test that the __eq__ magic method works as ecpected."""
-        labels1 = Labels({Label("a"), Label("b")})
-        labels2 = Labels({Label("b"), Label("a")})
+        labels1 = Labels("a", "b")
+        labels2 = Labels("b", "a")
         self.assertEqual(labels1, labels2)

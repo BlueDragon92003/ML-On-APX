@@ -12,7 +12,7 @@ class TestDatasetInfo(unittest.TestCase):
 
     def test_dataset_info__instantiation(self) -> None:
         """Test that the creation of a valid DatasetInfo object does not error."""
-        labels = Labels([Label("a"), Label("c")])
+        labels = Labels("a", "c")
         sources = [
             (Path("first"), Label("a")),
             (Path("second"), Label("a")),
@@ -22,7 +22,7 @@ class TestDatasetInfo(unittest.TestCase):
 
     def test_dataset_info__missing_labels(self) -> None:
         """Test that the creation of a DatasetInfo missing a label object errors."""
-        labels = Labels([Label("a")])
+        labels = Labels("a")
         sources = [
             (Path("first"), Label("a")),
             (Path("second"), Label("a")),
@@ -33,7 +33,7 @@ class TestDatasetInfo(unittest.TestCase):
 
     def test_dataset_info__get_labels(self) -> None:
         """Test that the get_lables function works as expected."""
-        labels = Labels([Label("a"), Label("c")])
+        labels = Labels("a", "c")
         sources = [
             (Path("first"), Label("a")),
             (Path("second"), Label("a")),
@@ -44,7 +44,7 @@ class TestDatasetInfo(unittest.TestCase):
 
     def test_dataset_info__get_sources(self) -> None:
         """Test that the get_sources function works as expected."""
-        labels = Labels([Label("a"), Label("c")])
+        labels = Labels("a", "c")
         sources = [
             (Path("first"), Label("a")),
             (Path("second"), Label("a")),
@@ -56,7 +56,7 @@ class TestDatasetInfo(unittest.TestCase):
 
     def test_dataset_info__get_labeled_sources(self) -> None:
         """Test that the get_labeled_sources function works as expected."""
-        labels = Labels([Label("a"), Label("c")])
+        labels = Labels("a", "c")
         sources = [
             (Path("first"), Label("a")),
             (Path("second"), Label("a")),

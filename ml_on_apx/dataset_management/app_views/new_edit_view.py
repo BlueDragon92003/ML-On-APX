@@ -621,7 +621,7 @@ class NewEditView(Screen[None]):
         """
         name_wdgt = self.get_widget_by_id("dataset-name-input", Input)
         name = name_wdgt.value
-        labels = Labels(self.labels)
+        labels = Labels(*self.labels)
 
         if len(labels) == 0:
             self.app.notify(

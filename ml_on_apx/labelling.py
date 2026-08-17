@@ -1,6 +1,6 @@
 """Human-readable machine learning labels."""
 
-from typing import Iterable, Iterator
+from typing import Iterator
 
 
 class Label(str):
@@ -10,17 +10,17 @@ class Label(str):
 class Labels:
     """Track labels used by a dataset or for model training."""
 
-    def __init__(self, labels: Iterable[Label]) -> None:
+    def __init__(self, *labels: Label | str) -> None:
         """Create a labels set.
 
         Args:
-            labels (Iterable[Label]): The labels in this label set.
+            *labels (Label): The labels in this label set.
 
         """
         self._data: dict[Label, int] = {}
         temp = []
         for label in labels:
-            temp.append(label)
+            temp.append(Label(label))
         temp.sort()
         for i in range(len(temp)):
             self._data.update({temp[i]: i})
