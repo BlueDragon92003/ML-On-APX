@@ -11,10 +11,10 @@ import pyfakefs.fake_filesystem_unittest
 import torch
 from torch import nn
 
-from ml_on_apx.labelling import Label, Labels
+from ml_on_apx.labelling import Labels
 from ml_on_apx.model_management.model_info import ModelInfo
 from ml_on_apx.model_management.model_manager import ModelManager
-from ml_on_apx.model_management.models.simple_model import SimpleGroupInfo
+from ml_on_apx.model_management.models.simple_model.simple_info import SimpleGroupInfo
 from ml_on_apx.model_management.stop_functions import StopFunction
 from ml_on_apx.model_management.testing_job import TestingJob
 from ml_on_apx.model_management.training_job import TrainingJob
@@ -68,13 +68,13 @@ class TestsModelManager(
 ):
     """Tests for the ModelManager class."""
 
-    DEFAULT_LABELS: ClassVar[Labels] = Labels([Label("a"), Label("b"), Label("c")])
-    DEFAULT_FEATURES: ClassVar[set[str]] = {
+    DEFAULT_LABELS: ClassVar[Labels] = Labels("a", "b", "c")
+    DEFAULT_FEATURES: ClassVar[list[str]] = [
         "feature_1",
         "feature_2",
         "feature_3",
         "feature_4",
-    }
+    ]
 
     def __init__(self, method_name: str = "runTest") -> None:
         """Initialize the test case."""
@@ -99,15 +99,21 @@ class TestsModelManager(
         with open(path / ModelManager.MODEL_INFOS_FILE, mode="wb") as file:
             pickle.dump({}, file)
 
+    def _create_default_fs_group(self, group_name: str) -> None:
+        self._create_fs_group(group_name, self._create_default_group_info())
+
+    def _create_default_group_info(self) -> SimpleGroupInfo:
+        group_info = SimpleGroupInfo(self.DEFAULT_FEATURES)
+        group_info.labels = self.DEFAULT_LABELS
+        return group_info
+
     @patch("torch.save", _mock_torch_save)
     def _create_fs_model(
         self, group_name: str, model_name: str, model_info: ModelInfo
     ) -> None:
         group_path = self.mode_path / group_name
         if not group_path.exists():
-            self._create_fs_group(
-                group_name, SimpleGroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
-            )
+            self._create_fs_group(group_name, SimpleGroupInfo(self.DEFAULT_FEATURES))
         model_infos_path = group_path / ModelManager.MODEL_INFOS_FILE
         with open(model_infos_path, mode="rb") as file:
             model_infos: dict[str, ModelInfo] = pickle.load(file)
@@ -223,13 +229,9 @@ class TestsModelManager(
         """Test that the model manager loads only directories, not files, as groups."""
         valid_group_names = ["group_a", "group_c", "group_d", "group_g"]
         for group_name in valid_group_names:
-            self._create_fs_group(
-                group_name, SimpleGroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
-            )
+            self._create_default_fs_group(group_name)
         for group_name in ["group_b", "group_e", "group_f"]:
-            self._create_fs_group(
-                group_name, SimpleGroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
-            )
+            self._create_default_fs_group(group_name)
             path = self.mode_path / group_name
             for file in path.iterdir():
                 file.unlink()
@@ -243,13 +245,9 @@ class TestsModelManager(
         """Test that the model manager skips groups missing `group_info.pckl`."""
         valid_group_names = ["group_a", "group_c", "group_e", "group_g"]
         for group_name in valid_group_names:
-            self._create_fs_group(
-                group_name, SimpleGroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
-            )
+            self._create_default_fs_group(group_name)
         for group_name in ["group_b", "group_d", "group_f"]:
-            self._create_fs_group(
-                group_name, SimpleGroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
-            )
+            self._create_default_fs_group(group_name)
             path = self.mode_path / group_name / ModelManager.GROUP_INFO_FILE
             path.unlink()
         with ModelManager(self.models_path, Mode.Testing) as manager:
@@ -260,13 +258,9 @@ class TestsModelManager(
         """Test that the model manager skips groups missing `model_infos`.pckl."""
         valid_group_names = ["group_b", "group_c", "group_d", "group_g"]
         for group_name in valid_group_names:
-            self._create_fs_group(
-                group_name, SimpleGroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
-            )
+            self._create_default_fs_group(group_name)
         for group_name in ["group_a", "group_e", "group_f"]:
-            self._create_fs_group(
-                group_name, SimpleGroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
-            )
+            self._create_default_fs_group(group_name)
             path = self.mode_path / group_name / ModelManager.MODEL_INFOS_FILE
             path.unlink()
         with ModelManager(self.models_path, Mode.Testing) as manager:
@@ -304,26 +298,20 @@ class TestsModelManager(
     # Name already exists
     def test_model_manager__cg__name_exists(self) -> None:
         """Test group creation with a pre-existing name."""
-        self._create_fs_group(
-            "group_a", SimpleGroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
-        )
+        self._create_default_fs_group("group_a")
         with ModelManager(self.models_path, Mode.Testing) as manager:
             with self.assertRaises(ValueError):
                 manager.create_group(
                     "group_a",
-                    SimpleGroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES),
+                    self._create_default_group_info(),
                 )
 
     # OK
     def test_model_manager__cg__okay(self) -> None:
         """Test functioning group creation."""
-        self._create_fs_group(
-            "group_a", SimpleGroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
-        )
+        self._create_default_fs_group("group_a")
         with ModelManager(self.models_path, Mode.Testing) as manager:
-            manager.create_group(
-                "group_b", SimpleGroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
-            )
+            manager.create_group("group_b", self._create_default_group_info())
             self.assertTrue((self.mode_path / "group_b").exists())
 
     # ========================================================================
@@ -340,15 +328,15 @@ class TestsModelManager(
     # OK
     def test_model_manager__rg__ok(self) -> None:
         """Test that read group behaves as expeced in normal circumstances."""
-        label_2 = Labels([Label("a"), Label("b")])
-        feature_2 = {"omega", "sigma"}
-        self._create_fs_group(
-            "group_a", SimpleGroupInfo(self.DEFAULT_LABELS, feature_2)
-        )
+        label_2 = Labels("a", "b")
+        feature_2 = ["omega", "sigma"]
+        group_info_a = SimpleGroupInfo(feature_2)
+        group_info_a.labels = self.DEFAULT_LABELS
+        self._create_fs_group("group_a", group_info_a)
         with ModelManager(self.models_path, Mode.Testing) as manager:
-            manager.create_group(
-                "group_b", SimpleGroupInfo(label_2, self.DEFAULT_FEATURES)
-            )
+            group_info_b = SimpleGroupInfo(self.DEFAULT_FEATURES)
+            group_info_b.labels = label_2
+            manager.create_group("group_b", group_info_b)
             info = manager.get_group_info("group_a")
             info = cast(SimpleGroupInfo, info)
             self.assertEqual(self.DEFAULT_LABELS, info.labels)
@@ -373,12 +361,8 @@ class TestsModelManager(
     def test_model_manager__urg__used_name(self) -> None:
         """Test that rename group errors if given a extant target group."""
         with ModelManager(self.models_path, Mode.Testing) as manager:
-            manager.create_group(
-                "group_a", SimpleGroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
-            )
-            manager.create_group(
-                "group_b", SimpleGroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
-            )
+            manager.create_group("group_a", self._create_default_group_info())
+            manager.create_group("group_b", self._create_default_group_info())
             with self.assertRaises(ValueError):
                 manager.rename_group("group_a", "group_b")
 
@@ -386,9 +370,7 @@ class TestsModelManager(
     def test_model_manager__urg__ok(self) -> None:
         """Test that rename group behaves as expeced."""
         with ModelManager(self.models_path, Mode.Testing) as manager:
-            manager.create_group(
-                "group_a", SimpleGroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
-            )
+            manager.create_group("group_a", self._create_default_group_info())
             manager.rename_group("group_a", "group_b")
             with self.assertRaises(ModelManager.GroupLookupError):
                 manager.get_group_info("group_a")
@@ -412,9 +394,7 @@ class TestsModelManager(
     def test_model_manager__dg__ok(self) -> None:
         """Test that delete group behaves as expected."""
         with ModelManager(self.models_path, Mode.Testing) as manager:
-            manager.create_group(
-                "group_a", SimpleGroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
-            )
+            manager.create_group("group_a", self._create_default_group_info())
             manager.delete_group("group_a")
             with self.assertRaises(ModelManager.GroupLookupError):
                 manager.get_group_info("group_a")
@@ -460,16 +440,12 @@ class TestsModelManager(
     @patch("torch.save", new=_mock_torch_save)
     def test_model_manager__cm__ok(self) -> None:
         """Test that create model behaves as expected."""
-        self._create_fs_group(
-            "group_a", SimpleGroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
-        )
+        self._create_fs_group("group_a", self._create_default_group_info())
         with ModelManager(
             self.models_path,
             Mode.Testing,
         ) as manager:
-            manager.create_group(
-                "group_b", SimpleGroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
-            )
+            manager.create_group("group_b", self._create_default_group_info())
             manager.create_model(
                 "group_b",
                 "model",
@@ -505,9 +481,7 @@ class TestsModelManager(
     # Info::Model DNE
     def test_model_manager__rmi__missing_model(self) -> None:
         """Test that read model info errors if given a nonexistent model."""
-        self._create_fs_group(
-            "group", SimpleGroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
-        )
+        self._create_fs_group("group", self._create_default_group_info())
         with ModelManager(self.models_path, mode=Mode.Testing) as manager:
             with self.assertRaises(ModelManager.ModelLookupError):
                 manager.get_model_info("group", "model")
@@ -535,9 +509,7 @@ class TestsModelManager(
     # Model::Model DNE
     def test_model_manager__rm__missing_model(self) -> None:
         """Test that read model errors if given a nonexistent model."""
-        self._create_fs_group(
-            "group", SimpleGroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
-        )
+        self._create_fs_group("group", self._create_default_group_info())
         with ModelManager(self.models_path, mode=Mode.Testing) as manager:
             with self.assertRaises(ModelManager.ModelLookupError):
                 manager.get_model("group", "model")
@@ -570,9 +542,7 @@ class TestsModelManager(
     # Model DNE
     def test_model_manager__urm__missing_model(self) -> None:
         """Test that rename model errors if given a nonexistent model."""
-        self._create_fs_group(
-            "group", SimpleGroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
-        )
+        self._create_fs_group("group", self._create_default_group_info())
         with ModelManager(self.models_path, mode=Mode.Testing) as manager:
             with self.assertRaises(ModelManager.ModelLookupError):
                 manager.rename_model("group", "model", "new")
@@ -620,9 +590,7 @@ class TestsModelManager(
     # Model DNE
     def test_model_manager__dm__missing_model(self) -> None:
         """Test that delete model errors if given a nonexistent model."""
-        self._create_fs_group(
-            "group", SimpleGroupInfo(self.DEFAULT_LABELS, self.DEFAULT_FEATURES)
-        )
+        self._create_fs_group("group", self._create_default_group_info())
         with ModelManager(self.models_path, mode=Mode.Testing) as manager:
             with self.assertRaises(ModelManager.ModelLookupError):
                 manager.delete_model("group", "model")

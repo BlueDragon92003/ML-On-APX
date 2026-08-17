@@ -24,9 +24,15 @@ class _MockDataset(Dataset):
             return False
         return self._components == other._components
 
+    __hash__ = None
+
     @classmethod
     def create(cls, components: Set[Tuple[Path, int]]) -> "Dataset":
         return _MockDataset(components)
+
+    @classmethod
+    def get_features(cls) -> list[str]:
+        return ["one", "two", "three", "four", "five"]
 
 
 class TestDatasetManager(
@@ -59,7 +65,7 @@ class TestDatasetManager(
             Path("group_b/source_b_2.root"),
         ]
 
-        self.labels = Labels([Label("a"), Label("b"), Label("c")])
+        self.labels = Labels("a", "b", "c")
 
         self.labeling = [
             (self.sources[0], Label("a")),
