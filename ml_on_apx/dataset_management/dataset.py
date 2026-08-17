@@ -22,3 +22,14 @@ class Dataset(ABC, torch.utils.data.Dataset):
 
         """
         raise NotImplementedError
+
+    @classmethod
+    @abstractmethod
+    def get_features(cls) -> list[str]:
+        """Get all features this dataset provides, named, and in order.
+
+        Returns:
+            list[str]: The ordered, named list of features this dataset provides.
+
+        """
+        raise NotImplementedError

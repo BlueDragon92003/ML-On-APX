@@ -170,6 +170,33 @@ class ClusterClassificationDataset(Dataset):
         """
         return ClusterClassificationDataset(components)
 
+    @classmethod
+    @log_call(action_type="features" > _CCD)
+    def get_features(cls) -> list[str]:
+        """Get the features the cluster classification dataset provides.
+
+        Returns:
+            list[str]: An ordered, named list of features.
+
+        """
+        return [
+            "slr",
+            "event",
+            "card",
+            "cluster_eta",
+            "cluster_phi",
+            "cluster_energy",
+            "cluster_seed_energy",
+            "cluster_et5x5",
+            "cluster_et2x5",
+            "cluster_timing",
+            "cluster_spike",
+            "cluster_brems",
+            "cluster_satur",
+            "unclustered_etsunclustered_timingsunclustered_spikeshcal_et",
+            "hcal_fb",
+        ]
+
 
 def mostly_flatten(branch: TBranch) -> jax.Array:
     """Flatten all except the last dimension of a uproot TBranch.
