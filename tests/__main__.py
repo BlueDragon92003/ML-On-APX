@@ -13,7 +13,7 @@ if __name__ == "__main__":
     if not log_path.exists():
         log_path.mkdir()
     elif not log_path.is_dir():
-        raise NotADirectoryError(f"Expected a directory at `{log_path!s}`.")
+        raise NotADirectoryError(log_path)
 
     initialize_file_logging(log_path, file_count=10)
 

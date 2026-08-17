@@ -105,7 +105,7 @@ class GroupInfo(ABC, Generic[T]):
 
     @classmethod
     @abstractmethod
-    def screen(cls) -> Screen[Self]:
+    def screen(cls, features: list[str]) -> Screen[Self]:
         """Create a screen to visually create a GroupInfo object."""
         raise NotImplementedError
 
