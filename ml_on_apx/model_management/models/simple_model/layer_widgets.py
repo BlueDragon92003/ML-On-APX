@@ -37,7 +37,7 @@ class LayerWidget(VerticalGroup, can_focus=True, metaclass=_LayerWidgetMeta):
     BINDINGS: ClassVar[list[tuple[str, str, str] | Binding]] = [
         ("+", "increase_size", "Increase layer size"),
         ("-", "decrease_size", "Decrease layer size"),
-        (" ", "set_size", "Set size."),
+        ("space", "set_size", "Set size."),
         ("a", "set_activation", "Set activation."),
     ]
 
@@ -136,7 +136,7 @@ class HiddenLayerWidget(LayerWidget):
             callback=callback_set_size,
         )
 
-    @log_call(action_type="activation" > _HIDDEN)
+    @log_call(action_type=str(_HIDDEN_ACTIVATION))
     def action_set_activation(self) -> None:
         """Set the activation of the layer."""
 

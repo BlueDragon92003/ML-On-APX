@@ -23,7 +23,7 @@ from ml_on_apx.logging import log_call
 from ml_on_apx.model_management import _TUI
 from ml_on_apx.model_management.group_info import GroupInfo
 from ml_on_apx.model_management.model_manager import ModelManager
-from ml_on_apx.model_management.models.simple_model.simple_model import SimpleGroupInfo
+from ml_on_apx.model_management.models.simple_model.simple_info import SimpleGroupInfo
 from ml_on_apx.tui_common.get_string_question import GetStringQuestion
 from ml_on_apx.tui_common.list_select_question import ListSelectQuestion
 
