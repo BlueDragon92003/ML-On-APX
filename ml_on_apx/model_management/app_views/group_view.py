@@ -270,9 +270,9 @@ class GroupView(Screen[None]):
         self.app.push_screen(
             GetStringQuestion(
                 title=f"Rename {self.selected_group} to ..?",
+                validator=GroupInfo.validate_group_name,
             ),
             callback=callback_rename_group,
-            # TODO group name validator
         )
 
     @log_call(action_type=str(_DELETE_GROUP))
@@ -312,6 +312,7 @@ class GroupView(Screen[None]):
             GetStringQuestion(
                 title="The group name?",
                 subtitle="Warning: Canceling will delete any changes!",
+                validator=GroupInfo.validate_group_name,
             ),
             callback=callback_write_group,
         )

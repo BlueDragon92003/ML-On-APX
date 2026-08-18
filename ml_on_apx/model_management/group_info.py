@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Generic, Self, Type, TypeVar
 
@@ -102,6 +103,11 @@ T = TypeVar("T", bound=nn.Module)
 
 class GroupInfo(ABC, Generic[T]):
     """Stores training data about the group."""
+
+    @staticmethod
+    def validate_group_name(name: str) -> bool:
+        """Validate a group name."""
+        return re.fullmatch(r"[^/\n]+", name) is not None
 
     @classmethod
     @abstractmethod
