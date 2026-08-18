@@ -17,6 +17,7 @@ from textual.widgets import (
     ListView,
     Markdown,
     Rule,
+    Static,
 )
 
 from ml_on_apx.logging import log_call
@@ -24,6 +25,7 @@ from ml_on_apx.model_management import _TUI
 from ml_on_apx.model_management.group_info import GroupInfo
 from ml_on_apx.model_management.model_manager import ModelManager
 from ml_on_apx.model_management.models.simple_model.simple_info import SimpleGroupInfo
+from ml_on_apx.tui_common.binary_modal_question import BinaryModalQuestion
 from ml_on_apx.tui_common.get_string_question import GetStringQuestion
 from ml_on_apx.tui_common.list_select_question import ListSelectQuestion
 
@@ -44,10 +46,14 @@ from ml_on_apx.tui_common.list_select_question import ListSelectQuestion
 """
 
 _GROUP_VIEW = "group" @ _TUI
+
 _NEW_GROUP = "new" @ _GROUP_VIEW
 _CALLBACK_NEW_GROUP = "type_callback" > _NEW_GROUP
 _WRITE_GROUP = "write_new" @ _GROUP_VIEW
 _CALLBACK_WRITE_GROUP = "write_new" > _WRITE_GROUP
+
+_DELETE_GROUP = "del" @ _GROUP_VIEW
+_CALLBACK_DELETE_GROUP = "callback" > _DELETE_GROUP
 
 DEFAULT_MESSAGE = """Select a group from the list to the right, or press the
 button to create a new one.
@@ -188,8 +194,7 @@ class GroupView(Screen[None]):
                 pass
                 # TODO self.action_rename_group()
             case "delete-group-button":
-                pass
-                # TODO self.action_delete_group()
+                self.action_delete_group()
 
     @on(ListView.Selected)
     @log_call(action_type="select_grp" > _GROUP_VIEW)
@@ -245,6 +250,29 @@ class GroupView(Screen[None]):
                 [("Simple (Linear, Sequential) Model", SimpleGroupInfo)]
             ),
             callback=callback_new_group_type,
+        )
+
+    @log_call(action_type=str(_DELETE_GROUP))
+    def action_delete_group(self) -> None:
+        """Delete a group and all of its models."""
+
+        @log_call(action_type=_CALLBACK_DELETE_GROUP)
+        async def callback_delete_group(delete: bool | None) -> None:
+            if delete:
+                assert self.selected_group is not None
+                self._manager.delete_group(self.selected_group)
+                self.selected_group = None
+                await self.remake_group_list()
+
+        self.app.push_screen(
+            BinaryModalQuestion(
+                Static(
+                    "If you do so, all associated models will also be deleted "
+                    "and will not be recoverable!",
+                ),
+                title="Really delete this group?",
+            ),
+            callback=callback_delete_group,
         )
 
     @log_call(action_type=str(_WRITE_GROUP))
