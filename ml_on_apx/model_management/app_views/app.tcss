@@ -73,3 +73,7 @@ TabbedContent{
     }
 }
 
+.bottom {
+    dock: bottom;
+}
+

@@ -1,4 +1,4 @@
-BinaryModalQuestion, ListSelectQuestion, GetStringQuestion, ListMultiselectQuestion {
+Popup {
     align: center middle;
 
     & .container {
@@ -21,7 +21,6 @@ BinaryModalQuestion, ListSelectQuestion, GetStringQuestion, ListMultiselectQuest
 }
 
 BinaryModalQuestion, ListMultiselectQuestion {
-
     & .container {
         layout: grid;
         grid-size: 2 2;
@@ -36,13 +35,8 @@ BinaryModalQuestion, ListMultiselectQuestion {
             align: center middle;
         }
 
-        & Button{
+        & Button {
             width: 1fr;
         }
     }
-
-}
-
-.bottom {
-    dock: bottom;
 }

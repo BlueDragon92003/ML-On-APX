@@ -12,14 +12,14 @@ from textual.screen import ModalScreen
 from textual.widgets import Button, SelectionList
 
 from ml_on_apx.logging import log_call
-from ml_on_apx.tui_common import _TUI
+from ml_on_apx.tui_common import _TUI, Popup
 
 _LMSQ = "lmsq" @ _TUI
 
 ListItem = TypeVar("ListItem", bound=Hashable)
 
 
-class ListMultiselectQuestion(ModalScreen[set[ListItem]]):
+class ListMultiselectQuestion(ModalScreen[set[ListItem]], Popup):
     """A question with a finite set of answers."""
 
     BINDINGS: ClassVar[list[tuple[str, str, str] | Binding]] = [

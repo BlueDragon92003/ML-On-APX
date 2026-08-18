@@ -3,3 +3,7 @@
 from ml_on_apx.logging import Namespace
 
 _TUI = Namespace("tui")
+
+
+class Popup:
+    """A marker class for popup-style screens."""

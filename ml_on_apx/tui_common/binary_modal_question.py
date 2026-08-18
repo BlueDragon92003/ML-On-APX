@@ -13,12 +13,12 @@ from textual.widget import Widget
 from textual.widgets import Button
 
 from ml_on_apx.logging import log_call
-from ml_on_apx.tui_common import _TUI
+from ml_on_apx.tui_common import _TUI, Popup
 
 _BMQ = "bmp" @ _TUI
 
 
-class BinaryModalQuestion(ModalScreen[bool]):
+class BinaryModalQuestion(ModalScreen[bool], Popup):
     """A question with a binary answer."""
 
     BINDINGS: ClassVar[list[tuple[str, str, str] | Binding]] = [
