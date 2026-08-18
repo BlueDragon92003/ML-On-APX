@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Iterable
 
+from textual import on
 from textual.app import ComposeResult
-from textual.containers import VerticalScroll
+from textual.containers import HorizontalGroup, VerticalScroll
 from textual.screen import Screen
 from textual.widgets import Button, Footer, Header
 
@@ -74,7 +75,7 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
 
     def screen_with_presets(self) -> Screen[GroupInfo["SimpleModel"]]:
         """Create a screen with presets based on this object."""
-        raise NotImplementedError
+        return SimpleScreen(self.all_features, self)
 
     def model(self) -> "SimpleModel":
         """Get the simple model this group uses."""
@@ -371,7 +372,7 @@ class SimpleScreen(Screen[SimpleGroupInfo]):
                 alter. Defaults to None.
 
         """
-        super(Screen, self).__init__()
+        super(SimpleScreen, self).__init__()
         self._features = features
         self._base = base
 
@@ -390,8 +391,9 @@ class SimpleScreen(Screen[SimpleGroupInfo]):
         with VerticalScroll(id="hidden-layers"):
             yield InputLayerWidget(self._features, id="input")
             yield OutputLayerWidget(id="output")
-        yield Button("Cancel.")
-        yield Button("Save...", variant="primary")
+        with HorizontalGroup():
+            yield Button("Cancel.", name="cancel")
+            yield Button("Save...", name="save", variant="primary")
 
     def on_mount(self) -> None:
         """Finish setup of the widget once it is attached to the DOM."""
@@ -407,5 +409,18 @@ class SimpleScreen(Screen[SimpleGroupInfo]):
                     continue
                 hidden_layer = HiddenLayerWidget(id=f"hl{hl}")
                 hidden_layer.activation = self._base.get_layer_activation(hl)
-                hidden_layer.size = self._base.get_layer_size(hl)
+                hidden_layer.layer_size = self._base.get_layer_size(hl)
                 box.mount(hidden_layer, before="OutputLayerWidget")
+
+    @on(Button.Pressed)
+    def handle_button_press(self, message: Button.Pressed) -> None:
+        """Handle a button press."""
+        match message.button.name:
+            case "cancel":
+                self.dismiss(None)
+            case "save":
+                # TODO validate everything and return object
+                raise NotImplementedError
+            case _:
+                raise ValueError
+        message.stop()

@@ -41,7 +41,7 @@ class LayerWidget(VerticalGroup, can_focus=True, metaclass=_LayerWidgetMeta):
         ("a", "set_activation", "Set activation."),
     ]
 
-    size: reactive[int] = reactive(1)
+    layer_size: reactive[int] = reactive(1)
     activation: reactive[str | None] = reactive(None)
 
     def compose(self) -> ComposeResult:
@@ -66,7 +66,7 @@ class LayerWidget(VerticalGroup, can_focus=True, metaclass=_LayerWidgetMeta):
             f"{self.id}-size", expect_type=TuiLabel
         ).content = f"Size: {self.size}"
 
-    def watch_size(self, new_val: int) -> None:
+    def watch_layer_size(self, new_val: int) -> None:
         """Ensure internal size data is consistent with the display."""
         self.get_child_by_id(
             f"{self.id}-size", expect_type=TuiLabel
@@ -129,7 +129,7 @@ class HiddenLayerWidget(LayerWidget):
         @log_call(action_type=_CALLBACK_HIDDEN_SIZE)
         def callback_set_size(size: str | None) -> None:
             if size is not None:
-                self.size = int(size)
+                self.layer_size = int(size)
 
         self.app.push_screen(
             GetStringQuestion(title="Enter a new layer size:", validator=validator),
@@ -164,7 +164,7 @@ class OutputLayerWidget(LayerWidget):
 
     def watch_labels(self, new_val: list[Label]) -> None:
         """Ensure that labels and size are kept in sync."""
-        self.size = len(new_val)
+        self.layer_size = len(new_val)
 
     def action_increase_size(self) -> None:
         """Increase the size of the layer."""
@@ -257,7 +257,7 @@ class InputLayerWidget(LayerWidget):
 
     def watch_features(self, new_val: set[str]) -> None:
         """Ensure that selected features and size remain in sync."""
-        self.size = len(new_val)
+        self.layer_size = len(new_val)
 
     def action_increase_size(self) -> None:
         """Increase the size of the layer."""

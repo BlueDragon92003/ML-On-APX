@@ -25,7 +25,10 @@ class ModelManagerApp(App):
     BINDINGS: ClassVar[list[tuple[str, str, str] | Binding]] = [
         ("q", "show_quit_screen", "Quit")
     ]
-    CSS_PATH = "./app_views/app.tcss"
+    CSS_PATH = [  # noqa: RUF012
+        "./app_views/app.tcss",
+        "./models/simple_model/simple.tcss",
+    ]
 
     def __init__(self, active_model_manager: ModelManager, features: list[str]) -> None:
         """Create a new Dataset Manager App.

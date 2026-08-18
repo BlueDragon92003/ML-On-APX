@@ -1,0 +1,20 @@
+
+LayerWidget {
+
+    align: center middle;
+
+    &:blur {
+        border: round $border-blurred;
+    }
+
+    &:focus {
+        border: heavy $border;
+    }
+}
+
+SimpleScreen {
+
+    align: center middle;
+
+}
+
