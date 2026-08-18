@@ -193,7 +193,10 @@ class ClusterClassificationDataset(Dataset):
             "cluster_spike",
             "cluster_brems",
             "cluster_satur",
-            "unclustered_etsunclustered_timingsunclustered_spikeshcal_et",
+            "unclustered_ets",
+            "unclustered_timings",
+            "unclustered_spikes",
+            "hcal_et",
             "hcal_fb",
         ]
 

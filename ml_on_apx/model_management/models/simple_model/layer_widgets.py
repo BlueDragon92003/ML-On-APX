@@ -56,6 +56,8 @@ class LayerWidget(VerticalGroup, can_focus=True, metaclass=_LayerWidgetMeta):
         ("backspace", "delete_layer", "Delete layer"),
         ("shift+up", "add_above", "New layer above"),
         ("shift+down", "add_below", "New layer below"),
+        ("up", "move_up", "New layer above"),
+        ("down", "move_down", "New layer below"),
     ]
 
     layer_size: reactive[int] = reactive(1)
@@ -127,6 +129,14 @@ class LayerWidget(VerticalGroup, can_focus=True, metaclass=_LayerWidgetMeta):
     def action_add_below(self) -> None:
         """Add a new layer above this one."""
         self.post_message(self.AddLayerMessage(self, False))
+
+    def action_move_up(self) -> None:
+        """Add a new layer above this one."""
+        self.screen.focus_previous()
+
+    def action_move_down(self) -> None:
+        """Add a new layer above this one."""
+        self.screen.focus_next()
 
 
 class HiddenLayerWidget(LayerWidget):
@@ -276,7 +286,7 @@ class OutputLayerWidget(LayerWidget):
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
         """Check to see if an action can be performed."""
-        if action in {"add_below", "delete_layer"}:
+        if action in {"add_below", "delete_layer", "move_down"}:
             return False
         return True
 
@@ -369,7 +379,7 @@ class InputLayerWidget(LayerWidget):
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
         """Check to see if an action can be performed."""
-        if action in {"add_above", "delete_layer"}:
+        if action in {"add_above", "delete_layer", "move_up"}:
             return False
         return True
 

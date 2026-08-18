@@ -252,9 +252,10 @@ class GroupView(Screen[None]):
         """Save a group with the manager."""
 
         @log_call(action_type=_CALLBACK_WRITE_GROUP)
-        def callback_write_group(name: str | None) -> None:
+        async def callback_write_group(name: str | None) -> None:
             if name is not None:
                 self._manager.create_group(name, group)
+                await self.remake_group_list()
 
         self.app.push_screen(
             GetStringQuestion(

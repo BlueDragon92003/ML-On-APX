@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING, cast
 
 from textual import on
 from textual.app import ComposeResult
@@ -85,28 +85,23 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
     @log_call(action_type="markdown" > _SIMPLE)
     def get_markdown(self, manager: ModelManager) -> str:
         """Produce the markdown representation of this group."""
-
-        def format_hidden_layers(zipped: zip[tuple[int, str]]) -> Iterable[str]:
-            for zsize, zact in zipped:
-                yield f"{zsize} ({zact})"
-
-        def list_print(the_list: Iterable[str]) -> str:
-            out = ""
-            for li in the_list:
-                out += li + ", "
-            return out[:-2]
-
-        hl = list_print(
-            format_hidden_layers(
-                zip(self._hidden_layer_sizes, self._hidden_layer_activations)
-            )
-        )
-
-        return f"""**_Simple model_**
-**Inputs**: {self._input_layer_size} ({list_print(self._features)})
-**Outputs**: {list_print(self._labels)} ({self._output_activation})
-**Hidden Layers**: {len(self._hidden_layer_sizes)} ({hl})
-"""
+        out = "**_Simple model_**\n\n**Inputs**\n"
+        for feature in self.all_features:
+            if feature not in self.features:
+                continue
+            out += f"  - {feature}\n"
+        out += f"\n**Outputs** ({self._output_activation})\n"
+        for label in Labels(*self.labels):
+            out += f"  - {label}\n"
+        if len(self._hidden_layer_activations) > 0:
+            out += "\n**Hidden Layers**\n"
+            for size, activation in zip(
+                self._hidden_layer_sizes, self._hidden_layer_activations
+            ):
+                out += f"  - {activation} layer with {size} nodes \n"
+        else:
+            out += "\nNo Hidden Layers\n"
+        return out
 
     @property
     def features(self) -> set[str]:
@@ -149,9 +144,7 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
             self._input_layer_size -= 1
 
     @log_call(action_type="below" > _LAYER)
-    def insert_layer_below(
-        self, layer: int, activation_name: str, size: int = 1
-    ) -> None:
+    def append_layer(self, activation_name: str, size: int = 1) -> None:
         """Add a layer below (closer to output) the specified layer.
 
         Args:
@@ -160,52 +153,8 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
             size (int, optional): The size of the layer being added. Defaults to 1.
 
         """
-        if layer < 0:
-            raise IndexError()
-        if layer >= len(self._hidden_layer_sizes) + 1:
-            raise IndexError()
-        self._hidden_layer_sizes.insert(layer, size)
-        self._hidden_layer_activations.insert(layer, activation_name)
-
-    @log_call(action_type="above" > _LAYER)
-    def insert_layer_above(
-        self, layer: int, activation_name: str, size: int = 1
-    ) -> None:
-        """Add a layer above (closer to input) the specified layer.
-
-        Args:
-            layer (int): The layer index to add above.
-            activation_name (str): The activation the new layer should use.
-            size (int, optional): The size of the layer being added. Defaults to 1.
-
-        """
-        if layer <= 0:
-            raise IndexError()
-        if layer > len(self._hidden_layer_sizes) + 1:
-            raise IndexError()
-        self._hidden_layer_sizes.insert(layer - 1, size)
-        self._hidden_layer_activations.insert(layer - 1, activation_name)
-
-    @log_call(action_type="del" > _LAYER)
-    def remove_layer(self, layer: int) -> None:
-        """Remove the specified layer.
-
-        Args:
-            layer (int): The layer index to remove.
-
-        Raises:
-            IndexError: If the provided index is out of bounds.
-            ValueError: If the input or output layers were selected for removal.
-
-        """
-        if layer < 0 or layer > len(self._hidden_layer_sizes) + 1:
-            raise IndexError()
-        if layer == 0:
-            raise InputLayerModificationError()
-        if layer == len(self._hidden_layer_sizes) + 1:
-            raise OutputLayerModificationError
-        self._hidden_layer_sizes.pop(layer - 1)
-        self._hidden_layer_activations.pop(layer - 1)
+        self._hidden_layer_sizes.append(size)
+        self._hidden_layer_activations.append(activation_name)
 
     @log_call(action_type="get" > _LAYER_SIZE)
     def get_layer_size(self, layer: int) -> int:
@@ -231,63 +180,6 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
             return self._output_layer_size
         else:
             raise IndexError(layer)
-
-    @log_call(action_type="set" > _LAYER_SIZE)
-    def set_layer_size(self, layer: int, size: int) -> None:
-        """Set the size of the specified layer.
-
-        Args:
-            layer (int): The layer index to set the size for.
-            size (int): The size of the layer to set.
-
-        Raises:
-            IndexError: If the provided index is the input layer, the output layer, or
-                out of bounds.
-            ValueError: If the user tried set a non-positive layer size.
-
-        """
-        if layer < 0:
-            raise IndexError()
-        elif layer == 0:
-            # layer 0 is "input"
-            raise InputLayerModificationError()
-        elif layer <= len(self._hidden_layer_sizes):
-            if size <= 0:
-                raise ValueError(size)
-            self._hidden_layer_sizes[layer - 1] = size  # layer 1 is hidden layer 0
-        elif layer == len(self._hidden_layer_sizes) + 1:
-            raise OutputLayerModificationError()
-        else:
-            raise IndexError()
-
-    @log_call(action_type="delta" > _LAYER_SIZE)
-    def change_layer_size(self, layer: int, by: int) -> None:
-        """Increase or decrease the size of the specified layer.
-
-        Args:
-            layer (int): The layer index to modify the size of.
-            by (int): The number to add to the size of the layer.
-
-        Raises:
-            IndexError: If the provided index is the input layer, the output layer, or
-                out of bounds.
-            ValueError: If the user tried to change the size of the input or output
-                layer.
-
-        """
-        if layer < 0:
-            raise IndexError()
-        elif layer == 0:
-            # layer 0 is "input"
-            raise InputLayerModificationError()
-        elif layer <= len(self._hidden_layer_sizes):
-            if (new := self._hidden_layer_sizes[layer - 1] + by) <= 0:
-                raise ValueError(new)
-            self._hidden_layer_sizes[layer - 1] += by  # layer 1 is hidden layer 0
-        elif layer == len(self._hidden_layer_sizes) + 1:
-            raise OutputLayerModificationError()
-        else:
-            raise IndexError()
 
     @log_call(action_type="get" > _LAYER_ACTIVATION)
     def get_layer_activation(self, layer: int) -> str:
@@ -318,29 +210,14 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
             raise IndexError()
 
     @log_call(action_type="set" > _LAYER_ACTIVATION)
-    def set_layer_activation(self, layer: int, activation_name: str) -> None:
+    def set_output_activation(self, activation_name: str) -> None:
         """Set the activation used by the specified layer.
 
         Args:
-            layer (int): The layer index to set the activation of.
-            activation_name (str): The activation the layer should use.
-
-        Raises:
-            IndexError: If the provided index is out of bounds.
-            ValueError: If the user tried to access the activation of the input layer.
+            activation_name (str): The activation the output layer should use.
 
         """
-        if layer < 0:
-            raise IndexError()
-        elif layer == 0:
-            raise InputLayerNoActivationError
-        elif layer <= len(self._hidden_layer_sizes):
-            # layer 1 is hidden layer 0
-            self._hidden_layer_activations[layer - 1] = activation_name
-        elif layer == len(self._hidden_layer_sizes) + 1:
-            self._output_activation = activation_name
-        else:
-            raise IndexError()
+        self._output_activation = activation_name
 
     @property
     def labels(self) -> Labels:
@@ -435,8 +312,46 @@ class SimpleScreen(Screen[SimpleGroupInfo]):
             case "cancel":
                 self.dismiss(None)
             case "save":
-                # TODO validate everything and return object
-                raise NotImplementedError
+                new_group_info = SimpleGroupInfo(self._features)
+                box = self.get_child_by_id("hidden-layers", expect_type=VerticalScroll)
+                for idx, child in enumerate(box.children):
+                    match child.id:
+                        case "input":
+                            input_layer = cast(InputLayerWidget, child)
+                            if len(input_layer.features) < 1:
+                                self.notify(
+                                    "Input layer missing features.", severity="error"
+                                )
+                                return
+                            for feature in input_layer.features:
+                                new_group_info.enable_feature(feature)
+                        case "output":
+                            output_layer = cast(OutputLayerWidget, child)
+                            activation = output_layer.activation
+                            labels = output_layer.labels
+                            if activation is None:
+                                self.notify(
+                                    "Output layer missing activation.", severity="error"
+                                )
+                                return
+                            new_group_info.set_output_activation(activation)
+                            if len(labels) < 1:
+                                self.notify(
+                                    "Output layer missing labels.", severity="error"
+                                )
+                                return
+                            new_group_info.labels = Labels(*labels)
+                        case _:
+                            hidden_layer = cast(HiddenLayerWidget, child)
+                            size = hidden_layer.layer_size
+                            activation = hidden_layer.activation
+                            if activation is None:
+                                self.notify(
+                                    "Layer missing activation.", severity="error"
+                                )
+                                return
+                            new_group_info.append_layer(activation, size)
+                self.dismiss(new_group_info)
             case _:
                 raise ValueError
         message.stop()

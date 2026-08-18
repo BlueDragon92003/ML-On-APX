@@ -154,10 +154,10 @@ class TestsSimpleGroupInfo(unittest.TestCase):
         features = ["alpha", "beta", "gamma"]
         group_info = SimpleGroupInfo(features)
         group_info.labels = labels
-        group_info.insert_layer_below(0, "aleph", 13)
+        group_info.append_layer(0, "aleph", 13)
         self.assertEqual(3, group_info.layer_count)
         self.assertEqual("aleph", group_info.get_layer_activation(1))
-        group_info.insert_layer_below(0, "bet", 7)
+        group_info.append_layer(0, "bet", 7)
         self.assertEqual(4, group_info.layer_count)
         self.assertEqual("aleph", group_info.get_layer_activation(2))
         self.assertEqual("bet", group_info.get_layer_activation(1))
@@ -170,7 +170,7 @@ class TestsSimpleGroupInfo(unittest.TestCase):
         group_info = SimpleGroupInfo(features)
         group_info.labels = labels
         with self.assertRaises(IndexError):
-            group_info.insert_layer_below(1, "aleph", 13)
+            group_info.append_layer(1, "aleph", 13)
 
     # add layer above errors when targeting oob
     def test_group_info__insert_layer_below_oob(self) -> None:
@@ -180,9 +180,9 @@ class TestsSimpleGroupInfo(unittest.TestCase):
         group_info = SimpleGroupInfo(features)
         group_info.labels = labels
         with self.assertRaises(IndexError):
-            group_info.insert_layer_below(13, "aleph", 13)
+            group_info.append_layer(13, "aleph", 13)
         with self.assertRaises(IndexError):
-            group_info.insert_layer_below(-1, "aleph", 13)
+            group_info.append_layer(-1, "aleph", 13)
 
     # remove layer works
     def test_group_info__remove_layer(self) -> None:
@@ -433,7 +433,7 @@ class TestsSimpleGroupInfo(unittest.TestCase):
         features = ["alpha", "beta", "gamma"]
         group_info = SimpleGroupInfo(features)
         group_info.labels = labels
-        group_info.set_layer_activation(1, "aleph")
+        group_info.set_output_activation(1, "aleph")
         self.assertEqual("aleph", group_info.get_layer_activation(1))
 
     # set layer activation errors on input layer
@@ -444,7 +444,7 @@ class TestsSimpleGroupInfo(unittest.TestCase):
         group_info = SimpleGroupInfo(features)
         group_info.labels = labels
         with self.assertRaises(InputLayerNoActivationError):
-            group_info.set_layer_activation(0, "aleph")
+            group_info.set_output_activation(0, "aleph")
 
     # set layer activation works on hidden layer
     def test_group_info__set_activation_hidden(self) -> None:
@@ -454,7 +454,7 @@ class TestsSimpleGroupInfo(unittest.TestCase):
         group_info = SimpleGroupInfo(features)
         group_info.labels = labels
         group_info.insert_layer_above(1, "bet", 7)
-        group_info.set_layer_activation(1, "aleph")
+        group_info.set_output_activation(1, "aleph")
         self.assertEqual("aleph", group_info.get_layer_activation(1))
 
     # get layer activation errors on oob layer
@@ -465,6 +465,6 @@ class TestsSimpleGroupInfo(unittest.TestCase):
         group_info = SimpleGroupInfo(features)
         group_info.labels = labels
         with self.assertRaises(IndexError):
-            group_info.set_layer_activation(-5, "aleph")
+            group_info.set_output_activation(-5, "aleph")
         with self.assertRaises(IndexError):
-            group_info.set_layer_activation(13, "aleph")
+            group_info.set_output_activation(13, "aleph")
