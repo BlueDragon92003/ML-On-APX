@@ -10,17 +10,19 @@ from textual.screen import ModalScreen
 from textual.widgets import Input
 
 from ml_on_apx.logging import log_call
-from ml_on_apx.tui_common import _TUI, Popup
+from ml_on_apx.tui_common import _TUI
 
 _GSQ = "gsq" @ _TUI
 
 
-class GetStringQuestion(ModalScreen[str], Popup):
+class GetStringQuestion(ModalScreen[str]):
     """A question with a text answer."""
 
     BINDINGS: ClassVar[list[tuple[str, str, str] | Binding]] = [
         ("escape", "exit", "Cancel")
     ]
+
+    DEFAULT_CLASSES = "Popup"
 
     def __init__(
         self,

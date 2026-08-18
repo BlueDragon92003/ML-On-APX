@@ -25,6 +25,8 @@ class ListSelectQuestion(ModalScreen[ListItem], Popup):
         ("escape", "exit", "Cancel")
     ]
 
+    DEFAULT_CLASSES = "Popup"
+
     def __init__(
         self,
         options: list[tuple[str, ListItem]],

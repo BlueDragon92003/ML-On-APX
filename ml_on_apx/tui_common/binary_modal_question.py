@@ -25,6 +25,8 @@ class BinaryModalQuestion(ModalScreen[bool], Popup):
         ("escape", "exit", "Exit")
     ]
 
+    DEFAULT_CLASSES = "Popup"
+
     def __init__(
         self,
         *questions: Widget,
