@@ -17,6 +17,7 @@ from ml_on_apx.logging import log_call
 from ml_on_apx.model_management.group_info import Activation
 from ml_on_apx.model_management.models.simple_model import _SIMPLE
 from ml_on_apx.tui_common.get_string_question import GetStringQuestion
+from ml_on_apx.tui_common.list_multiselect_question import ListMultiselectQuestion
 from ml_on_apx.tui_common.list_select_question import ListSelectQuestion
 
 _WIDGET = "widget" @ _SIMPLE
@@ -307,6 +308,7 @@ class InputLayerWidget(LayerWidget):
         def callback_increase_size(selected: str | None) -> None:
             if selected is not None:
                 self.features.add(selected)
+                self.mutate_reactive(InputLayerWidget.features)
 
         self.app.push_screen(
             ListSelectQuestion(
@@ -321,6 +323,7 @@ class InputLayerWidget(LayerWidget):
         def callback_decrease_size(selected: str | None) -> None:
             if selected is not None:
                 self.features.remove(selected)
+                self.mutate_reactive(InputLayerWidget.features)
 
         self.app.push_screen(
             ListSelectQuestion(
@@ -331,7 +334,18 @@ class InputLayerWidget(LayerWidget):
 
     def action_set_size(self) -> None:
         """Set the size of the layer."""
-        # TODO
+
+        def callback_set_size(selected: set[str] | None) -> None:
+            if selected is not None:
+                self.features = selected
+
+        self.app.push_screen(
+            ListMultiselectQuestion(
+                [(x, x, x in self.features) for x in self.all_features],
+                title="Select features to use.",
+            ),
+            callback=callback_set_size,
+        )
 
     def action_set_activation(self) -> None:
         """Inform the user that the input layer does not have an activation."""

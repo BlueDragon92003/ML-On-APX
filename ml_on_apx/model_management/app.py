@@ -28,6 +28,7 @@ class ModelManagerApp(App):
     CSS_PATH = [  # noqa: RUF012
         "./app_views/app.tcss",
         "./models/simple_model/simple.tcss",
+        "../tui_common/common.tcss",
     ]
 
     def __init__(self, active_model_manager: ModelManager, features: list[str]) -> None:

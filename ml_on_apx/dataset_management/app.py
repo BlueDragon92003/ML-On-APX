@@ -28,7 +28,10 @@ class DatasetManagerApp(App):
     BINDINGS: ClassVar[list[tuple[str, str, str] | Binding]] = [
         ("q", "show_quit_screen", "Quit")
     ]
-    CSS_PATH = "./app_views/app.tcss"
+    CSS_PATH = [  # noqa: RUF012
+        "./app_views/app.tcss",
+        "../tui_common/common.tcss",
+    ]
 
     def __init__(self, active_dataset_manager: DatasetManager) -> None:
         """Create a new Dataset Manager App.
