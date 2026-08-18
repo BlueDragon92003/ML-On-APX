@@ -119,46 +119,49 @@ def initialize_file_logging(
             `LogLevel.FOR_PRODUCTION`.
 
     """
+
+    @log_call(action_type=_LOG_SETUP_DIRECTORY)
+    def log_setup_directory() -> None:
+        log_files = list(
+            filter(
+                lambda path: re.fullmatch(r"\d{4,}-\d\d-\d\d-\d+.log", path.name),
+                log_file.iterdir(),
+            )
+        )
+        log_files = sorted(log_files, key=cmp_to_key(_compare_files))
+        if file_count > 0:
+            if (diff := len(log_files) + 1 - file_count) > 0:
+                to_delete = log_files[:diff]
+                log_files = log_files[diff:]
+                for td in to_delete:
+                    os.unlink(td)
+        newest = log_files[-1].stem if len(log_files) != 0 else None
+        today = datetime.date.today()
+        base = f"{today.year:04d}-{today.month:02d}-{today.day:02d}"
+        if newest:
+            split = newest.split("-")
+            if today != datetime.date(int(split[0]), int(split[1]), int(split[2])):
+                count = 0
+            else:
+                count = int(split[3])
+        else:
+            count = 0
+        stem = f"{base}-{count}"
+        target = log_file / f"{stem}.log"
+        while target.exists():
+            count += 1
+            stem = f"{base}-{count}"
+            target = log_file / f"{stem}.log"
+        eliot.to_file(open(target, "xb"))
+        if (log_file / "latest.log").exists():
+            (log_file / "latest.log").unlink()
+        os.symlink(
+            target,
+            log_file / "latest.log",
+            target_is_directory=False,
+        )
+
     if log_file.is_file():
         eliot.to_file(open(log_file, "ab" if append else "wb"))
     else:
-
-        @log_call(action_type=_LOG_SETUP_DIRECTORY)
-        def log_setup_directory() -> None:
-            log_files = list(
-                filter(
-                    lambda path: re.fullmatch(r"\d{4,}-\d\d-\d\d-\d+.log", path.name),
-                    log_file.iterdir(),
-                )
-            )
-            log_files = sorted(log_files, key=cmp_to_key(_compare_files))
-            if file_count > 0:
-                if (diff := len(log_files) + 1 - file_count) > 0:
-                    to_delete = log_files[:diff]
-                    log_files = log_files[diff:]
-                    for td in to_delete:
-                        os.unlink(td)
-            newest = log_files[-1].stem if len(log_files) != 0 else None
-            today = datetime.date.today()
-            base = f"{today.year:04d}-{today.month:02d}-{today.day:02d}"
-            if newest:
-                split = newest.split("-")
-                if today != datetime.date(int(split[0]), int(split[1]), int(split[2])):
-                    count = 0
-                else:
-                    count = int(split[3])
-            else:
-                count = 0
-            stem = f"{base}-{count}"
-            target = log_file / f"{stem}.log"
-            while target.exists():
-                count += 1
-                stem = f"{base}-{count}"
-                target = log_file / f"{stem}.log"
-            eliot.to_file(open(target, "xb"))
-            (log_file / "latest.log").unlink()
-            os.symlink(
-                target,
-                log_file / "latest.log",
-                target_is_directory=False,
-            )
+        log_setup_directory()
