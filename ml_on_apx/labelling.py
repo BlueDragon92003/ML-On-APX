@@ -6,6 +6,8 @@ from typing import Iterator
 class Label(str):
     """A human-readable machine learning label."""
 
+    # TODO static label validation function
+
 
 class Labels:
     """Track labels used by a dataset or for model training."""

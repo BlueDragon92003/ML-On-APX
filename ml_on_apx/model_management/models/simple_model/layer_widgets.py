@@ -4,12 +4,15 @@ import re
 from abc import ABCMeta, abstractmethod
 from typing import ClassVar
 
+from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import VerticalGroup
 from textual.message import Message
 from textual.message_pump import _MessagePumpMeta
 from textual.reactive import reactive
+from textual.screen import ModalScreen
+from textual.widgets import Button, Input, ListItem, ListView
 from textual.widgets import Label as TuiLabel
 
 from ml_on_apx.labelling import Label
@@ -51,8 +54,8 @@ class LayerWidget(VerticalGroup, can_focus=True, metaclass=_LayerWidgetMeta):
         ("space", "set_size", "Set size."),
         ("a", "set_activation", "Set activation."),
         ("backspace", "delete_layer", "Delete layer"),
-        ("up", "add_above", "New layer above"),
-        ("down", "add_below", "New layer below"),
+        ("shift+up", "add_above", "New layer above"),
+        ("shift+down", "add_below", "New layer below"),
     ]
 
     layer_size: reactive[int] = reactive(1)
@@ -238,7 +241,12 @@ class OutputLayerWidget(LayerWidget):
 
     def action_set_size(self) -> None:
         """Set the size of the layer."""
-        # TODO
+
+        def callback_set_size(labels: list[Label] | None) -> None:
+            if labels is not None:
+                self.labels = labels
+
+        self.app.push_screen(LabelSelector(self.labels), callback=callback_set_size)
 
     def action_set_activation(self) -> None:
         """Set the activation of the layer."""
@@ -364,3 +372,137 @@ class InputLayerWidget(LayerWidget):
         if action in {"add_above", "delete_layer"}:
             return False
         return True
+
+
+# TODO logging
+class LabelSelector(ModalScreen[list[Label]]):
+    """A popup version of the label menu."""
+
+    BINDINGS: ClassVar[list[tuple[str, str, str] | Binding]] = [
+        ("backspace", "delete_label", "Delete selected label"),
+        ("escape", "exit", "Exit"),
+    ]
+
+    DEFAULT_CLASSES = "Popup"
+
+    labels: reactive[list[Label]] = reactive([])
+
+    def __init__(
+        self,
+        current: list[Label],
+    ) -> None:
+        """Initialize a new ListSelectQuestion.
+
+        Args:
+            current (list[Label]): A list of options the user can select
+                from.
+
+        """
+        super().__init__()
+        self._labels: list[Label] = current
+
+    def compose(self) -> ComposeResult:
+        """Build the widget from its component widgets."""
+        with VerticalGroup(classes="container", id="container"):
+            yield ListView(id="labels-list", classes="question")
+            yield Input(
+                placeholder="Label name...",
+                id="label-name-input",
+            )
+            yield Button("New Label", variant="primary", id="label-create-button")
+            yield Button("Cancel", variant="default", id="cancel-button")
+            yield Button("Save", variant="success", id="save-button")
+
+    def on_mount(self) -> None:
+        """Finish setup of the screen once it is attached to the DOM."""
+        container = self.get_child_by_id("container")
+        container.border_title = "Manage Labels"
+        container.border_subtitle = "Press escape to cancel"
+        container.get_child_by_id("label-name-input").focus()
+        self.labels = self._labels
+
+    @on(Button.Pressed)
+    def handle_button_press(self, message: Button.Pressed) -> None:
+        """Handle a button being pressed."""
+        match message.button.id:
+            case "label-create-button":
+                self.create_label()
+            case "save-button":
+                self.labels.sort()
+                self.dismiss(self.labels)
+            case "cancel-button":
+                self.dismiss(None)
+
+    @on(Input.Submitted)
+    def handle_input_submission(self, message: Input.Submitted) -> None:
+        """Handle the Submitted event from an input object.
+
+        Args:
+            message (Input.Submitted): The event to handle.
+
+        """
+        match message.input.id:
+            case "label-name-input":
+                self.create_label()
+
+    def action_delete_label(self) -> None:
+        """Process the `delete_label` action."""
+
+        def delete_label(delete: bool | None) -> None:
+            if not delete:
+                return
+            assert name is not None
+            idx = self.labels.index(Label(name))
+            self.labels = self.labels[:idx] + self.labels[idx + 1 :]
+
+        labels_list = self.get_widget_by_id("labels-list", expect_type=ListView)
+        if labels_list.highlighted_child is not None:
+            name = labels_list.highlighted_child.name
+            assert name is not None
+            idx = self.labels.index(Label(name))
+            self.labels = self.labels[:idx] + self.labels[idx + 1 :]
+
+    def action_exit(self) -> None:
+        """Close without saving."""
+        self.dismiss(None)
+
+    def watch_labels(self, old_labels: list[Label], new_labels: list[Label]) -> None:
+        """Handle changes in the reactive component `labels`.
+
+        Args:
+            old_labels (str | None): The old value for the component.
+            new_labels (str | None): The new value for the component.
+
+        """
+        self.remake_label_list()
+
+    def remake_label_list(self) -> None:
+        """Remake and display the list of labels shown to the user."""
+        labels_list = self.get_widget_by_id("labels-list", ListView)
+        labels_list.clear()
+        for label in self.labels:
+            labels_list.append(ListItem(TuiLabel(f"{label}"), name=f"{label}"))
+
+    def create_label(self) -> None:
+        """Create a new label from the user string in the view."""
+        input = self.get_widget_by_id("label-name-input", Input)
+        label_name = input.value
+        if not label_name:
+            self.app.notify("Please input a label name.")
+            input.focus()
+            return
+        label_name = re.sub(r"\s+", "-", label_name.lower())
+        if not re.fullmatch(r"[\w-]+", label_name):
+            self.app.notify("Label name is invalid.", severity="error")
+            input.focus()
+            return
+        label = Label(label_name)
+        if label in self.labels:
+            self.app.notify(f"Label `{label_name}` already exists.", severity="error")
+            input.focus()
+            return
+        # self.labels.append(label)
+        self.labels = [*self.labels, label]
+        # self.watch_labels()
+        input.clear()
+        input.focus()
