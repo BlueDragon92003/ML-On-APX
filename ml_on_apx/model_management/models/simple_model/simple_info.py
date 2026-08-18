@@ -37,14 +37,6 @@ class InputLayerNoActivationError(Exception):
     """Raised when the InputLayer is used where it cannot be."""
 
 
-class InputLayerModificationError(Exception):
-    """Raised when the InputLayer is used where it cannot be."""
-
-
-class OutputLayerModificationError(Exception):
-    """Raised when the InputLayer is used where it cannot be."""
-
-
 class SimpleGroupInfo(GroupInfo["SimpleModel"]):
     """Stores training data about the group."""
 
@@ -144,7 +136,7 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
             self._input_layer_size -= 1
 
     @log_call(action_type="below" > _LAYER)
-    def append_layer(self, activation_name: str, size: int = 1) -> None:
+    def insert_layer(self, activation_name: str, size: int = 1) -> None:
         """Add a layer below (closer to output) the specified layer.
 
         Args:
@@ -350,7 +342,7 @@ class SimpleScreen(Screen[SimpleGroupInfo]):
                                     "Layer missing activation.", severity="error"
                                 )
                                 return
-                            new_group_info.append_layer(activation, size)
+                            new_group_info.insert_layer(activation, size)
                 self.dismiss(new_group_info)
             case _:
                 raise ValueError
