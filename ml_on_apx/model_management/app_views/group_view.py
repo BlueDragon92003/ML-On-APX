@@ -55,6 +55,9 @@ _CALLBACK_WRITE_GROUP = "write_new" > _WRITE_GROUP
 _DELETE_GROUP = "del" @ _GROUP_VIEW
 _CALLBACK_DELETE_GROUP = "callback" > _DELETE_GROUP
 
+_RENAME_GROUP = "rename" @ _GROUP_VIEW
+_CALLBACK_RENAME_GROUP = "callback" > _RENAME_GROUP
+
 DEFAULT_MESSAGE = """Select a group from the list to the right, or press the
 button to create a new one.
 
@@ -192,7 +195,7 @@ class GroupView(Screen[None]):
                 # TODO self.action_manage_group()
             case "rename-group-button":
                 pass
-                # TODO self.action_rename_group()
+                self.action_rename_group()
             case "delete-group-button":
                 self.action_delete_group()
 
@@ -252,6 +255,26 @@ class GroupView(Screen[None]):
             callback=callback_new_group_type,
         )
 
+    @log_call(action_type=str(_RENAME_GROUP), include_result=False)
+    def action_rename_group(self) -> None:
+        """Rename a group."""
+
+        @log_call(action_type=_CALLBACK_RENAME_GROUP, include_result=False)
+        async def callback_rename_group(name: str | None) -> None:
+            if name:
+                assert self.selected_group is not None
+                self._manager.rename_group(self.selected_group, name)
+                self.selected_group = name
+                await self.remake_group_list()
+
+        self.app.push_screen(
+            GetStringQuestion(
+                title=f"Rename {self.selected_group} to ..?",
+            ),
+            callback=callback_rename_group,
+            # TODO group name validator
+        )
+
     @log_call(action_type=str(_DELETE_GROUP))
     def action_delete_group(self) -> None:
         """Delete a group and all of its models."""
@@ -281,7 +304,7 @@ class GroupView(Screen[None]):
 
         @log_call(action_type=_CALLBACK_WRITE_GROUP)
         async def callback_write_group(name: str | None) -> None:
-            if name is not None:
+            if name:
                 self._manager.create_group(name, group)
                 await self.remake_group_list()
 
