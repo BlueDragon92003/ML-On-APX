@@ -27,16 +27,18 @@ class ModelManagerApp(App):
     ]
     CSS_PATH = "./app_views/app.tcss"
 
-    def __init__(self, active_model_manager: ModelManager) -> None:
+    def __init__(self, active_model_manager: ModelManager, features: list[str]) -> None:
         """Create a new Dataset Manager App.
 
         Args:
             active_model_manager (ModelManager): The model manager this app will
                 use to manage models.
+            features (list[str]): The possible features available to the models.
 
         """
         super().__init__()
         self._manager = active_model_manager
+        self._features = features
 
     def compose(self) -> ComposeResult:
         """Build the screen from its component widgets.
@@ -54,7 +56,7 @@ class ModelManagerApp(App):
     async def on_mount(self) -> None:
         """Finish setup of the screen once it is attached to the DOM."""
         self.theme = "gruvbox"
-        self.push_screen(GroupView(self._manager))
+        self.push_screen(GroupView(self._manager, self._features))
 
     @log_call(action_type=str(_SHOW_QUIT_SCREEN))
     def action_show_quit_screen(self) -> None:
@@ -93,5 +95,5 @@ def main(
     #         datasets.append(data_manager.get_dataset_info(name))
 
     with ModelManager(model_dir, mode) as manager:
-        app = ModelManagerApp(manager)
+        app = ModelManagerApp(manager, mode.features)
         app.run()

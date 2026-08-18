@@ -68,15 +68,17 @@ class GroupView(Screen[None]):
 
     selected_group: reactive[str | None] = reactive(None, bindings=True)
 
-    def __init__(self, manager: ModelManager) -> None:
+    def __init__(self, manager: ModelManager, features: list[str]) -> None:
         """Create a new group view.
 
         Args:
             manager (ModelManager): The manager that manages the groups and models.
+            features (liust[str]): The possible features available to the models.
 
         """
         super(GroupView, self).__init__()
         self._manager = manager
+        self._features = features
 
     def compose(self) -> ComposeResult:
         """Build the screen from its component widgets.
@@ -234,7 +236,7 @@ class GroupView(Screen[None]):
         def callback_new_group_type(result: Type[GroupInfo] | None) -> None:
             if result is not None:
                 self.app.push_screen(
-                    result.screen(),
+                    result.screen(self._features),
                     lambda x: self.write_group(x) if x is not None else x,
                 )
 
