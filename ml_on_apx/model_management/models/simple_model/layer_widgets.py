@@ -7,6 +7,7 @@ from typing import ClassVar
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import VerticalGroup
+from textual.message import Message
 from textual.message_pump import _MessagePumpMeta
 from textual.reactive import reactive
 from textual.widgets import Label as TuiLabel
@@ -34,11 +35,23 @@ class _LayerWidgetMeta(_MessagePumpMeta, ABCMeta):
 class LayerWidget(VerticalGroup, can_focus=True, metaclass=_LayerWidgetMeta):
     """The base class for Layer Widgets."""
 
+    class AddLayerMessage(Message):
+        """Message instructing to add a layer below this one."""
+
+        def __init__(self, layer: "LayerWidget", above: bool) -> None:
+            """Create a new message."""
+            super(LayerWidget.AddLayerMessage, self).__init__()
+            self.layer = layer
+            self.above = above
+
     BINDINGS: ClassVar[list[tuple[str, str, str] | Binding]] = [
         ("+", "increase_size", "Increase layer size"),
         ("-", "decrease_size", "Decrease layer size"),
         ("space", "set_size", "Set size."),
         ("a", "set_activation", "Set activation."),
+        ("backspace", "delete_layer", "Delete layer"),
+        ("up", "add_above", "New layer above"),
+        ("down", "add_below", "New layer below"),
     ]
 
     layer_size: reactive[int] = reactive(1)
@@ -78,8 +91,6 @@ class LayerWidget(VerticalGroup, can_focus=True, metaclass=_LayerWidgetMeta):
             f"{self.id}-activation", expect_type=TuiLabel
         ).content = f"Activation: {new_val}"
 
-    # TODO messages for adding above/removing below
-
     @abstractmethod
     def action_increase_size(self) -> None:
         """Increase the size of the layer."""
@@ -99,6 +110,19 @@ class LayerWidget(VerticalGroup, can_focus=True, metaclass=_LayerWidgetMeta):
     def action_set_activation(self) -> None:
         """Set the activation of the layer."""
         raise NotImplementedError
+
+    @abstractmethod
+    def action_delete_layer(self) -> None:
+        """Delete this layer."""
+        raise NotImplementedError
+
+    def action_add_above(self) -> None:
+        """Add a new layer above this one."""
+        self.post_message(self.AddLayerMessage(self, True))
+
+    def action_add_below(self) -> None:
+        """Add a new layer above this one."""
+        self.post_message(self.AddLayerMessage(self, False))
 
 
 class HiddenLayerWidget(LayerWidget):
@@ -154,6 +178,10 @@ class HiddenLayerWidget(LayerWidget):
             ),
             callback=callback_set_activation,
         )
+
+    def action_delete_layer(self) -> None:
+        """Delete this layer."""
+        self.remove()
 
 
 # TODO logging
@@ -229,6 +257,20 @@ class OutputLayerWidget(LayerWidget):
             callback=callback_set_activation,
         )
 
+    def action_add_below(self) -> None:
+        """Do NOT add a layer below this one."""
+        self.app.notify("Cannot add a layer below this one.", severity="information")
+
+    def action_delete_layer(self) -> None:
+        """Do NOT delete the output layer."""
+        self.app.notify("This layer cannot be deleted.", severity="information")
+
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+        """Check to see if an action can be performed."""
+        if action in {"add_below", "delete_layer"}:
+            return False
+        return True
+
 
 # TODO Logging
 class InputLayerWidget(LayerWidget):
@@ -294,3 +336,17 @@ class InputLayerWidget(LayerWidget):
     def action_set_activation(self) -> None:
         """Inform the user that the input layer does not have an activation."""
         self.app.notify("Input layer does not have an activation.")
+
+    def action_add_above(self) -> None:
+        """Do NOT add a layer above this one."""
+        self.app.notify("Cannot add a layer above this one.", severity="information")
+
+    def action_delete_layer(self) -> None:
+        """Do NOT delete the output layer."""
+        self.app.notify("This layer cannot be deleted.", severity="information")
+
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+        """Check to see if an action can be performed."""
+        if action in {"add_above", "delete_layer"}:
+            return False
+        return True

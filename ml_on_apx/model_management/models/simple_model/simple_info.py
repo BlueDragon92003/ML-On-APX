@@ -18,6 +18,7 @@ from ml_on_apx.model_management.models.simple_model import _SIMPLE
 from ml_on_apx.model_management.models.simple_model.layer_widgets import (
     HiddenLayerWidget,
     InputLayerWidget,
+    LayerWidget,
     OutputLayerWidget,
 )
 
@@ -375,6 +376,7 @@ class SimpleScreen(Screen[SimpleGroupInfo]):
         super(SimpleScreen, self).__init__()
         self._features = features
         self._base = base
+        self._idinc = 0
 
     def compose(self) -> ComposeResult:
         """Build the screen from its component widgets.
@@ -411,6 +413,20 @@ class SimpleScreen(Screen[SimpleGroupInfo]):
                 hidden_layer.activation = self._base.get_layer_activation(hl)
                 hidden_layer.layer_size = self._base.get_layer_size(hl)
                 box.mount(hidden_layer, before="OutputLayerWidget")
+
+    @on(LayerWidget.AddLayerMessage)
+    def handle_add_layer(self, message: LayerWidget.AddLayerMessage) -> None:
+        """Add a new layer above or below the messaging layer."""
+        box = self.get_child_by_id("hidden-layers", expect_type=VerticalScroll)
+        layer_id = message.layer.id
+        new_layer = HiddenLayerWidget(id=f"hl{self._idinc}")
+        self._idinc += 1
+        if message.above:
+            box.mount(new_layer, before=f"#{layer_id}")
+        else:
+            box.mount(new_layer, after=f"#{layer_id}")
+        new_layer.focus()
+        message.stop()
 
     @on(Button.Pressed)
     def handle_button_press(self, message: Button.Pressed) -> None:
