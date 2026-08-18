@@ -32,47 +32,6 @@ GroupView {
     }
 }
 
-TabbedContent{
-    & Tab {
-        width: 1fr;
-        text-align: center;
-    }
-
-    & ContentSwitcher {
-        align-horizontal: center;
-
-        & > * {
-            width: 40%;
-            min-width: 60;
-        }
-
-        & #name-label {
-            padding: 1;
-        }
-
-        & ListItem Label {
-            width: 100%;
-            text-align: center;
-        }
-
-        & HorizontalGroup#new-label {
-            layout: grid;
-            grid-size: 2 1;
-            grid-columns: 4fr 1fr;
-
-            & Input {
-                min-width: 48;
-            }
-
-            & Button {
-                min-width: 10;
-                width: 100%;
-                margin: 0 1;
-            }
-        }
-    }
-}
-
 .bottom {
     dock: bottom;
 }
