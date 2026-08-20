@@ -1,4 +1,4 @@
-GroupView {
+GroupView, ModelView {
     layout: grid;
     grid-size: 2 1;
     grid-columns: 2fr 3fr;
@@ -30,6 +30,16 @@ GroupView {
             width: 100%;
         }
     }
+}
+
+ModelView {
+
+    & #group-title {
+        text-align: center;
+        padding: 1;
+        width: 100%;
+    }
+
 }
 
 .bottom {

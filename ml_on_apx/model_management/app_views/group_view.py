@@ -48,7 +48,7 @@ from ml_on_apx.tui_common.list_select_question import ListSelectQuestion
 
 _GROUP_VIEW = "group" @ _TUI
 
-_NEW_GROUP = "new" > _GROUP_VIEW
+_NEW_GROUP = "new" > _GROUP_VIEW  # TODO Clean up
 _WRITE_GROUP = "write_new" > _GROUP_VIEW
 _DELETE_GROUP = "del" > _GROUP_VIEW
 _RENAME_GROUP = "rename" > _GROUP_VIEW
@@ -65,7 +65,7 @@ class GroupView(Screen[None]):
 
     BINDINGS: ClassVar[list[tuple[str, str, str] | Binding]] = [
         ("N", "new_group", "Create a new group"),
-        ("M", "manage_group", "Manage selected gorup"),
+        ("M", "manage_group", "Manage selected group"),
         ("R", "rename_group", "Rename group"),
         ("D", "delete_group", "Delete group"),
     ]
@@ -130,8 +130,9 @@ class GroupView(Screen[None]):
         """
         if action == "new_group":
             return True
-        if action in {"mange_group", "rename_group", "delete_group"}:
+        if action in {"manage_group", "rename_group", "delete_group"}:
             return self.selected_group is not None
+        return False
 
     def validate_selected_group(self, new_name: str | None) -> str | None:
         """Validate new values for the reactive component `selected_group`.
@@ -189,10 +190,8 @@ class GroupView(Screen[None]):
             case "new-group-button":
                 self.action_new_group()
             case "manage-group-button":
-                pass
                 self.action_manage_group()
             case "rename-group-button":
-                pass
                 self.action_rename_group()
             case "delete-group-button":
                 self.action_delete_group()
