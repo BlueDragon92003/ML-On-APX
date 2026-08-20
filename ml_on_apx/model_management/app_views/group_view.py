@@ -53,7 +53,7 @@ _WRITE_GROUP = "write_new" > _GROUP_VIEW
 _DELETE_GROUP = "del" > _GROUP_VIEW
 _RENAME_GROUP = "rename" > _GROUP_VIEW
 
-DEFAULT_MESSAGE = """Select a group from the list to the right, or press the
+DEFAULT_MESSAGE = """Select a group from the list to the left, or press the
 button to create a new one.
 
 Press (control + p) to open the commande palette.
@@ -110,6 +110,8 @@ class GroupView(Screen[None]):
             with VerticalGroup(id="model-list"):
                 yield Rule()
                 yield Label("Models:", classes="title", id="models-label")
+                # TODO target for models to be placed under so it can be intellegently
+                #   cleared
 
     async def on_mount(self) -> None:
         """Finish setup of the screen once it is attached to the DOM."""
