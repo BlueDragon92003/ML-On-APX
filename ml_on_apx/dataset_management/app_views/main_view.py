@@ -29,10 +29,6 @@ Press (control + p) to view additional information.
 """
 
 _MAIN_VIEW = "main" @ _TUI
-_NEW_DS = "new" @ _MAIN_VIEW
-_EDIT_DS = "edit" @ _MAIN_VIEW
-_RENAME_DS = "rename" @ _MAIN_VIEW
-_DELETE_DS = "delete" @ _MAIN_VIEW
 
 
 class MainView(Screen[None]):
