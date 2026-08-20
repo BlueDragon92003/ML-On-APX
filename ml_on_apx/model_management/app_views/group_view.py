@@ -22,6 +22,7 @@ from textual.widgets import (
 
 from ml_on_apx.logging import CallbackDecorator, log_call, log_with_callback
 from ml_on_apx.model_management import _TUI
+from ml_on_apx.model_management.app_views.model_view import ModelView
 from ml_on_apx.model_management.group_info import GroupInfo
 from ml_on_apx.model_management.model_manager import ModelManager
 from ml_on_apx.model_management.models.simple_model.simple_info import SimpleGroupInfo
@@ -101,13 +102,14 @@ class GroupView(Screen[None]):
         with VerticalScroll(classes="container", id="group-info-view"):
             yield Label("", classes="title", id="group-name")
             with HorizontalGroup(id="control-buttons"):
+                # TODO New with this as preset
                 yield Button("Manage", id="view-group-button")
                 yield Button("Rename", id="rename-group-button")
                 yield Button("Delete", variant="error", id="delete-group-button")
             yield Markdown(id="group-info-box")
             with VerticalGroup(id="model-list"):
                 yield Rule()
-                yield Label("Models:", classes="title", id="model-name")
+                yield Label("Models:", classes="title", id="models-label")
 
     async def on_mount(self) -> None:
         """Finish setup of the screen once it is attached to the DOM."""
@@ -188,7 +190,7 @@ class GroupView(Screen[None]):
                 self.action_new_group()
             case "manage-group-button":
                 pass
-                # TODO self.action_manage_group()
+                self.action_manage_group()
             case "rename-group-button":
                 pass
                 self.action_rename_group()
@@ -243,7 +245,7 @@ class GroupView(Screen[None]):
             if result is not None:
                 self.app.push_screen(
                     result.screen(self._features),
-                    lambda x: self.write_group(x) if x is not None else x,
+                    callback=lambda x: self.write_group(x) if x is not None else x,
                 )
 
         self.app.push_screen(
@@ -295,6 +297,19 @@ class GroupView(Screen[None]):
             ),
             callback=callback_delete_group,
         )
+
+    @log_with_callback(action_type="manage" > _GROUP_VIEW)
+    def action_manage_group(self, callback: CallbackDecorator) -> None:
+        """Manage the models within a group."""
+
+        @callback
+        async def close() -> None:
+            pass
+
+        if self.selected_group is not None:
+            self.app.push_screen(
+                ModelView(self.selected_group, self._manager), callback=close
+            )
 
     @log_with_callback(action_type=str(_WRITE_GROUP))
     def write_group(self, callback: CallbackDecorator, group: GroupInfo) -> None:

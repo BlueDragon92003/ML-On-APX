@@ -252,7 +252,8 @@ class OutputLayerWidget(LayerWidget):
             ListSelectQuestion(
                 [(self.labels[i], i) for i in range(len(self.labels))],
                 title="Select label to remove.",
-            )
+            ),
+            callback=callback_decrease_size,
         )
 
     @log_with_callback(action_type="size" > _OUTPUT)

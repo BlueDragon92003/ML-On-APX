@@ -262,7 +262,7 @@ class MainView(Screen[None]):
             BinaryModalQuestion(
                 Label(f"Are you sure you want to delete `{self.dataset_name}`?")
             ),
-            callback_delete_dataset,
+            callback=callback_delete_dataset,
         )
 
     @log_call(action_type="force_recompile" > _MAIN_VIEW, include_result=False)

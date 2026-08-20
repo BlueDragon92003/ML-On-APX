@@ -68,7 +68,7 @@ class DatasetManagerApp(App):
                 self.exit()
 
         self.push_screen(
-            BinaryModalQuestion(Label("Quit dataset management?")), check_quit
+            BinaryModalQuestion(Label("Quit dataset management?")), callback=check_quit
         )
 
 
