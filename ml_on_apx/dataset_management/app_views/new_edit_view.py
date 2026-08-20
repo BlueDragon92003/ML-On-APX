@@ -34,7 +34,7 @@ from ml_on_apx.dataset_management.dataset_manager import DatasetManager
 from ml_on_apx.dataset_management.tree import TreeNode as SourceTreeNode
 from ml_on_apx.labelling import Label as SourceLabel
 from ml_on_apx.labelling import Labels
-from ml_on_apx.logging import log_call
+from ml_on_apx.logging import CallbackDecorator, log_call, log_with_callback
 from ml_on_apx.tui_common.binary_modal_question import (
     BinaryModalQuestion,
 )
@@ -44,16 +44,6 @@ from ml_on_apx.tui_common.list_select_question import (
 
 _NEW_EDIT_VIEW = "new_edit" @ _TUI
 _SOURCE_SELECT = "source_select" @ _NEW_EDIT_VIEW
-
-_DELETE_LABEL = "delete_label" @ _NEW_EDIT_VIEW
-_DELETE_LABEL_CALLBACK = "callback" > _DELETE_LABEL
-
-_DIRECT = "direct" @ _SOURCE_SELECT
-_DIRECT_CALLBACK = "callback" > _DIRECT
-_ANCESTOR = "ancestor" @ _SOURCE_SELECT
-_ANCESTOR_CALLBACK = "callback" > _ANCESTOR
-_NOT_INCL = "not" @ _SOURCE_SELECT
-_NOT_INCL_CALLBACK = "callback" > _NOT_INCL
 
 
 class NewEditView(Screen[None]):
@@ -145,8 +135,9 @@ class NewEditView(Screen[None]):
                 self._tree.auto_expand = False
                 yield self._tree
 
-    @log_call(action_type="check_action" > _NEW_EDIT_VIEW, include_args=["action"])
-    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:  # noqa: PLR0911, PLR0912
+    def check_action(  # noqa: PLR0911, PLR0912
+        self, action: str, parameters: tuple[object, ...]
+    ) -> bool | None:
         """Check to see if an action can be performed.
 
         Args:
@@ -193,7 +184,6 @@ class NewEditView(Screen[None]):
                         return True
         return False
 
-    @log_call(action_type="mount" > _NEW_EDIT_VIEW)
     def on_mount(self) -> None:
         """Finish setup of the screen once it is attached to the DOM."""
         if self._template is not None:
@@ -210,7 +200,7 @@ class NewEditView(Screen[None]):
         )
 
     @on(Tree.NodeSelected)
-    @log_call(action_type=str(_SOURCE_SELECT))
+    @log_call(action_type=str(_SOURCE_SELECT), include_args=[], include_result=False)
     def handle_source_selection(
         self, message: Tree.NodeSelected[SourceTreeData]
     ) -> None:
@@ -242,13 +232,18 @@ class NewEditView(Screen[None]):
                 self._handle_source_selection_not_included(node, data)
         message.stop()
 
-    @log_call(action_type=str(_DIRECT))
+    @log_with_callback(
+        action_type="direct" > _SOURCE_SELECT, include_caller_args=["data"]
+    )
     def _handle_source_selection_direct_inclusion(
-        self, node: TreeNode[SourceTreeData], data: SourceTreeData
+        self,
+        callback: CallbackDecorator,
+        node: TreeNode[SourceTreeData],
+        data: SourceTreeData,
     ) -> None:
 
-        @log_call(action_type=_DIRECT_CALLBACK)
-        def included_node(
+        @callback
+        async def callback_srcsel_direct_incl(
             selected: SourceLabel | Literal[False] | None,
         ) -> None:
             if not selected:
@@ -274,16 +269,21 @@ class NewEditView(Screen[None]):
                     `{data.name}`?",
                 subtitle="Press escape to cancel.",
             ),
-            callback=included_node,
+            callback=callback_srcsel_direct_incl,
         )
 
-    @log_call(action_type=str(_ANCESTOR))
+    @log_with_callback(
+        action_type="ancestor" > _SOURCE_SELECT, include_caller_args=["data"]
+    )
     def _handle_source_selection_ancestral_inclusion(
-        self, node: TreeNode[SourceTreeData], data: SourceTreeData
+        self,
+        callback: CallbackDecorator,
+        node: TreeNode[SourceTreeData],
+        data: SourceTreeData,
     ) -> None:
 
-        @log_call(action_type=_ANCESTOR_CALLBACK)
-        def ancestrally_included_node(
+        @callback
+        async def ancestrally_included_node(
             selected: SourceLabel | Literal[False] | None,
         ) -> None:
             if selected is None:
@@ -314,13 +314,16 @@ class NewEditView(Screen[None]):
             callback=ancestrally_included_node,
         )
 
-    @log_call(action_type=str(_NOT_INCL))
+    @log_with_callback(action_type="not" > _SOURCE_SELECT, include_caller_args=["data"])
     def _handle_source_selection_not_included(
-        self, node: TreeNode[SourceTreeData], data: SourceTreeData
+        self,
+        callback: CallbackDecorator,
+        node: TreeNode[SourceTreeData],
+        data: SourceTreeData,
     ) -> None:
 
-        @log_call(action_type=_NOT_INCL_CALLBACK)
-        def not_included_node(selected: SourceLabel | None) -> None:
+        @callback
+        async def not_included_node(selected: SourceLabel | None) -> None:
             if not selected:
                 return
             else:
@@ -344,7 +347,11 @@ class NewEditView(Screen[None]):
         )
 
     @on(Button.Pressed)
-    @log_call(action_type="button_press" > _NEW_EDIT_VIEW)
+    @log_call(
+        action_type="button_press" > _NEW_EDIT_VIEW,
+        include_args=[],
+        include_result=False,
+    )
     def handle_button_press(self, message: Button.Pressed) -> None:
         """Handle the Pressed event from descendant buttons.
 
@@ -361,7 +368,11 @@ class NewEditView(Screen[None]):
                 self.finalize()
 
     @on(Input.Submitted)
-    @log_call(action_type="text_submission" > _NEW_EDIT_VIEW)
+    @log_call(
+        action_type="text_submission" > _NEW_EDIT_VIEW,
+        include_args=[],
+        include_result=False,
+    )
     def handle_input_submission(self, message: Input.Submitted) -> None:
         """Handle the Submitted event from an input object.
 
@@ -373,7 +384,7 @@ class NewEditView(Screen[None]):
             case "label-name-input":
                 self.create_label()
 
-    @log_call(action_type="view_info" > _NEW_EDIT_VIEW)
+    @log_call(action_type="view_info" > _NEW_EDIT_VIEW, include_result=False)
     def action_to_basic_info(self) -> None:
         """Process the `to_basic_info` action."""
         tabs = self.get_child_by_id("new-edit-tabs")
@@ -381,7 +392,7 @@ class NewEditView(Screen[None]):
         tabs.active = "general-info-tab"
         self.get_widget_by_id("general-info-scroll").focus()
 
-    @log_call(action_type="view_lab" > _NEW_EDIT_VIEW)
+    @log_call(action_type="view_lab" > _NEW_EDIT_VIEW, include_result=False)
     def action_to_labels(self) -> None:
         """Process the `to_labels` action."""
         tabs = self.get_child_by_id("new-edit-tabs")
@@ -389,7 +400,7 @@ class NewEditView(Screen[None]):
         tabs.active = "labels-tab"
         self.get_widget_by_id("labels-list").focus()
 
-    @log_call(action_type="view_src" > _NEW_EDIT_VIEW)
+    @log_call(action_type="view_src" > _NEW_EDIT_VIEW, include_result=False)
     def action_to_sources(self) -> None:
         """Process the `to_sources` action."""
         tabs = self.get_child_by_id("new-edit-tabs")
@@ -397,12 +408,12 @@ class NewEditView(Screen[None]):
         tabs.active = "sources-tab"
         self.get_widget_by_id("source-tree").focus()
 
-    @log_call(action_type=str(_DELETE_LABEL))
-    def action_delete_label(self) -> None:
+    @log_with_callback(action_type="delete_label" > _NEW_EDIT_VIEW)
+    def action_delete_label(self, callback: CallbackDecorator) -> None:
         """Process the `delete_label` action."""
 
-        @log_call(action_type=_DELETE_LABEL_CALLBACK)
-        def delete_label(delete: bool | None) -> None:
+        @callback
+        async def delete_label(delete: bool | None) -> None:
             if not delete:
                 return
             assert name is not None
@@ -419,7 +430,9 @@ class NewEditView(Screen[None]):
                 callback=delete_label,
             )
 
-    @log_call(action_type="delete_label_no_checks" > _NEW_EDIT_VIEW)
+    @log_call(
+        action_type="delete_label_no_checks" > _NEW_EDIT_VIEW, include_result=False
+    )
     def action_force_delete_label(self) -> None:
         """Process the `force_delete_label` action."""
         labels_list = self.get_widget_by_id("labels-list", ListView)
@@ -457,7 +470,7 @@ class NewEditView(Screen[None]):
         tree_node: TreeNode[SourceTreeData] = tree.root
         self.update_source_tree_selections(tree_node)
 
-    @log_call(action_type="update_labels" > _NEW_EDIT_VIEW)
+    @log_call(action_type="update_labels" > _NEW_EDIT_VIEW, include_result=False)
     def remake_label_list(self) -> None:
         """Remake and display the list of labels shown to the user."""
         labels_list = self.get_widget_by_id("labels-list", ListView)
@@ -465,7 +478,11 @@ class NewEditView(Screen[None]):
         for label in self.labels:
             labels_list.append(ListItem(Label(f"{label}"), name=f"{label}"))
 
-    @log_call(action_type="update_tree" > _NEW_EDIT_VIEW)
+    # @log_call(
+    #     action_type="update_tree" > _NEW_EDIT_VIEW,
+    #     include_args=[],
+    #     include_result=False,
+    # )
     def update_source_tree_selections(
         self, tree_node: TreeNode[SourceTreeData]
     ) -> None:
@@ -484,7 +501,11 @@ class NewEditView(Screen[None]):
                 tree_node.data.set_descendant_has_error()
         tree_node.refresh()
 
-    @log_call(action_type="rm_label_from_tree" > _NEW_EDIT_VIEW)
+    @log_call(
+        action_type="rm_label_from_tree" > _NEW_EDIT_VIEW,
+        include_args=["label_to_remove"],
+        include_result=False,
+    )
     def remove_label_from_tree(
         self, tree_node: TreeNode[SourceTreeData], label_to_remove: SourceLabel
     ) -> None:
@@ -496,7 +517,11 @@ class NewEditView(Screen[None]):
         for child in tree_node.children:
             self.remove_label_from_tree(child, label_to_remove)
 
-    @log_call(action_type="append_node" > _NEW_EDIT_VIEW)
+    # @log_call(
+    #     action_type="append_node" > _NEW_EDIT_VIEW,
+    #     include_args=["path_so_far"],
+    #     include_result=False,
+    # )
     def append_nodes(
         self,
         dest_tree_node: TreeNode[SourceTreeData],
@@ -537,7 +562,9 @@ class NewEditView(Screen[None]):
             self.append_nodes(new_tree_node, source_node, this_path)
         dest_tree_node.expand()
 
-    @log_call(action_type="release" > _NEW_EDIT_VIEW)
+    @log_call(
+        action_type="release" > _NEW_EDIT_VIEW, include_args=[], include_result=False
+    )
     def release_children(self, node: TreeNode[SourceTreeData]) -> None:
         """Include child nodes under this node's label, then release this node's parent.
 
@@ -559,7 +586,9 @@ class NewEditView(Screen[None]):
             child.data.label = node.data.label
         node.data.label = None
 
-    @log_call(action_type="include" > _NEW_EDIT_VIEW)
+    @log_call(
+        action_type="include" > _NEW_EDIT_VIEW, include_args=[], include_result=False
+    )
     def include(self, node: TreeNode[SourceTreeData]) -> None:
         """Include this node and its descendants ancestrally.
 
@@ -573,7 +602,9 @@ class NewEditView(Screen[None]):
         for child in node.children:
             self.include(child)
 
-    @log_call(action_type="disinclude" > _NEW_EDIT_VIEW)
+    @log_call(
+        action_type="disinclude" > _NEW_EDIT_VIEW, include_args=[], include_result=False
+    )
     def disinclude(self, node: TreeNode[SourceTreeData]) -> None:
         """Remove this node and its descendants from the source list.
 
@@ -587,7 +618,7 @@ class NewEditView(Screen[None]):
         for child in node.children:
             self.disinclude(child)
 
-    @log_call(action_type="create_label" > _NEW_EDIT_VIEW)
+    @log_call(action_type="create_label" > _NEW_EDIT_VIEW, include_result=False)
     def create_label(self) -> None:
         """Create a new label from the user string in the view."""
         input = self.get_widget_by_id("label-name-input", Input)
@@ -612,7 +643,7 @@ class NewEditView(Screen[None]):
         input.clear()
         input.focus()
 
-    @log_call(action_type="finalize" > _NEW_EDIT_VIEW)
+    @log_call(action_type="finalize" > _NEW_EDIT_VIEW, include_result=False)
     def finalize(self) -> None:
         """Validate and then create or update the dataset as specified by the user.
 

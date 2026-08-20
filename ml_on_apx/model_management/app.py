@@ -15,8 +15,6 @@ from ml_on_apx.model_management.model_manager import ModelManager
 from ml_on_apx.modes import Mode
 from ml_on_apx.tui_common.binary_modal_question import BinaryModalQuestion
 
-_SHOW_QUIT_SCREEN = "quit" @ _APP
-
 
 class ModelManagerApp(App):
     """The TUI app used to manage models."""

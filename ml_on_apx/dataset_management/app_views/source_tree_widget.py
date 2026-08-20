@@ -76,7 +76,7 @@ class SourceTreeWidget(Tree["SourceTreeData"]):
             labeled_sources.update(self.get_labeled_sources_from_node(child))
         return labeled_sources
 
-    @log_call(action_type="lab_src_from" > _SOURCE_TREE)
+    @log_call(action_type="lab_src_from" > _SOURCE_TREE, include_args=[])
     def get_labeled_sources_from_node(
         self, node: TreeNode["SourceTreeData"]
     ) -> set[tuple[Path, Label]]:
@@ -113,6 +113,9 @@ class SourceTreeWidget(Tree["SourceTreeData"]):
                         path, f"Label not set for source `{path}`!"
                     )
                 labeled_sources.add((path, label))
+        elif node.data.is_directory:
+            for child in node.children:
+                labeled_sources |= self.get_labeled_sources_from_node(child)
 
         return labeled_sources
 
@@ -217,7 +220,7 @@ class SourceTreeData(object):
         data._descendant_error = False
         return data
 
-    @log_call(action_type="label_style" > _DATA, include_result=False)
+    @log_call(action_type="label_style" > _DATA, include_args=[], include_result=False)
     def get_style(self, theme: dict[str, str]) -> Style:
         """Generate the style the node with this data's label should use.
 

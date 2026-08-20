@@ -131,7 +131,7 @@ def log_with_callback(
 
         def caller_wrapper(slf: _S, *args: _P.args, **kwargs: _P.kwargs) -> None:
             # Use "None" to create a temporary fake action
-            caller_args = caller_signature.bind(None, *_P.args, **_P.kwargs).arguments
+            caller_args = caller_signature.bind(slf, None, *args, **kwargs).arguments
             caller_args.pop(decorator_arg_name)
             if "self" in caller_args:
                 caller_args.pop("self")
@@ -152,9 +152,7 @@ def log_with_callback(
                 async def callback_wrapper(
                     *bargs: _Q.args, **bkwargs: _Q.kwargs
                 ) -> None:
-                    callback_args = callback_signature.bind(
-                        callback, *bargs, **bkwargs
-                    ).arguments
+                    callback_args = callback_signature.bind(*bargs, **bkwargs).arguments
                     if include_callback_args is not None:
                         callback_args = {
                             x: callback_args[x] for x in include_callback_args
