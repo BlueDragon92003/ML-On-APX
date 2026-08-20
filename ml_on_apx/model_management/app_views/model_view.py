@@ -8,12 +8,23 @@ from textual.binding import Binding
 from textual.containers import HorizontalGroup, VerticalGroup, VerticalScroll
 from textual.reactive import reactive
 from textual.screen import Screen
-from textual.widgets import Button, Footer, Header, ListView, Markdown, Rule
+from textual.widgets import (
+    Button,
+    Collapsible,
+    Footer,
+    Header,
+    ListItem,
+    ListView,
+    Markdown,
+    Rule,
+)
 from textual.widgets import Label as TuiLabel
 
-from ml_on_apx.logging import log_call
+from ml_on_apx.logging import CallbackDecorator, log_call, log_with_callback
 from ml_on_apx.model_management import _TUI
 from ml_on_apx.model_management.model_manager import ModelManager
+from ml_on_apx.tui_common.binary_modal_question import BinaryModalQuestion
+from ml_on_apx.tui_common.get_string_question import GetStringQuestion
 
 """
 -----------------------------------------------------------------------------
@@ -32,6 +43,12 @@ from ml_on_apx.model_management.model_manager import ModelManager
 """
 
 _MODEL_VIEW = "model" @ _TUI
+
+DEFAULT_MESSAGE = """Select a model from the list to the left, or press the
+button to create a new one.
+
+Press (control + p) to open the commande palette.
+"""
 
 
 class ModelView(Screen[None]):
@@ -68,23 +85,53 @@ class ModelView(Screen[None]):
                 yield Button("Rename", id="rename-model-button")
                 yield Button("Delete", variant="error", id="delete-model-button")
             yield Markdown(id="model-info-box")
-            with VerticalGroup(id="test-list"):
+            with VerticalGroup(id="test-box"):
                 yield Rule()
                 yield TuiLabel("Test Results", classes="title", id="tests-title")
                 yield Button("Run test", variant="primary", id="run-test-button")
+                yield VerticalGroup(id="test-list")
 
-    def on_mount(self) -> None:
+    async def on_mount(self) -> None:
         """Finish setup of the screen once it is attached to the DOM."""
-        self.remake_model_list()
+        await self.remake_model_list()
+        self.no_model_selected()
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
         """Check to see if an action can be performed."""
+        match action:
+            case "back" | "train_model":
+                return True
+            case "rename_model" | "delete_model" | "test_model":
+                return self.selected_model is not None
+        return False
 
-    def validate_selected_model(self, val: str | None) -> str | None:
+    def validate_selected_model(self, new_name: str | None) -> str | None:
         """Validate new values for the reactive component `selected_model`."""
+        valid = self._manager.get_model_names(self._group_name)
+        if new_name not in valid:
+            new_name = None
+        return new_name
 
     def watch_selected_model(self, new_val: str | None) -> None:
         """Handle changes in the reactive component `selected_model`."""
+        if new_val is None:
+            self.no_model_selected()
+        else:
+            model_info = self._manager.get_model_info(self._group_name, new_val)
+
+            self.get_widget_by_id("control-buttons").display = True
+            self.get_widget_by_id("test-box").display = True
+
+            self.get_widget_by_id("model-name", TuiLabel).content = new_val
+            self.get_widget_by_id("model-info-box", Markdown).update(
+                model_info.markdown
+            )
+
+            tests = self.get_widget_by_id("test-list", VerticalGroup)
+            for test in model_info.testing_information:
+                tests.mount(
+                    Collapsible(Markdown(test.markdown), title=test.test_time.ctime())
+                )
 
     @on(Button.Pressed, "#return-button")
     @log_call(action_type="back" > _MODEL_VIEW, include_args=[], include_result=False)
@@ -96,31 +143,86 @@ class ModelView(Screen[None]):
     @log_call(action_type="train" > _MODEL_VIEW, include_args=[], include_result=False)
     def train_new_model(self, message: Button.Pressed | None = None) -> None:
         """Set the TrainingJob."""
+        # TODO training_job_screen
 
     @on(Button.Pressed, "#rename-model-button")
-    @log_call(action_type="rename" > _MODEL_VIEW, include_args=[], include_result=False)
-    def rename_model(self, message: Button.Pressed | None = None) -> None:
+    @log_with_callback(
+        action_type="rename" > _MODEL_VIEW,
+        include_caller_args=[],
+    )
+    def rename_model(
+        self, callback: CallbackDecorator, message: Button.Pressed | None = None
+    ) -> None:
         """Rename the current Model."""
 
+        @callback
+        async def callback_rename(new_name: str | None) -> None:
+            if new_name and self.selected_model is not None:
+                # TODO static model name validation
+                self._manager.rename_model(
+                    self._group_name, self.selected_model, new_name
+                )
+                await self.remake_model_list()
+                self.selected_model = new_name
+
+        self.app.push_screen(
+            GetStringQuestion(
+                title=f"Rename {self.selected_model} to?"
+                # TODOvalidator=
+            ),
+            callback=callback_rename,
+        )
+
     @on(Button.Pressed, "#delete-model-button")
-    @log_call(action_type="delete" > _MODEL_VIEW, include_args=[], include_result=False)
-    def delete_model(self, message: Button.Pressed | None = None) -> None:
+    @log_with_callback(action_type="delete" > _MODEL_VIEW, include_caller_args=[])
+    def delete_model(
+        self, callback: CallbackDecorator, message: Button.Pressed | None = None
+    ) -> None:
         """Delete the current Model."""
+
+        @callback
+        async def callback_delete_model(sentinal: bool | None) -> None:
+            if sentinal and self.selected_model is not None:
+                self._manager.delete_model(self._group_name, self.selected_model)
+                await self.remake_model_list()
+                self.selected_model = None
+
+        self.app.push_screen(
+            BinaryModalQuestion(TuiLabel(f"Really delete {self.selected_model}?")),
+            callback=callback_delete_model,
+        )
 
     @on(Button.Pressed, "#run-test-button")
     @log_call(action_type="test" > _MODEL_VIEW, include_args=[], include_result=False)
     def run_test(self, message: Button.Pressed | None = None) -> None:
         """Set the TestingJob."""
+        # TODO testing_job_screen
 
-    @on(ListView.Selected, "#delete-model-button")
+    @on(ListView.Selected, "#model-list")
     @log_call(action_type="select" > _MODEL_VIEW, include_args=[], include_result=False)
-    def change_selected_model(self, message: ListView.Selected | None = None) -> None:
+    def change_selected_model(self, message: ListView.Selected) -> None:
         """Change the currently selected Model."""
+        if message.item.name is not None:
+            self.selected_model = message.item.name
 
     @log_call(action_type="remake_list" > _MODEL_VIEW, include_result=False)
-    def remake_model_list(self) -> None:
+    async def remake_model_list(self) -> None:
         """Reconstruct the model list."""
+        model_list = self.get_widget_by_id("model-list", ListView)
+        await model_list.clear()
+        group_names = list(self._manager.get_model_names(self._group_name))
+        group_names.sort()
+        for group_name in group_names:
+            model_list.append(ListItem(TuiLabel(group_name), name=group_name))
 
     @log_call(action_type="unselect" > _MODEL_VIEW, include_result=False)
     def no_model_selected(self) -> None:
         """Hide the relavant widgets when no model is selected."""
+        self.get_widget_by_id("control-buttons").display = False
+        self.get_widget_by_id("test-box").display = False
+
+        self.get_widget_by_id("model-name", TuiLabel).content = "Model Management"
+        self.get_widget_by_id("model-info-box", Markdown).update(DEFAULT_MESSAGE)
+
+        for child in self.get_widget_by_id("test-list", VerticalGroup).children:
+            child.remove()

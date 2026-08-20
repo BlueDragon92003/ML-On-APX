@@ -54,6 +54,11 @@ class ModelTestInfo:
         """The average loss across the test."""
         return self._average_loss
 
+    @property
+    def markdown(self) -> str:
+        """Generate markdown for this model test."""
+        return "TODO"  # TODO markdown for model tests
+
 
 class ModelInfo:
     """Stores training & testing info about a model."""
@@ -117,6 +122,11 @@ class ModelInfo:
     def stopped_with_error(self) -> StopFunction.EvaluationError | None:
         """If training stopped due to an error during stop function evaluation."""
         return self._stop_function_error
+
+    @property
+    def markdown(self) -> str:
+        """Produce markdown for this model."""
+        return "TODO"  # TODO write markdown converter
 
     @log_call(action_type="add" > _MODEL_INFO, include_result=False)
     def add_testing_information(self, new_test: ModelTestInfo) -> None:

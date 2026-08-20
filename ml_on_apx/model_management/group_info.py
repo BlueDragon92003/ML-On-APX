@@ -127,5 +127,5 @@ class GroupInfo(ABC, Generic[T]):
 
     @abstractmethod
     def get_markdown(self, manager: ModelManager) -> str:
-        """Generate the ML model this group uses."""
+        """Generate markdown about the ML model this group uses."""
         raise NotImplementedError
