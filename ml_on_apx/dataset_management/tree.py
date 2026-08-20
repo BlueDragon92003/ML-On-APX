@@ -21,18 +21,16 @@ class TreeNode:
         self._children: List["TreeNode"] = []
 
     @property
-    @log_call(action_type="name" > _TREE)
     def name(self) -> str:
         """The name for this node."""
         return self._name
 
     @property
-    @log_call(action_type="get_children" > _TREE)
     def children(self) -> List["TreeNode"]:
         """The node's children."""
         return self._children
 
-    @log_call(action_type="add_child" > _TREE)
+    @log_call(action_type="add_child" > _TREE, include_result=False)
     def add_child(self, child: "TreeNode") -> None:
         """Add a child node to this node.
 
@@ -71,6 +69,10 @@ class TreeNode:
         return True
 
     __hash__ = None
+
+    def __repr__(self) -> str:
+        """Get the representation of the TreeNode."""
+        return f"<TreeNode '{self.name}'>"
 
     @staticmethod
     @log_call(action_type="from_fs" > _TREE)

@@ -63,8 +63,8 @@ class SourceTreeWidget(Tree["SourceTreeData"]):
             style = style + node.data.get_style(self.app.get_css_variables())
         return super().render_label(node, base_style, style)
 
-    @log_call(action_type="get_sources" > _SOURCE_TREE)
-    def get_labeled_sources(self) -> set[tuple[Path, Label]]:
+    @property
+    def labeled_sources(self) -> set[tuple[Path, Label]]:
         """Return a set of labeled sources from the information stored in the tree.
 
         Returns:
@@ -76,7 +76,7 @@ class SourceTreeWidget(Tree["SourceTreeData"]):
             labeled_sources.update(self.get_labeled_sources_from_node(child))
         return labeled_sources
 
-    @log_call(action_type="lab_src_from_here" > _SOURCE_TREE)
+    @log_call(action_type="lab_src_from" > _SOURCE_TREE)
     def get_labeled_sources_from_node(
         self, node: TreeNode["SourceTreeData"]
     ) -> set[tuple[Path, Label]]:
@@ -116,7 +116,7 @@ class SourceTreeWidget(Tree["SourceTreeData"]):
 
         return labeled_sources
 
-    @log_call(action_type="paths_from_here" > _SOURCE_TREE)
+    @log_call(action_type="paths_from" > _SOURCE_TREE, include_args=[])
     def get_paths_from_node(self, node: TreeNode["SourceTreeData"]) -> list[Path]:
         """Get a list of paths from an included directory node.
 
@@ -169,7 +169,11 @@ class SourceTreeData(object):
         self._name: str
 
     @classmethod
-    @log_call(action_type="new_leaf" > _DATA)
+    @log_call(
+        action_type="new_leaf" > _DATA,
+        include_args=["name", "path"],
+        include_result=False,
+    )
     def new_leaf_data(
         cls,
         name: str,
@@ -191,7 +195,9 @@ class SourceTreeData(object):
         return data
 
     @classmethod
-    @log_call(action_type="new_dir" > _DATA)
+    @log_call(
+        action_type="new_dir" > _DATA, include_args=["name"], include_result=False
+    )
     def new_directory_data(
         cls,
         name: str,
@@ -211,7 +217,7 @@ class SourceTreeData(object):
         data._descendant_error = False
         return data
 
-    @log_call(action_type="label_style" > _DATA)
+    @log_call(action_type="label_style" > _DATA, include_result=False)
     def get_style(self, theme: dict[str, str]) -> Style:
         """Generate the style the node with this data's label should use.
 
@@ -246,19 +252,16 @@ class SourceTreeData(object):
         return style
 
     @property
-    @log_call(action_type="get_dir" > _DATA)
     def is_directory(self) -> bool:
         """If the node with this data is a directory, not a source."""
         return self._is_directory
 
     @property
-    @log_call(action_type="get_name" > _DATA)
     def name(self) -> str:
         """The name of the node with this data."""
         return self._name
 
     @property
-    @log_call(action_type="get_path" > _DATA)
     def path(self) -> Path:
         """The path to the node's source file.
 
@@ -276,7 +279,6 @@ class SourceTreeData(object):
         return self._path
 
     @property
-    @log_call(action_type="get_label" > _DATA)
     def label(self) -> Label | None:
         """The machine learning label of the node with this data."""
         return self._label
@@ -286,17 +288,17 @@ class SourceTreeData(object):
     def label(self, label: Label | None) -> None:
         self._label = label
 
-    @log_call(action_type="reset_error_status" > _DATA)
+    @log_call(action_type="reset_error_status" > _DATA, include_result=False)
     def reset_descendant_error(self) -> None:
         """Unset if this node has any descendants with errors."""
         self._descendant_error = False
 
-    @log_call(action_type="set_error_status" > _DATA)
+    @log_call(action_type="set_error_status" > _DATA, include_result=False)
     def set_descendant_has_error(self) -> None:
         """Set if this node has any descendants with errors."""
         self._descendant_error = True
 
-    @log_call(action_type="has_error_status" > _DATA)
+    @property
     def has_error(self) -> bool:
         """Return True if this node or a descendant has an error."""
         if self.inclusion == self.InclusionType.DIRECTLY_INCLUDED:

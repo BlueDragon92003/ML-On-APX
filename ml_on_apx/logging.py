@@ -4,13 +4,35 @@ import datetime
 import os
 import re
 from functools import cmp_to_key
+from inspect import signature
 from pathlib import Path
-from typing import Callable, ParamSpec, TypeVar
+from types import CoroutineType
+from typing import Any, Callable, Concatenate, Iterable, ParamSpec, TypeVar
 
 import eliot
+from eliot import start_action
 
 _R = TypeVar("_R")
 _P = ParamSpec("_P")
+_Q = ParamSpec("_Q")
+_S = TypeVar("_S")
+
+CallbackDecorator = Callable[
+    [Callable[_Q, CoroutineType[Any, Any, None]]],
+    Callable[_Q, CoroutineType[Any, Any, None]],
+]
+
+
+class MissingDecoratorArgError(Exception):
+    """Raised when a decorated function does not accept a callback decorator."""
+
+
+class IncludedMissingCallerArgError(Exception):
+    """An included_caller_arg is missing from the function signature."""
+
+
+class IncludedMissingCallbackArgError(Exception):
+    """An included_callback_arg is missing from the function signature."""
 
 
 class Namespace:
@@ -84,7 +106,74 @@ def log_call(
     return eliot.log_call(None, action_type, include_args, include_result)
 
 
-# @log_call("compare_files" @ _LOG_SETUP)
+def log_with_callback(
+    action_type: str,
+    include_caller_args: Iterable[str] | None = None,
+    include_callback_args: Iterable[str] | None = None,
+    decorator_arg_name: str = "callback",
+) -> Callable[
+    [Callable[Concatenate[_S, CallbackDecorator[_Q], _P], None]],
+    Callable[Concatenate[_S, _P], None],
+]:
+    """Log this call and provide a callback decorator."""
+
+    def caller_decorator(
+        caller: Callable[Concatenate[_S, CallbackDecorator[_Q], _P], None],
+    ) -> Callable[Concatenate[_S, _P], None]:
+        caller_signature = signature(caller)
+        if decorator_arg_name not in set(caller_signature.parameters):
+            raise MissingDecoratorArgError
+        if (include_caller_args is not None) and (
+            extra := (set(include_caller_args) - set(caller_signature.parameters))
+            - set(decorator_arg_name)
+        ):
+            raise IncludedMissingCallerArgError(extra)
+
+        def caller_wrapper(slf: _S, *args: _P.args, **kwargs: _P.kwargs) -> None:
+            # Use "None" to create a temporary fake action
+            caller_args = caller_signature.bind(None, *_P.args, **_P.kwargs).arguments
+            caller_args.pop(decorator_arg_name)
+            if "self" in caller_args:
+                caller_args.pop("self")
+            if include_caller_args is not None:
+                caller_args = {x: caller_args[x] for x in include_caller_args}
+            action = start_action(action_type=action_type, **caller_args)
+
+            def callback_decorator(
+                callback: Callable[_Q, CoroutineType[Any, Any, None]],
+            ) -> Callable[_Q, CoroutineType[Any, Any, None]]:
+                callback_signature = signature(callback)
+                if (include_callback_args is not None) and (
+                    extra := set(include_callback_args)
+                    - set(callback_signature.parameters)
+                ):
+                    raise IncludedMissingCallbackArgError(extra)
+
+                async def callback_wrapper(
+                    *bargs: _Q.args, **bkwargs: _Q.kwargs
+                ) -> None:
+                    callback_args = callback_signature.bind(
+                        callback, *bargs, **bkwargs
+                    ).arguments
+                    if include_callback_args is not None:
+                        callback_args = {
+                            x: callback_args[x] for x in include_callback_args
+                        }
+                    with action as ctx:
+                        ctx.log(message_type=f"callback.{action_type}", **callback_args)
+                        await callback(*bargs, **bkwargs)
+
+                return callback_wrapper
+
+            with action.context():
+                caller(slf, callback_decorator, *args, **kwargs)
+
+        return caller_wrapper
+
+    return caller_decorator
+
+
+@log_call(action_type="compare_files" > _LOG_SETUP)
 def _compare_files(file1: Path, file2: Path) -> int:
     stem1 = file1.stem.split("-")
     stem2 = file2.stem.split("-")

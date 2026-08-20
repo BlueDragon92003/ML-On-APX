@@ -20,7 +20,7 @@ from textual.widgets import (
     Static,
 )
 
-from ml_on_apx.logging import log_call
+from ml_on_apx.logging import CallbackDecorator, log_call, log_with_callback
 from ml_on_apx.model_management import _TUI
 from ml_on_apx.model_management.group_info import GroupInfo
 from ml_on_apx.model_management.model_manager import ModelManager
@@ -47,16 +47,10 @@ from ml_on_apx.tui_common.list_select_question import ListSelectQuestion
 
 _GROUP_VIEW = "group" @ _TUI
 
-_NEW_GROUP = "new" @ _GROUP_VIEW
-_CALLBACK_NEW_GROUP = "type_callback" > _NEW_GROUP
-_WRITE_GROUP = "write_new" @ _GROUP_VIEW
-_CALLBACK_WRITE_GROUP = "write_new" > _WRITE_GROUP
-
-_DELETE_GROUP = "del" @ _GROUP_VIEW
-_CALLBACK_DELETE_GROUP = "callback" > _DELETE_GROUP
-
-_RENAME_GROUP = "rename" @ _GROUP_VIEW
-_CALLBACK_RENAME_GROUP = "callback" > _RENAME_GROUP
+_NEW_GROUP = "new" > _GROUP_VIEW
+_WRITE_GROUP = "write_new" > _GROUP_VIEW
+_DELETE_GROUP = "del" > _GROUP_VIEW
+_RENAME_GROUP = "rename" > _GROUP_VIEW
 
 DEFAULT_MESSAGE = """Select a group from the list to the right, or press the
 button to create a new one.
@@ -115,13 +109,11 @@ class GroupView(Screen[None]):
                 yield Rule()
                 yield Label("Models:", classes="title", id="model-name")
 
-    @log_call(action_type="mount" > _GROUP_VIEW)
     async def on_mount(self) -> None:
         """Finish setup of the screen once it is attached to the DOM."""
         await self.remake_group_list()
         self.no_selection_view()
 
-    @log_call(action_type="check_action" > _GROUP_VIEW, include_args=["action"])
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
         """Check to see if an action can be performed.
 
@@ -178,7 +170,11 @@ class GroupView(Screen[None]):
             content_markdown.update(group_info.get_markdown(self._manager))
 
     @on(Button.Pressed)
-    @log_call(action_type="button_pressed" > _GROUP_VIEW)
+    @log_call(
+        action_type="button_pressed" > _GROUP_VIEW,
+        include_args=[],
+        include_result=False,
+    )
     async def handle_button_press(self, message: Button.Pressed) -> None:
         """Handle the Pressed event from any child button.
 
@@ -200,7 +196,9 @@ class GroupView(Screen[None]):
                 self.action_delete_group()
 
     @on(ListView.Selected)
-    @log_call(action_type="select_grp" > _GROUP_VIEW)
+    @log_call(
+        action_type="select_grp" > _GROUP_VIEW, include_args=[], include_result=False
+    )
     def handle_list_view_selected(self, message: ListView.Selected) -> None:
         """Handle the Selected event from the group list.
 
@@ -212,7 +210,7 @@ class GroupView(Screen[None]):
         self.selected_group = message.item.name
         message.stop()
 
-    @log_call(action_type="remake_grp_list" > _GROUP_VIEW)
+    @log_call(action_type="remake_grp_list" > _GROUP_VIEW, include_result=False)
     async def remake_group_list(self) -> None:
         """Remake and display the list of groups shown to the user."""
         group_list = self.get_widget_by_id("group-list", ListView)
@@ -222,7 +220,7 @@ class GroupView(Screen[None]):
         for group_name in group_names:
             group_list.append(ListItem(Label(group_name), name=group_name))
 
-    @log_call(action_type="no_grp_selected" > _GROUP_VIEW)
+    @log_call(action_type="no_grp_selected" > _GROUP_VIEW, include_result=False)
     def no_selection_view(self) -> None:
         """Set up the screen when no group is selected."""
         title = self.get_widget_by_id("group-name", Label)
@@ -236,12 +234,12 @@ class GroupView(Screen[None]):
         title.content = "Group Management"
         markdown.update(DEFAULT_MESSAGE)
 
-    @log_call(action_type=str(_NEW_GROUP))
-    def action_new_group(self) -> None:
+    @log_with_callback(action_type=_NEW_GROUP)
+    def action_new_group(self, callback: CallbackDecorator) -> None:
         """Create a new group."""
 
-        @log_call(action_type=_CALLBACK_NEW_GROUP)
-        def callback_new_group_type(result: Type[GroupInfo] | None) -> None:
+        @callback
+        async def callback_new_group_type(result: Type[GroupInfo] | None) -> None:
             if result is not None:
                 self.app.push_screen(
                     result.screen(self._features),
@@ -255,11 +253,11 @@ class GroupView(Screen[None]):
             callback=callback_new_group_type,
         )
 
-    @log_call(action_type=str(_RENAME_GROUP), include_result=False)
-    def action_rename_group(self) -> None:
+    @log_with_callback(action_type=_RENAME_GROUP)
+    def action_rename_group(self, callback: CallbackDecorator) -> None:
         """Rename a group."""
 
-        @log_call(action_type=_CALLBACK_RENAME_GROUP, include_result=False)
+        @callback
         async def callback_rename_group(name: str | None) -> None:
             if name:
                 assert self.selected_group is not None
@@ -275,11 +273,11 @@ class GroupView(Screen[None]):
             callback=callback_rename_group,
         )
 
-    @log_call(action_type=str(_DELETE_GROUP))
-    def action_delete_group(self) -> None:
+    @log_with_callback(action_type=_DELETE_GROUP)
+    def action_delete_group(self, callback: CallbackDecorator) -> None:
         """Delete a group and all of its models."""
 
-        @log_call(action_type=_CALLBACK_DELETE_GROUP)
+        @callback
         async def callback_delete_group(delete: bool | None) -> None:
             if delete:
                 assert self.selected_group is not None
@@ -298,11 +296,11 @@ class GroupView(Screen[None]):
             callback=callback_delete_group,
         )
 
-    @log_call(action_type=str(_WRITE_GROUP))
-    def write_group(self, group: GroupInfo) -> None:
+    @log_with_callback(action_type=str(_WRITE_GROUP))
+    def write_group(self, callback: CallbackDecorator, group: GroupInfo) -> None:
         """Save a group with the manager."""
 
-        @log_call(action_type=_CALLBACK_WRITE_GROUP)
+        @callback
         async def callback_write_group(name: str | None) -> None:
             if name:
                 self._manager.create_group(name, group)

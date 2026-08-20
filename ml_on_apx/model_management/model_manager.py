@@ -70,7 +70,6 @@ class ModelManager:
         self._models_path: Path = models_dir / mode.value
         self._jobs_path: Path = self._models_path / self.JOBS_FILE
 
-    @log_call(action_type="open" > _MANAGER)
     def __enter__(self) -> "ModelManager":
         """Initialize the environment.
 
@@ -113,7 +112,6 @@ class ModelManager:
                 self._model_infos.update({group_name: models_info})
         return self
 
-    @log_call(action_type="close" > _MANAGER)
     def __exit__(self, _exc_type, _exc_value, _exc_traceback) -> bool:  # noqa: ANN001
         """Safely leave a managed environment.
 
@@ -145,7 +143,7 @@ class ModelManager:
                 pickle.dump(self._model_infos[group_name], file)
         return False
 
-    @log_call(action_type="create" > _GROUP)
+    @log_call(action_type="create" > _GROUP, include_result=False)
     def create_group(self, group_name: str, group_info: GroupInfo) -> None:
         """Create a new model group.
 
@@ -170,7 +168,7 @@ class ModelManager:
         """
         return list(self._group_infos.keys())
 
-    @log_call(action_type="get" > _GROUP)
+    @log_call(action_type="get" > _GROUP, include_result=False)
     def get_group_info(self, group_name: str) -> GroupInfo:
         """Get information about a specific group.
 
@@ -189,7 +187,7 @@ class ModelManager:
             raise self.GroupLookupError()
         return self._group_infos[group_name]
 
-    @log_call(action_type="rename" > _GROUP)
+    @log_call(action_type="rename" > _GROUP, include_result=False)
     def rename_group(self, group_name: str, new_name: str) -> None:
         """Change a group's name.
 
@@ -216,7 +214,7 @@ class ModelManager:
         path = self.get_group_path(group_name)
         path.move(self.get_group_path(new_name))
 
-    @log_call(action_type="name" > _GROUP)
+    @log_call(action_type="name" > _GROUP, include_result=False)
     def delete_group(self, group_name: str) -> None:
         """Delete a group.
 
@@ -258,7 +256,7 @@ class ModelManager:
             raise self.GroupLookupError()
         return list(self._model_infos[group_name].keys())
 
-    @log_call(action_type="get" > _M_MODEL)
+    @log_call(action_type="get_info" > _M_MODEL, include_result=False)
     def get_model_info(self, group_name: str, model_name: str) -> ModelInfo:
         """Return an existing model's settings with the provided name.
 
@@ -282,6 +280,7 @@ class ModelManager:
             raise self.ModelLookupError()
         return self._model_infos[group_name][model_name]
 
+    @log_call(action_type="get_model" > _M_MODEL, include_result=False)
     def get_model(self, group_name: str, model_name: str) -> nn.Module:
         """Return an existing model's representation with the provided name.
 
@@ -305,7 +304,11 @@ class ModelManager:
             raise self.ModelLookupError()
         return torch.load(self.get_model_path(group_name, model_name))
 
-    @log_call(action_type="create" > _M_MODEL)
+    @log_call(
+        action_type="create" > _M_MODEL,
+        include_args=["group_name", "model_name"],
+        include_result=False,
+    )
     def create_model(
         self, group_name: str, model_name: str, model_info: ModelInfo, model: nn.Module
     ) -> None:
@@ -330,7 +333,7 @@ class ModelManager:
         self._model_infos[group_name].update({model_name: model_info})
         torch.save(model, self.get_model_path(group_name, model_name))
 
-    @log_call(action_type="rename" > _M_MODEL)
+    @log_call(action_type="rename" > _M_MODEL, include_result=False)
     def rename_model(self, group_name: str, model_name: str, new_name: str) -> None:
         """Change a model's name.
 
@@ -357,7 +360,7 @@ class ModelManager:
         path = self.get_model_path(group_name, model_name)
         path.move(self.get_model_path(group_name, new_name))
 
-    @log_call(action_type="delete" > _M_MODEL)
+    @log_call(action_type="delete" > _M_MODEL, include_result=False)
     def delete_model(self, group_name: str, model_name: str) -> None:
         """Delete a model.
 

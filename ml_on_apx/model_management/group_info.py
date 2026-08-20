@@ -63,7 +63,6 @@ class Activation:
         return hash(self._name) + hash(self._activation)
 
     @staticmethod
-    @log_call(action_type="list" > _ACTIVATION)
     def get_activations() -> dict[str, "Activation"]:
         """Return a static list of activations this application supports."""
         return {
@@ -105,6 +104,7 @@ class GroupInfo(ABC, Generic[T]):
     """Stores training data about the group."""
 
     @staticmethod
+    @log_call(action_type="nam_validation" > _GROUP_INFO)
     def validate_group_name(name: str) -> bool:
         """Validate a group name."""
         return re.fullmatch(r"[^/\n]+", name) is not None

@@ -155,7 +155,9 @@ class ClusterClassificationDataset(Dataset):
         return out
 
     @classmethod
-    @log_call(action_type="create" > _CCD)
+    @log_call(
+        action_type="create" > _CCD, include_args=["components"], include_result=False
+    )
     def create(cls, components: set[tuple[Path, int]]) -> "Dataset":
         """Create a new ClusterClassificationDataset.
 
@@ -171,7 +173,7 @@ class ClusterClassificationDataset(Dataset):
         return ClusterClassificationDataset(components)
 
     @classmethod
-    @log_call(action_type="features" > _CCD)
+    @log_call(action_type="features" > _CCD, include_args=[])
     def get_features(cls) -> list[str]:
         """Get the features the cluster classification dataset provides.
 

@@ -201,7 +201,7 @@ class TrainingJobBuilder:
         """
         self._base_model_name = base_model_name
 
-    @log_call(action_type="build_job" > _TRAINING)
+    @log_call(action_type="build_job" > _TRAINING, include_result=False)
     def build(self) -> TrainingJob:
         """Build a training job from this builder.
 
