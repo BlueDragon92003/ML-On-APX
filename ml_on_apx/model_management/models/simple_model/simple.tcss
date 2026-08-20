@@ -3,6 +3,11 @@ LayerWidget {
 
     align: center middle;
 
+    & Label {
+        text-align: center;
+        width: 100%;
+    }
+
     &:blur {
         border: round $border-blurred;
     }
