@@ -12,14 +12,14 @@ from textual.screen import ModalScreen
 from textual.widgets import Button, SelectionList
 
 from ml_on_apx.logging import log_call
-from ml_on_apx.tui_common import _TUI, Popup
+from ml_on_apx.tui_common import _TUI
 
 _LMSQ = "lmsq" @ _TUI
 
 ListItem = TypeVar("ListItem", bound=Hashable)
 
 
-class ListMultiselectQuestion(ModalScreen[set[ListItem]], Popup):
+class ListMultiselectQuestion(ModalScreen[set[ListItem]]):
     """A question with a finite set of answers."""
 
     BINDINGS: ClassVar[list[tuple[str, str, str] | Binding]] = [
@@ -74,7 +74,6 @@ class ListMultiselectQuestion(ModalScreen[set[ListItem]], Popup):
             yield Button(self._save_button_label, variant="success", id="lmsq-save")
             yield Button(self._exit_button_label, variant="error", id="lmsq-exit")
 
-    @log_call(action_type="mount" > _LMSQ)
     def on_mount(self) -> None:
         """Finish setup of the screen once it is attached to the DOM."""
         container = self.get_child_by_id("container")
@@ -82,13 +81,15 @@ class ListMultiselectQuestion(ModalScreen[set[ListItem]], Popup):
         container.border_subtitle = self._subtitle
         container.get_child_by_id("mslist-list").focus()
 
-    @log_call(action_type="exit" > _LMSQ)
+    @log_call(action_type="exit" > _LMSQ, include_result=False)
     def action_exit(self) -> None:
         """Process the action `exit`."""
         self.dismiss(None)
 
     @on(Button.Pressed)
-    @log_call(action_type="button" > _LMSQ)
+    @log_call(
+        action_type="button_pressed" > _LMSQ, include_args=[], include_result=False
+    )
     def handle_button_press(self, message: Button.Pressed) -> None:
         """Handle the Pressed event from a child button.
 

@@ -12,14 +12,11 @@ from ml_on_apx.dataset_management import _APP, _TUI
 from ml_on_apx.dataset_management.app_views.main_view import MainView
 from ml_on_apx.dataset_management.dataset import Dataset
 from ml_on_apx.dataset_management.dataset_manager import DatasetManager
-from ml_on_apx.logging import log_call
+from ml_on_apx.logging import CallbackDecorator, log_call, log_with_callback
 from ml_on_apx.modes import Mode
 from ml_on_apx.tui_common.binary_modal_question import (
     BinaryModalQuestion,
 )
-
-_SHOW_QUIT_SCREEN = "quit" @ _APP
-_QUIT_SCREEN_CALLBACK = "callback" > _SHOW_QUIT_SCREEN
 
 
 class DatasetManagerApp(App):
@@ -56,18 +53,17 @@ class DatasetManagerApp(App):
         """
         yield textual.widgets.LoadingIndicator()
 
-    @log_call(action_type="mount" > _APP)
-    async def on_mount(self) -> None:
+    def on_mount(self) -> None:
         """Finish setup of the screen once it is attached to the DOM."""
         self.theme = "gruvbox"
         self.push_screen(MainView(self._manager))
 
-    @log_call(action_type=str(_SHOW_QUIT_SCREEN))
-    def action_show_quit_screen(self) -> None:
+    @log_with_callback(action_type="quit" > _APP)
+    def action_show_quit_screen(self, callback: CallbackDecorator) -> None:
         """Process the action `show_quit_screen`."""
 
-        @log_call(action_type=_QUIT_SCREEN_CALLBACK)
-        def check_quit(sentinal: bool | None) -> None:
+        @callback
+        async def check_quit(sentinal: bool | None) -> None:
             if sentinal:
                 self.exit()
 
@@ -76,7 +72,7 @@ class DatasetManagerApp(App):
         )
 
 
-@log_call(action_type="start" > _TUI)
+@log_call(action_type="start" > _TUI, include_result=False)
 def main(
     dataset_dir: Path,
     mode: Mode,

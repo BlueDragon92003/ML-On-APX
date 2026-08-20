@@ -1,13 +1,13 @@
 """Functions to evaluate whether or not model training should stop."""
 
 import math
-from typing import Dict, List, Tuple
+from typing import Union
 
 from ml_on_apx.logging import log_call
 from ml_on_apx.model_management import _MODEL
 
-LispType = float | str | List["LispType"]
-LispVars = List[Tuple[str, LispType]]
+LispType = Union[float, str, list["LispType"]]
+LispVars = list[tuple[str, LispType]]
 
 _STOP_FUNCTIONS = "stopfn" @ _MODEL
 
@@ -244,7 +244,7 @@ class StopFunction:
 
     @staticmethod
     @log_call(action_type="kwargs" > _STOP_FUNCTIONS)
-    def convert_kwargs(kwargs: Dict[str, list[float]]) -> LispVars:
+    def convert_kwargs(kwargs: dict[str, list[float]]) -> LispVars:
         """Convert a keyword argument dict to the interpreter's variable format.
 
         Args:
@@ -262,7 +262,7 @@ class StopFunction:
     # Very simple lexer, split by parens and whitespace
     @staticmethod
     @log_call(action_type="lex" > _STOP_FUNCTIONS)
-    def lex(code: str) -> List[str]:
+    def lex(code: str) -> list[str]:
         """Process the code string into individual tokens.
 
         Args:
@@ -277,7 +277,7 @@ class StopFunction:
     # A simple parser: build nested lists from nested parenthesis
     @staticmethod
     @log_call(action_type="parse" > _STOP_FUNCTIONS)
-    def parse(tokens: List[str]) -> LispType:
+    def parse(tokens: list[str]) -> LispType:
         """Parse tokens into an executable lisp AST.
 
         Args:
@@ -498,7 +498,7 @@ class StopFunction:
 
     # Evaluate "cond"
     @staticmethod
-    def evcon(x: List[List[LispType]], local_vars: LispVars) -> LispType:
+    def evcon(x: list[list[LispType]], local_vars: LispVars) -> LispType:
         """Evaluate a lisp condition function.
 
         Args:
@@ -521,7 +521,7 @@ class StopFunction:
 
     # Evaluate list of lambda arguments
     @staticmethod
-    def evlis(x: List[LispType], local_vars: LispVars) -> List[LispType]:
+    def evlis(x: list[LispType], local_vars: LispVars) -> list[LispType]:
         """Evaluate a list of arguments for a function.
 
         Args:

@@ -38,19 +38,16 @@ class DatasetInfo:
                 raise ValueError(source[1])
 
     @property
-    @log_call(action_type="get_labels" > _DS_INFO)
     def labels(self) -> Labels:
         """The labels this dataset uses."""
         return self._labels
 
     @property
-    @log_call(action_type="get_sources" > _DS_INFO)
     def sources(self) -> set[Path]:
         """The unlabled sources this dataset uses."""
         return {x[0] for x in self._sources}
 
     @property
-    @log_call(action_type="num_source" > _DS_INFO)
     def numbered_sources(self) -> set[tuple[Path, int]]:
         """The sources this dataset uses with ml-safe integer labels."""
         labled_sources: set[tuple[Path, int]] = set()
@@ -59,7 +56,6 @@ class DatasetInfo:
         return labled_sources
 
     @property
-    @log_call(action_type="labeled_sources" > _DS_INFO)
     def labeled_sources(self) -> set[tuple[Path, Label]]:
         """The sources this dataset uses with human-readable labels."""
         labled_sources: set[tuple[Path, Label]] = set()
@@ -67,7 +63,7 @@ class DatasetInfo:
             labled_sources.add((path, label))
         return labled_sources
 
-    @log_call(action_type="markdown" > _DS_INFO)
+    @log_call(action_type="markdown" > _DS_INFO, include_args=[])
     def get_markdown(self, manager: DatasetManager) -> str:
         """Produce a markdown summary from a DatasetInfo object.
 

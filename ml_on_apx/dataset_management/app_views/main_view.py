@@ -16,7 +16,7 @@ from ml_on_apx.dataset_management.app_views.new_edit_view import NewEditView
 from ml_on_apx.dataset_management.dataset import Dataset
 from ml_on_apx.dataset_management.dataset_info import DATASET_NAME_REGEX
 from ml_on_apx.dataset_management.dataset_manager import DatasetManager
-from ml_on_apx.logging import log_call
+from ml_on_apx.logging import CallbackDecorator, log_call, log_with_callback
 from ml_on_apx.tui_common.binary_modal_question import (
     BinaryModalQuestion,
 )
@@ -29,14 +29,10 @@ Press (control + p) to view additional information.
 """
 
 _MAIN_VIEW = "main" @ _TUI
-_NEW_DS = "new_ds" @ _MAIN_VIEW
-_NEW_CALLBACK = "callback" > _NEW_DS
-_EDIT_DS = "edit_ds" @ _MAIN_VIEW
-_EDIT_CALLBACK = "callback" > _EDIT_DS
-_RENAME_DS = "rename_ds" @ _MAIN_VIEW
-_RENAME_CALLBACK = "callback" > _RENAME_DS
-_DELETE_DS = "delete_ds" @ _MAIN_VIEW
-_DELETE_CALLBACK = "callback" > _DELETE_DS
+_NEW_DS = "new" @ _MAIN_VIEW
+_EDIT_DS = "edit" @ _MAIN_VIEW
+_RENAME_DS = "rename" @ _MAIN_VIEW
+_DELETE_DS = "delete" @ _MAIN_VIEW
 
 
 class MainView(Screen[None]):
@@ -92,7 +88,6 @@ class MainView(Screen[None]):
             )
         yield Footer()
 
-    @log_call(action_type="check_action" > _MAIN_VIEW, include_args=["action"])
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
         """Check to see if an action can be performed.
 
@@ -153,14 +148,15 @@ class MainView(Screen[None]):
             title_label.content = new_name
             content_markdown.update(dataset_info.get_markdown(self._manager))
 
-    @log_call(action_type="mount" > _MAIN_VIEW)
     async def on_mount(self) -> None:
         """Finish setup of the screen once it is attached to the DOM."""
         await self.remake_dataset_list()
         self.no_selection_view()
 
     @on(Button.Pressed)
-    @log_call(action_type="button_pressed" > _MAIN_VIEW)
+    @log_call(
+        action_type="button_pressed" > _MAIN_VIEW, include_args=[], include_result=False
+    )
     async def handle_button_press(self, message: Button.Pressed) -> None:
         """Handle the Pressed event from any child button.
 
@@ -182,7 +178,9 @@ class MainView(Screen[None]):
                 self.action_recompile_dataset()
 
     @on(ListView.Selected)
-    @log_call(action_type="select_ds" > _MAIN_VIEW)
+    @log_call(
+        action_type="select_ds" > _MAIN_VIEW, include_args=[], include_result=False
+    )
     def handle_list_view_selected(self, message: ListView.Selected) -> None:
         """Handle the Selected event from the dataset list.
 
@@ -194,22 +192,22 @@ class MainView(Screen[None]):
         self.dataset_name = message.item.name
         message.stop()
 
-    @log_call(action_type=str(_NEW_DS))
-    def action_new_dataset(self) -> None:
+    @log_with_callback(action_type="new" > _MAIN_VIEW)
+    def action_new_dataset(self, callback: CallbackDecorator) -> None:
         """Process the action `new_dataset`."""
 
-        @log_call(action_type=_NEW_CALLBACK)
-        async def callback(_: None) -> None:
+        @callback
+        async def callback_new_dataset(_: None) -> None:
             await self.remake_dataset_list()
 
-        self.app.push_screen(NewEditView(self._manager), callback=callback)
+        self.app.push_screen(NewEditView(self._manager), callback=callback_new_dataset)
 
-    @log_call(action_type=str(_EDIT_DS))
-    def action_edit_dataset(self) -> None:
+    @log_with_callback(action_type="edit" > _MAIN_VIEW)
+    def action_edit_dataset(self, callback: CallbackDecorator) -> None:
         """Process the action `edit_dataset`."""
 
-        @log_call(action_type=_EDIT_CALLBACK)
-        async def callback(_: None) -> None:
+        @callback
+        async def callback_edit_dataset(_: None) -> None:
             await self.remake_dataset_list()
 
         template_name = self.dataset_name
@@ -218,15 +216,15 @@ class MainView(Screen[None]):
 
         self.app.push_screen(
             NewEditView(self._manager, template=template, template_name=template_name),
-            callback=callback,
+            callback=callback_edit_dataset,
         )
 
-    @log_call(action_type=str(_RENAME_DS))
-    def action_rename_dataset(self) -> None:
+    @log_with_callback(action_type="rename" > _MAIN_VIEW)
+    def action_rename_dataset(self, callback: CallbackDecorator) -> None:
         """Process the action `rename_dataset`."""
 
-        @log_call(action_type=_RENAME_CALLBACK)
-        async def callback(new_name: str | None) -> None:
+        @callback
+        async def callback_rename_dataset(new_name: str | None) -> None:
             if new_name == self.dataset_name:
                 self.app.notify("The dataset is already named that.")
                 return
@@ -249,15 +247,15 @@ class MainView(Screen[None]):
                 title=f"Rename dataset `{self.dataset_name}` to?",
                 subtitle="Press escape to cancel.",
             ),
-            callback=callback,
+            callback=callback_rename_dataset,
         )
 
-    @log_call(action_type=str(_DELETE_DS))
-    def action_delete_dataset(self) -> None:
+    @log_with_callback(action_type="delete" > _MAIN_VIEW)
+    def action_delete_dataset(self, callback: CallbackDecorator) -> None:
         """Process the action `delete_dataset`."""
 
-        @log_call(action_type=_DELETE_CALLBACK)
-        async def check_delete(delete: bool | None) -> None:
+        @callback
+        async def callback_delete_dataset(delete: bool | None) -> None:
             if delete:
                 assert self.dataset_name is not None
                 self._manager.delete_dataset(self.dataset_name)
@@ -268,10 +266,10 @@ class MainView(Screen[None]):
             BinaryModalQuestion(
                 Label(f"Are you sure you want to delete `{self.dataset_name}`?")
             ),
-            check_delete,
+            callback_delete_dataset,
         )
 
-    @log_call(action_type="force_recompile" > _MAIN_VIEW)
+    @log_call(action_type="force_recompile" > _MAIN_VIEW, include_result=False)
     def action_recompile_dataset(self) -> None:
         """Process the action `recompile_dataset`."""
         if self.dataset_name is None:
@@ -279,7 +277,7 @@ class MainView(Screen[None]):
         info = self._manager.get_dataset_info(self.dataset_name)
         self._manager.update_dataset(self.dataset_name, info)
 
-    @log_call(action_type="remake_ds_list" > _MAIN_VIEW)
+    @log_call(action_type="remake_ds_list" > _MAIN_VIEW, include_result=False)
     async def remake_dataset_list(self) -> None:
         """Remake and display the list of datasets shown to the user."""
         dataset_list = self.get_widget_by_id("dataset-list", ListView)
@@ -289,7 +287,7 @@ class MainView(Screen[None]):
         for dataset_name in dataset_names:
             dataset_list.append(ListItem(Label(dataset_name), name=dataset_name))
 
-    @log_call(action_type="no_ds_selected" > _MAIN_VIEW)
+    @log_call(action_type="set_default_display" > _MAIN_VIEW, include_result=False)
     def no_selection_view(self) -> None:
         """Set up the screen when no dataset is selected."""
         title = self.get_widget_by_id("dataset-name", Label)

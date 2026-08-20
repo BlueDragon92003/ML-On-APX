@@ -480,7 +480,7 @@ class NewEditView(Screen[None]):
         for child in tree_node.children:
             self.update_source_tree_selections(child)
             assert child.data is not None
-            if child.data.has_error():
+            if child.data.has_error:
                 tree_node.data.set_descendant_has_error()
         tree_node.refresh()
 
@@ -631,7 +631,7 @@ class NewEditView(Screen[None]):
 
         try:
             labeled_sources: list[tuple[Path, SourceLabel]] = list(
-                self._tree.get_labeled_sources()
+                self._tree.labeled_sources
             )
         except SourceTreeWidget.MissingLabelError as mle:
             self.app.notify(f"Source at {mle.path} has no label.", severity="error")

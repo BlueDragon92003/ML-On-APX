@@ -118,7 +118,7 @@ class ModelInfo:
         """If training stopped due to an error during stop function evaluation."""
         return self._stop_function_error
 
-    @log_call(action_type="add" > _MODEL_INFO)
+    @log_call(action_type="add" > _MODEL_INFO, include_result=False)
     def add_testing_information(self, new_test: ModelTestInfo) -> None:
         """Add information about a test run on this model.
 

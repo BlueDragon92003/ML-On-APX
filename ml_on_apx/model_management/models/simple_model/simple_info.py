@@ -62,19 +62,22 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
         self._all_features = possible_features
 
     @classmethod
+    @log_call(action_type="screen" > _SIMPLE, include_result=False)
     def screen(cls, features: list[str]) -> Screen[GroupInfo["SimpleModel"]]:
         """Create a screen to visually create a Simple Model."""
         return SimpleScreen(features)
 
+    @log_call(action_type="screen_preset" > _SIMPLE, include_result=False)
     def screen_with_presets(self) -> Screen[GroupInfo["SimpleModel"]]:
         """Create a screen with presets based on this object."""
         return SimpleScreen(self.all_features, self)
 
+    @property
     def model(self) -> "SimpleModel":
         """Get the simple model this group uses."""
         return SimpleModel(self)
 
-    @log_call(action_type="markdown" > _SIMPLE)
+    @log_call(action_type="markdown" > _SIMPLE, include_args=[])
     def get_markdown(self, manager: ModelManager) -> str:
         """Produce the markdown representation of this group."""
         out = "**_Simple model_**\n\n**Inputs**\n"
@@ -105,7 +108,7 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
         """The features available to this group."""
         return self._all_features
 
-    @log_call(action_type="enable" > _FEATURE)
+    @log_call(action_type="enable" > _FEATURE, include_result=False)
     def enable_feature(self, feature: str) -> None:
         """Set a dataset feature to be used for training or testing.
 
@@ -121,7 +124,7 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
         self._features.add(feature)
         self._input_layer_size += 1
 
-    @log_call(action_type="disable" > _FEATURE)
+    @log_call(action_type="disable" > _FEATURE, include_result=False)
     def disable_feature(self, feature: str) -> None:
         """Remove a dataset feature to be used for training or testing.
 
@@ -135,7 +138,7 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
             self._features.remove(feature)
             self._input_layer_size -= 1
 
-    @log_call(action_type="below" > _LAYER)
+    @log_call(action_type="below" > _LAYER, include_result=False)
     def insert_layer(self, activation_name: str, size: int = 1) -> None:
         """Add a layer below (closer to output) the specified layer.
 
@@ -201,7 +204,7 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
         else:
             raise IndexError()
 
-    @log_call(action_type="set" > _LAYER_ACTIVATION)
+    @log_call(action_type="set" > _LAYER_ACTIVATION, include_result=False)
     def set_output_activation(self, activation_name: str) -> None:
         """Set the activation used by the specified layer.
 
@@ -284,6 +287,7 @@ class SimpleScreen(Screen[SimpleGroupInfo]):
                 box.mount(hidden_layer, before="OutputLayerWidget")
 
     @on(LayerWidget.AddLayerMessage)
+    @log_call(action_type="add_layer" > _TUI, include_result=False)
     def handle_add_layer(self, message: LayerWidget.AddLayerMessage) -> None:
         """Add a new layer above or below the messaging layer."""
         box = self.get_child_by_id("hidden-layers", expect_type=VerticalScroll)
@@ -298,6 +302,7 @@ class SimpleScreen(Screen[SimpleGroupInfo]):
         message.stop()
 
     @on(Button.Pressed)
+    @log_call(action_type="button_pressed" > _TUI, include_result=False)
     def handle_button_press(self, message: Button.Pressed) -> None:
         """Handle a button press."""
         match message.button.name:
@@ -306,7 +311,7 @@ class SimpleScreen(Screen[SimpleGroupInfo]):
             case "save":
                 new_group_info = SimpleGroupInfo(self._features)
                 box = self.get_child_by_id("hidden-layers", expect_type=VerticalScroll)
-                for idx, child in enumerate(box.children):
+                for child in box.children:
                     match child.id:
                         case "input":
                             input_layer = cast(InputLayerWidget, child)
