@@ -20,6 +20,7 @@ from textual.widgets import (
     Static,
 )
 
+from ml_on_apx.dataset_management.dataset_manager import DatasetManager
 from ml_on_apx.logging import CallbackDecorator, log_call, log_with_callback
 from ml_on_apx.model_management import _TUI
 from ml_on_apx.model_management.app_views.model_view import ModelView
@@ -67,16 +68,24 @@ class GroupView(Screen[None]):
 
     selected_group: reactive[str | None] = reactive(None, bindings=True)
 
-    def __init__(self, manager: ModelManager, features: list[str]) -> None:
+    def __init__(
+        self,
+        model_manager: ModelManager,
+        dataset_manager: DatasetManager,
+        features: list[str],
+    ) -> None:
         """Create a new group view.
 
         Args:
-            manager (ModelManager): The manager that manages the groups and models.
-            features (liust[str]): The possible features available to the models.
+            model_manager (ModelManager): The manager that manages the groups and
+                models.
+            dataset_manager (DatasetManager): The manager that manages the dataset.
+            features (list[str]): The list of available features.
 
         """
         super(GroupView, self).__init__()
-        self._manager = manager
+        self._model_manager = model_manager
+        self._dataset_manager = dataset_manager
         self._features = features
 
     def compose(self) -> ComposeResult:
@@ -140,7 +149,7 @@ class GroupView(Screen[None]):
             str | None: The actual value that should be set.
 
         """
-        valid = self._manager.group_names
+        valid = self._model_manager.group_names
         if new_name not in valid:
             new_name = None
         return new_name
@@ -163,10 +172,10 @@ class GroupView(Screen[None]):
             title_label = self.get_widget_by_id("group-name", Label)
 
             content_markdown = self.get_widget_by_id("group-info-box", Markdown)
-            group_info = self._manager.get_group_info(new_name)
+            group_info = self._model_manager.get_group_info(new_name)
 
             title_label.content = new_name
-            content_markdown.update(group_info.get_markdown(self._manager))
+            content_markdown.update(group_info.get_markdown(self._model_manager))
 
     @on(Button.Pressed)
     @log_call(
@@ -212,7 +221,7 @@ class GroupView(Screen[None]):
         """Remake and display the list of groups shown to the user."""
         group_list = self.get_widget_by_id("group-list", ListView)
         await group_list.clear()
-        group_names = list(self._manager.group_names)
+        group_names = list(self._model_manager.group_names)
         group_names.sort()
         for group_name in group_names:
             group_list.append(ListItem(Label(group_name), name=group_name))
@@ -258,7 +267,7 @@ class GroupView(Screen[None]):
         async def callback_rename_group(name: str | None) -> None:
             if name:
                 assert self.selected_group is not None
-                self._manager.rename_group(self.selected_group, name)
+                self._model_manager.rename_group(self.selected_group, name)
                 self.selected_group = name
                 await self.remake_group_list()
 
@@ -278,7 +287,7 @@ class GroupView(Screen[None]):
         async def callback_delete_group(delete: bool | None) -> None:
             if delete:
                 assert self.selected_group is not None
-                self._manager.delete_group(self.selected_group)
+                self._model_manager.delete_group(self.selected_group)
                 self.selected_group = None
                 await self.remake_group_list()
 
@@ -303,7 +312,10 @@ class GroupView(Screen[None]):
 
         if self.selected_group is not None:
             self.app.push_screen(
-                ModelView(self.selected_group, self._manager), callback=close
+                ModelView(
+                    self.selected_group, self._model_manager, self._dataset_manager
+                ),
+                callback=close,
             )
 
     @log_with_callback(action_type="write_new" > _GROUP_VIEW)
@@ -313,7 +325,7 @@ class GroupView(Screen[None]):
         @callback
         async def callback_write_group(name: str | None) -> None:
             if name:
-                self._manager.create_group(name, group)
+                self._model_manager.create_group(name, group)
                 await self.remake_group_list()
 
         self.app.push_screen(

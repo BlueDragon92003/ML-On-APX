@@ -8,6 +8,7 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.widgets import Label
 
+from ml_on_apx.dataset_management.dataset_manager import DatasetManager
 from ml_on_apx.logging import CallbackDecorator, log_call, log_with_callback
 from ml_on_apx.model_management import _APP, _TUI
 from ml_on_apx.model_management.app_views.group_view import GroupView
@@ -28,17 +29,25 @@ class ModelManagerApp(App):
         "../tui_common/common.tcss",
     ]
 
-    def __init__(self, active_model_manager: ModelManager, features: list[str]) -> None:
+    def __init__(
+        self,
+        active_model_manager: ModelManager,
+        active_dataset_manager: DatasetManager,
+        features: list[str],
+    ) -> None:
         """Create a new Dataset Manager App.
 
         Args:
             active_model_manager (ModelManager): The model manager this app will
                 use to manage models.
+            active_dataset_manager (DatasetManager): The dataset manager this app will
+                use to read info from datasets.
             features (list[str]): The possible features available to the models.
 
         """
         super().__init__()
-        self._manager = active_model_manager
+        self._model_manager = active_model_manager
+        self._dataset_manager = active_dataset_manager
         self._features = features
 
     def compose(self) -> ComposeResult:
@@ -56,7 +65,9 @@ class ModelManagerApp(App):
     async def on_mount(self) -> None:
         """Finish setup of the screen once it is attached to the DOM."""
         self.theme = "gruvbox"
-        self.push_screen(GroupView(self._manager, self._features))
+        self.push_screen(
+            GroupView(self._model_manager, self._dataset_manager, self._features)
+        )
 
     @log_with_callback(action_type="quit" > _APP)
     def action_show_quit_screen(self, callback: CallbackDecorator) -> None:
@@ -75,6 +86,7 @@ class ModelManagerApp(App):
 @log_call(action_type="start" > _TUI, include_result=False)
 def main(
     model_dir: Path,
+    dataset_dir: Path,
     mode: Mode,
 ) -> None:
     """Run the dataset manager app.
@@ -94,6 +106,8 @@ def main(
     #     for name in data_manager.dataset_names:
     #         datasets.append(data_manager.get_dataset_info(name))
 
-    with ModelManager(model_dir, mode) as manager:
-        app = ModelManagerApp(manager, mode.features)
-        app.run()
+    with ModelManager(model_dir, mode) as model_manager:
+        with DatasetManager(dataset_dir, mode, mode.dataset_class) as data_manager:
+            app = ModelManagerApp(model_manager, data_manager, mode.features)
+            app.run()
+        print(model_manager.training_job)

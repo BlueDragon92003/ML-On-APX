@@ -20,9 +20,12 @@ from textual.widgets import (
 )
 from textual.widgets import Label as TuiLabel
 
+from ml_on_apx.dataset_management.dataset_manager import DatasetManager
 from ml_on_apx.logging import CallbackDecorator, log_call, log_with_callback
 from ml_on_apx.model_management import _TUI
+from ml_on_apx.model_management.app_views.new_group_screen import NewGroupScreen
 from ml_on_apx.model_management.model_manager import ModelManager
+from ml_on_apx.model_management.training_job import TrainingJob
 from ml_on_apx.tui_common.binary_modal_question import BinaryModalQuestion
 from ml_on_apx.tui_common.get_string_question import GetStringQuestion
 
@@ -64,11 +67,17 @@ class ModelView(Screen[None]):
 
     selected_model: reactive[str | None] = reactive(None)
 
-    def __init__(self, group_name: str, manager: ModelManager) -> None:
+    def __init__(
+        self,
+        group_name: str,
+        model_manager: ModelManager,
+        dataset_manager: DatasetManager,
+    ) -> None:
         """Create a new ModelView."""
         super(ModelView, self).__init__()
         self._group_name = group_name
-        self._manager = manager
+        self._model_manager = model_manager
+        self._dataset_manager = dataset_manager
 
     def compose(self) -> ComposeResult:
         """Build the screen from its component widgets."""
@@ -107,7 +116,7 @@ class ModelView(Screen[None]):
 
     def validate_selected_model(self, new_name: str | None) -> str | None:
         """Validate new values for the reactive component `selected_model`."""
-        valid = self._manager.get_model_names(self._group_name)
+        valid = self._model_manager.get_model_names(self._group_name)
         if new_name not in valid:
             new_name = None
         return new_name
@@ -117,7 +126,7 @@ class ModelView(Screen[None]):
         if new_val is None:
             self.no_model_selected()
         else:
-            model_info = self._manager.get_model_info(self._group_name, new_val)
+            model_info = self._model_manager.get_model_info(self._group_name, new_val)
 
             self.get_widget_by_id("control-buttons").display = True
             self.get_widget_by_id("test-box").display = True
@@ -140,10 +149,28 @@ class ModelView(Screen[None]):
         self.dismiss()
 
     @on(Button.Pressed, "#new-model-button")
-    @log_call(action_type="train" > _MODEL_VIEW, include_args=[], include_result=False)
-    def action_train_model(self, message: Button.Pressed | None = None) -> None:
+    @log_with_callback(action_type="train" > _MODEL_VIEW, include_caller_args=[])
+    def action_train_model(
+        self, callback: CallbackDecorator, message: Button.Pressed | None = None
+    ) -> None:
         """Set the TrainingJob."""
-        # TODO training_job_screen
+
+        @callback
+        async def callback_train(job: TrainingJob | None) -> None:
+            if job is None:
+                self.app.notify("Job discarded.")
+            else:
+                self._model_manager.training_job = job
+                self.app.notify("Set trianing job.")
+
+        self.app.push_screen(
+            NewGroupScreen(
+                list(self._dataset_manager.dataset_names),
+                self._model_manager.get_model_names(self._group_name),
+                self._group_name,
+            ),
+            callback=callback_train,
+        )
 
     @on(Button.Pressed, "#rename-model-button")
     @log_with_callback(
@@ -159,7 +186,7 @@ class ModelView(Screen[None]):
         async def callback_rename(new_name: str | None) -> None:
             if new_name and self.selected_model is not None:
                 # TODO static model name validation
-                self._manager.rename_model(
+                self._model_manager.rename_model(
                     self._group_name, self.selected_model, new_name
                 )
                 await self.remake_model_list()
@@ -183,7 +210,7 @@ class ModelView(Screen[None]):
         @callback
         async def callback_delete_model(sentinal: bool | None) -> None:
             if sentinal and self.selected_model is not None:
-                self._manager.delete_model(self._group_name, self.selected_model)
+                self._model_manager.delete_model(self._group_name, self.selected_model)
                 await self.remake_model_list()
                 self.selected_model = None
 
@@ -210,7 +237,7 @@ class ModelView(Screen[None]):
         """Reconstruct the model list."""
         model_list = self.get_widget_by_id("model-list", ListView)
         await model_list.clear()
-        group_names = list(self._manager.get_model_names(self._group_name))
+        group_names = list(self._model_manager.get_model_names(self._group_name))
         group_names.sort()
         for group_name in group_names:
             model_list.append(ListItem(TuiLabel(group_name), name=group_name))

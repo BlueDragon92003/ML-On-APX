@@ -7,9 +7,6 @@ from pathlib import Path
 import ml_on_apx.cluster_classification.main
 import ml_on_apx.dataset_management.app
 import ml_on_apx.model_management.app
-from ml_on_apx.cluster_classification.cluster_classification_dataset import (
-    ClusterClassificationDataset,
-)
 from ml_on_apx.logging import Namespace, initialize_file_logging, log_call
 from ml_on_apx.modes import Mode
 
@@ -210,20 +207,14 @@ def main() -> int:
                             print("`train identification` not yet implemeneted")
                             return 0
                 case subcommand if subcommand == SUBCOMMAND_MNG_DATA:
-                    match mode:
-                        case m if m == Mode.Classification:
-                            dataset_class = ClusterClassificationDataset
-                        case m if m == Mode.Identification:
-                            print("`manage identification data` not yet implemented")
-                            return 0
                     ml_on_apx.dataset_management.app.main(
                         data_dir,
                         mode,
-                        dataset_class,
+                        mode.dataset_class,
                     )
                     return 0
                 case subcommand if subcommand == SUBCOMMAND_MNG_MODEL:
-                    ml_on_apx.model_management.app.main(model_dir, mode)
+                    ml_on_apx.model_management.app.main(model_dir, data_dir, mode)
                 case _:
                     argparser.print_help()
                     return 1
