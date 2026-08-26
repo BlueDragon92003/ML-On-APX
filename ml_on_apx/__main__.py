@@ -198,8 +198,6 @@ def main() -> int:
                 case subcommand if subcommand == SUBCOMMAND_TRAIN:
                     match mode:
                         case mode if mode is Mode.Classification:
-                            print("`train classification` not yet implemeneted")
-                            return 0
                             ml_on_apx.cluster_classification.main.main(
                                 data_dir, model_dir
                             )

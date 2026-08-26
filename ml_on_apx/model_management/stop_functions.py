@@ -255,8 +255,8 @@ class StopFunction:
 
         """
         globals = []
-        for entry in kwargs.items():
-            globals.append(entry)
+        for key, val in kwargs.items():
+            globals.append((key.upper(), val))
         return globals
 
     # Very simple lexer, split by parens and whitespace

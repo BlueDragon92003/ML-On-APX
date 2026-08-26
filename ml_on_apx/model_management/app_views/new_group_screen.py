@@ -112,7 +112,7 @@ class NewGroupScreen(Screen[TrainingJob]):
         with HorizontalGroup():
             yield TuiLabel("Learning rate: ")
             yield Input(
-                value="10",
+                value="1e-4",
                 validators=[
                     Number(
                         minimum=5e-324,

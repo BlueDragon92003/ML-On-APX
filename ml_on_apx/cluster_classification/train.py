@@ -40,8 +40,8 @@ def train_loop(
 
     for _batch_num, batch_items in enumerate(dataloader):
         # Move data to GPU
-        data = batch_items[:, :-1].to(device)
-        labels = batch_items[:, -1].to(device).type(torch.long)
+        data = batch_items[:, :-1][0].to(device)
+        labels = batch_items[:, -1][0].to(device).type(torch.long)
         # Run the model and calculate loss for all items in the batch
         pred = model(data)
         loss = loss_fn(pred, labels)

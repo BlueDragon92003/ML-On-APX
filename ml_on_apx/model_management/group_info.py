@@ -10,6 +10,7 @@ import torch.nn
 from textual.screen import Screen
 from torch import nn
 
+from ml_on_apx.labelling import Labels
 from ml_on_apx.logging import log_call
 from ml_on_apx.model_management import _MODEL
 
@@ -128,4 +129,9 @@ class GroupInfo(ABC, Generic[T]):
     @abstractmethod
     def get_markdown(self, manager: ModelManager) -> str:
         """Generate markdown about the ML model this group uses."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_labels(self, manager: ModelManager) -> Labels:
+        """Get the labels this group uses."""
         raise NotImplementedError

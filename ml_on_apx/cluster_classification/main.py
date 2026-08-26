@@ -1,128 +1,146 @@
 """Implements the testing-training loop for a cluster classification model."""
 
-import os
+from datetime import datetime
+from pathlib import Path
 
-import numpy as np
 import torch
 from torch import nn
+from torch.utils.data import DataLoader
 
 from ml_on_apx.cluster_classification import _CLASS
+from ml_on_apx.cluster_classification.cluster_classification_dataset import (
+    ClusterClassificationDataset,
+)
 from ml_on_apx.cluster_classification.test import test_loop
 from ml_on_apx.cluster_classification.train import train_loop
+from ml_on_apx.dataset_management.dataset_manager import DatasetManager
 from ml_on_apx.logging import log_call
+from ml_on_apx.model_management.model_info import ModelInfo
+from ml_on_apx.model_management.model_manager import ModelManager
+from ml_on_apx.model_management.stop_functions import StopFunction
+from ml_on_apx.modes import Mode
 
 _MAIN = "main" @ _CLASS
 
 
 @log_call(action_type="main" > _MAIN, include_result=False)
-def main() -> None:
-    """Trains a cluster classification model.
+def main(data_dir: Path, model_dir: Path) -> None:  # noqa: PLR0915
+    """Train a cluster classification model."""
+    start_date = datetime.today()
 
-    Raises:
-        NotImplementedError: We're not done rebuilding it yet.
+    with ModelManager(model_dir, Mode.Classification) as manager:
+        job = manager.training_job
+        if job is None:
+            print("No job set!")
+            return
+        group = manager.get_group_info(job.group_name)
+        if job.base_model_name:
+            model = manager.get_model(job.group_name, job.base_model_name)
+        else:
+            model = group.model()
 
-    """
-    raise NotImplementedError("Must be redone")
-    # After how many epochs should a checkpoint be made?
-    # CHECKPOINT_RATE = 10
-    # If accuracy growth falls below this value, stop training early
-    # GROWTH_THRESHOLD = [0.0001 for _ in range(3)]
-    # If accuracy reaches this this threshold, then stop training.
-    # STOP_THRESHOLD = 0.85
-    # Learning rate of the model.
-    # LEARNING_RATE = 1e-4
-    # How many data points to analyze in a batch.
-    # BATCH_SIZE = 1
+        with DatasetManager(
+            data_dir, Mode.Classification, Mode.Classification.dataset_class
+        ) as data_manager:
+            training_data = data_manager.get_dataset(job.dataset)
+            if job.testing_dataset is None:
+                testing_data = training_data
+            else:
+                testing_data = data_manager.get_dataset(job.testing_dataset)
 
-    temp = 2
+        assert type(training_data) is ClusterClassificationDataset
+        # manager.training_job = None
 
-    # Instantiate a Model object:
-    model = None  # Model()
+        acc_ls: list[float] = []
+        loss_ls: list[float] = []
+        epoch_ls: list[float] = []
 
-    # Set device
-    current_device = torch.accelerator.current_accelerator(check_available=True)
-    if current_device is not None:
-        device = current_device
-    else:
-        device = torch.device("cpu")
+        weights = torch.tensor(
+            [
+                (
+                    training_data.size_per_label[i]
+                    if i in training_data.size_per_label.keys()
+                    else 1
+                )
+                for i in range(len(group.get_labels(manager)))
+            ],
+            dtype=torch.float,
+        )
 
-    # logger.log_notice(f"Using {device.type} device")
+        training_data_loader = DataLoader(training_data)
+        testing_data_loader = DataLoader(testing_data)
 
-    # Collect data
-    # logger.log_start_major_process("load_training_data")
-    training_data, weights = temp, temp
-    # get_data(
-    #     DatasourceType.TRAINING, current_device, BATCH_SIZE
-    # )
-    # logger.log_end_major_process("load_training_data")
+        # Set device
+        current_device = torch.accelerator.current_accelerator(check_available=True)
+        if current_device is not None:
+            device = current_device
+        else:
+            device = torch.device("cpu")
 
-    # logger.log_start_major_process("load_testing_data")
-    testing_data, _ = (
-        temp,
-        temp,
-    )  # get_data(DatasourceType.TESTING, current_device, BATCH_SIZE)
-    # logger.log_end_major_process("load_testing_data")
+        # Set loss function
+        loss_fn = nn.CrossEntropyLoss(weight=weights)
+        loss_fn.to(device)
 
-    # Set loss function
-    loss_fn = nn.CrossEntropyLoss(weight=weights)
-    loss_fn.to(device)
+        # Stochastic Gradient Descent & Learn rate
+        optimizer = torch.optim.SGD(model.parameters(), lr=job.learning_rate)
 
-    # Stochastic Gradient Descent
-    optimizer = torch.optim.SGD(model.parameters(), lr=temp)  # Learn rate
+        sentinal = True
+        epoch = 0
+        # Epoch loop
+        # logger.log_start_major_process("train_test_loop")
+        # logger.log_preloop("epoch_while_loop")
+        while sentinal:
+            # logger.log_iteration_head(Epoch=epoch)
+            # logger.log_start_minor_process("training")
+            # Run through the training data once
+            train_loop(device, training_data_loader, model, loss_fn, optimizer)
+            # logger.log_end_minor_process("training")
 
-    last_acc = 0.0
-    growth = [np.inf for _ in range(len(temp))]  # Growth thresh
-    sentinal = True
-    epoch = 0
-    # Epoch loop
-    # logger.log_start_major_process("train_test_loop")
-    # logger.log_preloop("epoch_while_loop")
-    while sentinal:
-        # logger.log_iteration_head(Epoch=epoch)
-        # logger.log_start_minor_process("training")
-        # Run through the training data once
-        train_loop(device, training_data, model, loss_fn, optimizer)
-        # logger.log_end_minor_process("training")
+            # logger.log_start_minor_process("testing")
+            # Run through the testing data once and evaluate the model's accuracy
+            acc, loss = test_loop(device, testing_data_loader, model, loss_fn)
+            # logger.log_end_minor_process("testing")
 
-        # logger.log_start_minor_process("testing")
-        # Run through the testing data once and evaluate the model's accuracy
-        acc, _string = test_loop(device, testing_data, model, loss_fn)
-        # logger.log_end_minor_process("testing")
+            # If the epoch is a checpoint epoch,
+            if epoch % job.checkpoint_rate == 0:  # checkpoint rate
+                print(f"Checkpoint! (acc: {acc}, loss: {loss}, epoch: {epoch})")
 
-        # If the epoch is a checpoint epoch,
-        if epoch % temp == 0:  # checkpoint rate
-            # logger.log_notice(
-            #     "Checkpoint reached",
-            #     checkpoint=(epoch // temp),  # chkpt rate
-            #     status=string,
-            # )
-            # save the model as a checkpoint
-            torch.save(
-                model,
-                # checkpoint rate
-                f"./models/classification/checkpoint-{(epoch // temp):>05d}.pth",
-            )
-            if acc > temp:  # stop thresh
-                # If the accuracy is hight enough, exit training
-                # logger.log_notice(f"Accuracy threshold reached: {acc}")
-                sentinal = False
+                acc_ls.append(acc)
+                loss_ls.append(loss)
+                epoch_ls.append(float(epoch))
 
-            growth.pop()
-            growth.append(acc - last_acc)
-            if np.all(np.array(growth) < temp):  # growth thresh
-                # If the accuacy has not grown appreciably since last test, exit
-                # training
-                # logger.log_notice(f"Accuracy growth limit reached: {acc - last_acc}")
-                sentinal = False
+                acc_ls = acc_ls[-(job.lookback_distance) :]
 
-            last_acc = acc
-        epoch = epoch + 1
-    #     logger.log_iteration_tail()
-    # logger.log_postloop("epoch_while_loop")
-    # logger.log_end_major_process("train_test_loop")
+                try:
+                    result = job.stop_function(
+                        ACC=list(reversed(acc_ls)),
+                        LOSS=list(reversed(loss_ls)),
+                        EPOCH=list(reversed(epoch_ls)),
+                    )
+                except StopFunction.EvaluationError as e:
+                    print(f"An error occurred in evaluation:\n{type(e)}\t{e.args}")
+                    error = e
+                    sentinal = False
+                else:
+                    error = None
+                    sentinal = not result
 
-    # Softlink the last checkpoint
-    os.symlink(
-        f"checkpoint-{(epoch // temp):>05d}-classification.pth",  # checkpoint rate
-        "current-classification.pth",
-    )
+                (
+                    manager.create_model(
+                        job.group_name,
+                        f"~checkpoint-{start_date.isoformat}"
+                        f"-{epoch // job.checkpoint_rate}",
+                        ModelInfo(
+                            start_date=start_date,
+                            fork_time=datetime.now(),
+                            group=job.group_name,
+                            training_dataset=job.dataset,
+                            stop_function_errored=error,
+                        ),
+                        model,
+                    ),
+                )
+
+                print()
+
+            epoch = epoch + 1

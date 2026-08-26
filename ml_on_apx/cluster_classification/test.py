@@ -54,11 +54,11 @@ def test_loop(
         for cluster in dataloader:
             # logger.log_iteration_head(cluster=cluster)
             # Move data to GPU
-            data = cluster[:, :-1].to(device)
-            label = cluster[:, -1].to(device).type(torch.long)
+            data = cluster[:, :-1][0].to(device)
+            label = cluster[:, -1][0].to(device).type(torch.long)
             pred = model(data)
             test_loss += loss_fn(pred, label).item()
-            correct += (pred.argmax(1) == label).type(torch.float).sum().item()
+            correct += (pred.argmax(0) == label).type(torch.float).sum().item()
         #     logger.log_iteration_tail()
         # logger.log_postloop("testing_for_loop")
 
