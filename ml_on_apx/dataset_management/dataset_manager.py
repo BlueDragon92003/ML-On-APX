@@ -1,6 +1,7 @@
 """Manages the dataset pickles and which datasets are available."""
 
 import pickle
+import shutil
 from pathlib import Path
 from typing import ClassVar, Dict, Generic, List, Set, Type, TypeVar
 
@@ -242,7 +243,7 @@ class DatasetManager(Generic[ManagedDataset]):
             raise ValueError()
         path = self._get_dataset_path(dataset_name)
         if path.exists():
-            path.move(self._get_dataset_path(new_name))
+            shutil.move(path, self._get_dataset_path(new_name))
         info = self._set_info.pop(dataset_name)
         self._set_info[new_name] = info
         if dataset_name in self._to_recompile:
