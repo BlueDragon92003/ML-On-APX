@@ -47,7 +47,7 @@ _MODEL_VIEW = "model" @ _TUI
 DEFAULT_MESSAGE = """Select a model from the list to the left, or press the
 button to create a new one.
 
-Press (control + p) to open the commande palette.
+Press (control + p) to open the command palette.
 """
 
 
@@ -135,13 +135,13 @@ class ModelView(Screen[None]):
 
     @on(Button.Pressed, "#return-button")
     @log_call(action_type="back" > _MODEL_VIEW, include_args=[], include_result=False)
-    def back_to_group_view(self, message: Button.Pressed | None = None) -> None:
+    def action_back(self, message: Button.Pressed | None = None) -> None:
         """Return to the group view."""
         self.dismiss()
 
     @on(Button.Pressed, "#new-model-button")
     @log_call(action_type="train" > _MODEL_VIEW, include_args=[], include_result=False)
-    def train_new_model(self, message: Button.Pressed | None = None) -> None:
+    def action_train_model(self, message: Button.Pressed | None = None) -> None:
         """Set the TrainingJob."""
         # TODO training_job_screen
 
@@ -150,7 +150,7 @@ class ModelView(Screen[None]):
         action_type="rename" > _MODEL_VIEW,
         include_caller_args=[],
     )
-    def rename_model(
+    def action_rename_model(
         self, callback: CallbackDecorator, message: Button.Pressed | None = None
     ) -> None:
         """Rename the current Model."""
@@ -168,14 +168,14 @@ class ModelView(Screen[None]):
         self.app.push_screen(
             GetStringQuestion(
                 title=f"Rename {self.selected_model} to?"
-                # TODOvalidator=
+                # validator=
             ),
             callback=callback_rename,
         )
 
     @on(Button.Pressed, "#delete-model-button")
     @log_with_callback(action_type="delete" > _MODEL_VIEW, include_caller_args=[])
-    def delete_model(
+    def action_delete_model(
         self, callback: CallbackDecorator, message: Button.Pressed | None = None
     ) -> None:
         """Delete the current Model."""
@@ -194,7 +194,7 @@ class ModelView(Screen[None]):
 
     @on(Button.Pressed, "#run-test-button")
     @log_call(action_type="test" > _MODEL_VIEW, include_args=[], include_result=False)
-    def run_test(self, message: Button.Pressed | None = None) -> None:
+    def action_test_model(self, message: Button.Pressed | None = None) -> None:
         """Set the TestingJob."""
         # TODO testing_job_screen
 

@@ -48,15 +48,10 @@ from ml_on_apx.tui_common.list_select_question import ListSelectQuestion
 
 _GROUP_VIEW = "group" @ _TUI
 
-_NEW_GROUP = "new" > _GROUP_VIEW  # TODO Clean up
-_WRITE_GROUP = "write_new" > _GROUP_VIEW
-_DELETE_GROUP = "del" > _GROUP_VIEW
-_RENAME_GROUP = "rename" > _GROUP_VIEW
-
 DEFAULT_MESSAGE = """Select a group from the list to the left, or press the
 button to create a new one.
 
-Press (control + p) to open the commande palette.
+Press (control + p) to open the command palette.
 """
 
 
@@ -103,15 +98,14 @@ class GroupView(Screen[None]):
             yield Label("", classes="title", id="group-name")
             with HorizontalGroup(id="control-buttons"):
                 # TODO New with this as preset
-                yield Button("Manage", id="view-group-button")
+                yield Button("Manage", id="manage-group-button")
                 yield Button("Rename", id="rename-group-button")
                 yield Button("Delete", variant="error", id="delete-group-button")
             yield Markdown(id="group-info-box")
-            with VerticalGroup(id="model-list"):
+            with VerticalGroup(id="model-box"):
                 yield Rule()
                 yield Label("Models:", classes="title", id="models-label")
-                # TODO target for models to be placed under so it can be intellegently
-                #   cleared
+                yield VerticalGroup(id="model-list")
 
     async def on_mount(self) -> None:
         """Finish setup of the screen once it is attached to the DOM."""
@@ -162,7 +156,7 @@ class GroupView(Screen[None]):
             self.no_selection_view()
         else:
             control_buttons = self.get_widget_by_id("control-buttons")
-            model_list = self.get_widget_by_id("model-list")
+            model_list = self.get_widget_by_id("model-box")
             control_buttons.display = True
             model_list.display = True
 
@@ -229,7 +223,7 @@ class GroupView(Screen[None]):
         title = self.get_widget_by_id("group-name", Label)
         button_group = self.get_widget_by_id("control-buttons")
         markdown = self.get_widget_by_id("group-info-box", Markdown)
-        models = self.get_widget_by_id("model-list")
+        models = self.get_widget_by_id("model-box")
 
         button_group.display = False
         models.display = False
@@ -237,7 +231,7 @@ class GroupView(Screen[None]):
         title.content = "Group Management"
         markdown.update(DEFAULT_MESSAGE)
 
-    @log_with_callback(action_type=_NEW_GROUP)
+    @log_with_callback(action_type="new" > _GROUP_VIEW)
     def action_new_group(self, callback: CallbackDecorator) -> None:
         """Create a new group."""
 
@@ -256,7 +250,7 @@ class GroupView(Screen[None]):
             callback=callback_new_group_type,
         )
 
-    @log_with_callback(action_type=_RENAME_GROUP)
+    @log_with_callback(action_type="rename" > _GROUP_VIEW)
     def action_rename_group(self, callback: CallbackDecorator) -> None:
         """Rename a group."""
 
@@ -276,7 +270,7 @@ class GroupView(Screen[None]):
             callback=callback_rename_group,
         )
 
-    @log_with_callback(action_type=_DELETE_GROUP)
+    @log_with_callback(action_type="del" > _GROUP_VIEW)
     def action_delete_group(self, callback: CallbackDecorator) -> None:
         """Delete a group and all of its models."""
 
@@ -304,7 +298,7 @@ class GroupView(Screen[None]):
         """Manage the models within a group."""
 
         @callback
-        async def close() -> None:
+        async def close(_none: None) -> None:
             pass
 
         if self.selected_group is not None:
@@ -312,7 +306,7 @@ class GroupView(Screen[None]):
                 ModelView(self.selected_group, self._manager), callback=close
             )
 
-    @log_with_callback(action_type=str(_WRITE_GROUP))
+    @log_with_callback(action_type="write_new" > _GROUP_VIEW)
     def write_group(self, callback: CallbackDecorator, group: GroupInfo) -> None:
         """Save a group with the manager."""
 
