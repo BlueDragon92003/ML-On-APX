@@ -1,6 +1,7 @@
 """Manages models and model groups."""
 
 import pickle
+import shutil
 from pathlib import Path
 
 import torch
@@ -212,7 +213,7 @@ class ModelManager:
         self._group_infos.update({new_name: group_info})
 
         path = self.get_group_path(group_name)
-        path.move(self.get_group_path(new_name))
+        shutil.move(path, self.get_group_path(new_name))
 
     @log_call(action_type="name" > _GROUP, include_result=False)
     def delete_group(self, group_name: str) -> None:
@@ -358,7 +359,7 @@ class ModelManager:
         info = self._model_infos[group_name].pop(model_name)
         self._model_infos[group_name].update({new_name: info})
         path = self.get_model_path(group_name, model_name)
-        path.move(self.get_model_path(group_name, new_name))
+        shutil.move(path, self.get_model_path(group_name, new_name))
 
     @log_call(action_type="delete" > _M_MODEL, include_result=False)
     def delete_model(self, group_name: str, model_name: str) -> None:

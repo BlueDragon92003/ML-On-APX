@@ -118,8 +118,8 @@ class TestDatasetManager(
         self.set_up_dataset_pickles()
         for i in range(5):
             (self.sets_path / f"{i}.filetype")
-        expected = list(self.dataset_infos.keys())
-        result = self.manager._datasets_in_dir(self.sets_path)
+        expected = sorted(self.dataset_infos.keys())
+        result = sorted(self.manager._datasets_in_dir(self.sets_path))
         self.assertEqual(expected, result)
 
     def test_dataset_manager__recompile_dataset(self) -> None:

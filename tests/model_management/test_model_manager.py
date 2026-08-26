@@ -238,7 +238,7 @@ class TestsModelManager(
             path.rmdir()
             path.touch()
         with ModelManager(self.models_path, Mode.Testing) as manager:
-            self.assertEqual(valid_group_names, manager.group_names)
+            self.assertEqual(sorted(valid_group_names), sorted(manager.group_names))
 
     # Filters out missing group info
     def test_model_manager__enter__filter_missing_group_info(self) -> None:
@@ -251,7 +251,7 @@ class TestsModelManager(
             path = self.mode_path / group_name / ModelManager.GROUP_INFO_FILE
             path.unlink()
         with ModelManager(self.models_path, Mode.Testing) as manager:
-            self.assertEqual(valid_group_names, manager.group_names)
+            self.assertEqual(sorted(valid_group_names), sorted(manager.group_names))
 
     # Filters out missing model info
     def test_model_manager__enter__filter_missing_model_infos(self) -> None:
@@ -289,7 +289,9 @@ class TestsModelManager(
             )
             (self.mode_path / group / (name + ModelManager.PYTORCH_SUFFIX)).unlink()
         with ModelManager(self.models_path, Mode.Testing) as manager:
-            self.assertEqual(valid_model_names, manager.get_model_names(group))
+            self.assertEqual(
+                sorted(valid_model_names), sorted(manager.get_model_names(group))
+            )
 
     # ========================================================================
     #                               CREATE GROUP
