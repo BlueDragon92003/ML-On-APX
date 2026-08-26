@@ -14,7 +14,7 @@ from torch import nn
 from ml_on_apx.labelling import Labels
 from ml_on_apx.model_management.model_info import ModelInfo
 from ml_on_apx.model_management.model_manager import ModelManager
-from ml_on_apx.model_management.models.simple_model.simple_info import SimpleGroupInfo
+from ml_on_apx.model_management.models.simple_model.simple_model import SimpleGroupInfo
 from ml_on_apx.model_management.stop_functions import StopFunction
 from ml_on_apx.model_management.testing_job import TestingJob
 from ml_on_apx.model_management.training_job import TrainingJob

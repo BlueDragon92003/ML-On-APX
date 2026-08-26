@@ -49,7 +49,7 @@ def main(data_dir: Path, model_dir: Path) -> None:  # noqa: PLR0915
                 testing_data = data_manager.get_dataset(job.testing_dataset)
 
         assert type(training_data) is ClusterClassificationDataset
-        # manager.training_job = None
+        # TODO manager.training_job = None
 
         acc_ls: list[float] = []
         loss_ls: list[float] = []

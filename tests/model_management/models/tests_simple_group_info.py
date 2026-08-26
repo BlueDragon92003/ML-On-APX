@@ -3,7 +3,7 @@
 import unittest
 
 from ml_on_apx.labelling import Labels
-from ml_on_apx.model_management.models.simple_model.simple_info import (
+from ml_on_apx.model_management.models.simple_model.simple_model import (
     InputLayerNoActivationError,
     SimpleGroupInfo,
 )

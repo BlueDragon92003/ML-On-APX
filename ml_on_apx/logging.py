@@ -6,8 +6,7 @@ import re
 from functools import cmp_to_key
 from inspect import signature
 from pathlib import Path
-from types import CoroutineType
-from typing import Any, Callable, Concatenate, Iterable, ParamSpec, TypeVar
+from typing import Awaitable, Callable, Concatenate, Iterable, ParamSpec, TypeVar
 
 import eliot
 from eliot import start_action
@@ -18,8 +17,8 @@ _Q = ParamSpec("_Q")
 _S = TypeVar("_S")
 
 CallbackDecorator = Callable[
-    [Callable[_Q, CoroutineType[Any, Any, None]]],
-    Callable[_Q, CoroutineType[Any, Any, None]],
+    [Callable[_Q, Awaitable[None]]],
+    Callable[_Q, Awaitable[None]],
 ]
 
 
@@ -140,8 +139,8 @@ def log_with_callback(
             action = start_action(action_type=action_type, **caller_args)
 
             def callback_decorator(
-                callback: Callable[_Q, CoroutineType[Any, Any, None]],
-            ) -> Callable[_Q, CoroutineType[Any, Any, None]]:
+                callback: Callable[_Q, Awaitable[None]],
+            ) -> Callable[_Q, Awaitable[None]]:
                 callback_signature = signature(callback)
                 if (include_callback_args is not None) and (
                     extra := set(include_callback_args)
