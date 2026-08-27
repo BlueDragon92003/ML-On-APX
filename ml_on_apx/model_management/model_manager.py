@@ -83,7 +83,7 @@ class ModelManager:
         # Read Jobs
         if self._jobs_path.exists():
             with open(self._jobs_path, mode="rb") as file:
-                self._training_job, self.testing_job = pickle.load(file)
+                self._training_job, self._testing_job = pickle.load(file)
         # For each folder:
         if not self._models_path.exists():
             # TODO test for making missing dir
@@ -303,7 +303,10 @@ class ModelManager:
             raise self.GroupLookupError()
         if model_name not in self._model_infos[group_name].keys():
             raise self.ModelLookupError()
-        return torch.load(self.get_model_path(group_name, model_name))
+        # TODO see if you can get it to be safe...
+        return torch.load(
+            self.get_model_path(group_name, model_name), weights_only=False
+        )
 
     @log_call(
         action_type="create" > _M_MODEL,

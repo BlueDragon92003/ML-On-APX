@@ -87,13 +87,13 @@ def get_parser() -> argparse.ArgumentParser:
         choices=MODES,
         help="Specify whether to run the job set for classification or identification.",
     )
-    (
-        train_parser.add_argument(
-            "--tui",
-            action=argparse.BooleanOptionalAction,
-            default=True,
-            help="Enable or disable the TUI. (Default: enabled)",
-        ),
+
+    test_parser = subparsers.add_parser("test")
+    test_parser.set_defaults(subcommand=SUBCOMMAND_TEST)
+    test_parser.add_argument(
+        "mode",
+        choices=MODES,
+        help="Specify whether to run the job set for classification or identification.",
     )
 
     manage_parser = subparsers.add_parser("manage")
@@ -211,8 +211,8 @@ def main() -> int:
                 case subcommand if subcommand == SUBCOMMAND_TEST:
                     match mode:
                         case Mode.Classification:
-                            ml_on_apx.cluster_classification.main.train(
-                                model_dir, data_dir
+                            ml_on_apx.cluster_classification.main.test(
+                                data_dir, model_dir
                             )
                 case subcommand if subcommand == SUBCOMMAND_MNG_DATA:
                     ml_on_apx.dataset_management.app.main(

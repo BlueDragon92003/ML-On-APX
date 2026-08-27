@@ -161,6 +161,7 @@ def train(data_dir: Path, model_dir: Path) -> None:  # noqa: PLR0915
                 print()
 
             epoch = epoch + 1
+        manager.training_job = None
 
 
 @log_call(action_type="test" > _MAIN, include_result=False)
@@ -189,3 +190,4 @@ def test(data_dir: Path, model_dir: Path) -> None:
         model_info.add_testing_information(
             ModelTestInfo(datetime.now(), acc, loss, run_by_user=True)
         )
+        manager.testing_job = None

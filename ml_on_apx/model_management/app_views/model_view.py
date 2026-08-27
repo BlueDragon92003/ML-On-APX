@@ -2,6 +2,7 @@
 
 from typing import ClassVar
 
+from eliot import log_message
 from textual import on
 from textual.app import ComposeResult
 from textual.binding import BindingType
@@ -27,9 +28,11 @@ from ml_on_apx.model_management.app_views.training_job_screen import (
     CreateTrainingJobScreen,
 )
 from ml_on_apx.model_management.model_manager import ModelManager
+from ml_on_apx.model_management.testing_job import TestingJob
 from ml_on_apx.model_management.training_job import TrainingJob
 from ml_on_apx.tui_common.binary_modal_question import BinaryModalQuestion
 from ml_on_apx.tui_common.get_string_question import GetStringQuestion
+from ml_on_apx.tui_common.list_select_question import ListSelectQuestion
 
 """
 -----------------------------------------------------------------------------
@@ -229,10 +232,35 @@ class ModelView(Screen[None]):
         )
 
     @on(Button.Pressed, "#run-test-button")
-    @log_call(action_type="test" > _MODEL_VIEW, include_args=[], include_result=False)
-    def action_test_model(self, message: Button.Pressed | None = None) -> None:
+    @log_with_callback(action_type="test" > _MODEL_VIEW, include_caller_args=[])
+    def action_test_model(
+        self, callback: CallbackDecorator, message: Button.Pressed | None = None
+    ) -> None:
         """Set the TestingJob."""
-        # TODO testing_job_screen
+        group = self._group_name
+        model = self.selected_model
+
+        @callback
+        async def callback_test_model(dataset: str | None) -> None:
+            if model is None:
+                self.app.notify("Job discarded.")
+                return
+            if dataset is not None:
+                self._model_manager.testing_job = TestingJob((group, model), dataset)
+                self.app.notify("Job set!")
+            else:
+                log_message("tested_nothing")
+
+        if model is None:
+            callback_test_model(None)
+        self.app.push_screen(
+            ListSelectQuestion(
+                [(x, x) for x in self._dataset_manager.dataset_names],
+                title="Select the dataset to test against.",
+                subtitle="Press escape to cancel.",
+            ),
+            callback=callback_test_model,
+        )
 
     @on(ListView.Selected, "#model-list")
     @log_call(action_type="select" > _MODEL_VIEW, include_args=[], include_result=False)
