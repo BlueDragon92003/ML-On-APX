@@ -58,7 +58,7 @@ def _mock_torch_save(obj: object, file: Path) -> None:
         pickle.dump(repr(obj), f)
 
 
-def _mock_torch_load(file: Path) -> object:
+def _mock_torch_load(file: Path, **_kwargs: object) -> object:
     with open(file, mode="rb") as f:
         return pickle.load(f)
 
@@ -179,7 +179,7 @@ class TestsModelManager(
 
     def test_model_manager__enter__e_jobs_file(self) -> None:
         """Test that the model manager successfully loads a testing job."""
-        job = TestingJob(Path("/ignore"), "dataset")
+        job = TestingJob(("left", "right"), "dataset")
         self._set_testing_job(job)
         with ModelManager(self.models_path, Mode.Testing) as manager:
             testing = manager.testing_job
@@ -194,7 +194,7 @@ class TestsModelManager(
         training_job.dataset("data")
         training_job.stop_function(StopFunction("(quote nil)"))
         training_job = training_job.build()
-        testing_job = TestingJob(Path("/ignore"), "dataset")
+        testing_job = TestingJob(("left", "right"), "dataset")
         self._set_training_job(training_job)
         self._set_testing_job(testing_job)
         with ModelManager(self.models_path, Mode.Testing) as manager:
@@ -640,7 +640,7 @@ class TestsModelManager(
     # Testing Job setter works
     def test_model_manager__job_setter__testing(self) -> None:
         """Test that the setter for the testing job works."""
-        job = TestingJob(Path("/ignore"), "dataset")
+        job = TestingJob(("left", "right"), "dataset")
         with ModelManager(self.models_path, Mode.Testing) as manager:
             self.assertIsNone(manager.testing_job)
             manager.testing_job = job

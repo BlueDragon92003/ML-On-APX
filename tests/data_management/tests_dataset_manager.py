@@ -3,36 +3,14 @@
 import pickle
 import unittest
 from pathlib import Path
-from typing import List, Set, Tuple
 
 import pyfakefs.fake_filesystem_unittest
 
-from ml_on_apx.dataset_management.dataset import Dataset
 from ml_on_apx.dataset_management.dataset_info import DatasetInfo
 from ml_on_apx.dataset_management.dataset_manager import DatasetManager
 from ml_on_apx.dataset_management.tree import TreeNode
 from ml_on_apx.labelling import Label, Labels
-from ml_on_apx.modes import Mode
-
-
-class _MockDataset(Dataset):
-    def __init__(self, components: Set[Tuple[Path, int]]) -> None:
-        self._components = components
-
-    def __eq__(self, other: object) -> bool:
-        if type(other) is not _MockDataset:
-            return False
-        return self._components == other._components
-
-    __hash__ = None
-
-    @classmethod
-    def create(cls, components: Set[Tuple[Path, int]]) -> "Dataset":
-        return _MockDataset(components)
-
-    @classmethod
-    def get_features(cls) -> list[str]:
-        return ["one", "two", "three", "four", "five"]
+from ml_on_apx.modes import Mode, _MockDataset
 
 
 class TestDatasetManager(
@@ -53,9 +31,9 @@ class TestDatasetManager(
             + DatasetManager.PICKLE_SUFFIX
         )
 
-        self.manager = DatasetManager(self.data_path, Mode.Testing, _MockDataset)
+        self.manager = DatasetManager(self.data_path, Mode.Testing)
 
-        self.sources: List[Path] = [
+        self.sources: list[Path] = [
             Path("source_1.root"),
             Path("source_2.root"),
             Path("source_3.root"),
