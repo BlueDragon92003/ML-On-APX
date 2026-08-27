@@ -23,7 +23,7 @@ from textual.widgets import Label as TuiLabel
 from ml_on_apx.dataset_management.dataset_manager import DatasetManager
 from ml_on_apx.logging import CallbackDecorator, log_call, log_with_callback
 from ml_on_apx.model_management import _TUI
-from ml_on_apx.model_management.app_views.new_group_screen import (
+from ml_on_apx.model_management.app_views.training_job_screen import (
     CreateTrainingJobScreen,
 )
 from ml_on_apx.model_management.model_manager import ModelManager
