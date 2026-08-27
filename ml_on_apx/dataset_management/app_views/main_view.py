@@ -3,6 +3,7 @@
 import re
 from typing import ClassVar
 
+from eliot import log_message
 from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -184,9 +185,11 @@ class MainView(Screen[None]):
             message (ListView.Selected): The event to handle.
 
         """
-        assert message.item.name is not None
-        self.dataset_name = message.item.name
-        message.stop()
+        if message.item.name is not None:
+            self.dataset_name = message.item.name
+            message.stop()
+        else:
+            log_message("no_item_name")
 
     @log_with_callback(action_type="new" > _MAIN_VIEW)
     def action_new_dataset(self, callback: CallbackDecorator) -> None:
@@ -207,13 +210,17 @@ class MainView(Screen[None]):
             await self.remake_dataset_list()
 
         template_name = self.dataset_name
-        assert template_name is not None
-        template = self._manager.get_dataset_info(template_name)
+        if template_name is not None:
+            template = self._manager.get_dataset_info(template_name)
 
-        self.app.push_screen(
-            NewEditView(self._manager, template=template, template_name=template_name),
-            callback=callback_edit_dataset,
-        )
+            self.app.push_screen(
+                NewEditView(
+                    self._manager, template=template, template_name=template_name
+                ),
+                callback=callback_edit_dataset,
+            )
+        else:
+            log_message("no_template_name")
 
     @log_with_callback(action_type="rename" > _MAIN_VIEW)
     def action_rename_dataset(self, callback: CallbackDecorator) -> None:
@@ -225,17 +232,19 @@ class MainView(Screen[None]):
                 self.app.notify("The dataset is already named that.")
                 return
             if new_name:
-                assert self.dataset_name is not None
-                try:
-                    self._manager.rename_dataset(self.dataset_name, new_name)
-                except ValueError:
-                    self.app.notify(
-                        f"A dataset with the name `{new_name}` already exists",
-                        severity="error",
-                    )
+                if self.dataset_name is not None:
+                    try:
+                        self._manager.rename_dataset(self.dataset_name, new_name)
+                    except ValueError:
+                        self.app.notify(
+                            f"A dataset with the name `{new_name}` already exists",
+                            severity="error",
+                        )
+                    else:
+                        await self.remake_dataset_list()
+                        self.dataset_name = new_name
                 else:
-                    await self.remake_dataset_list()
-                    self.dataset_name = new_name
+                    log_message("no_dataset_name")
 
         self.app.push_screen(
             GetStringQuestion(
@@ -253,10 +262,12 @@ class MainView(Screen[None]):
         @callback
         async def callback_delete_dataset(delete: bool | None) -> None:
             if delete:
-                assert self.dataset_name is not None
-                self._manager.delete_dataset(self.dataset_name)
-                await self.remake_dataset_list()
-                self.dataset_name = None
+                if self.dataset_name is not None:
+                    self._manager.delete_dataset(self.dataset_name)
+                    await self.remake_dataset_list()
+                    self.dataset_name = None
+                else:
+                    log_message("no_dataset_name")
 
         self.app.push_screen(
             BinaryModalQuestion(

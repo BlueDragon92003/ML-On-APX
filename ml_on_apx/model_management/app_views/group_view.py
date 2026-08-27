@@ -2,6 +2,7 @@
 
 from typing import ClassVar, Type
 
+from eliot import log_message
 from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -212,9 +213,11 @@ class GroupView(Screen[None]):
             message (ListView.Selected): The event to handle.
 
         """
-        assert message.item.name is not None
-        self.selected_group = message.item.name
-        message.stop()
+        if message.item.name is not None:
+            self.selected_group = message.item.name
+            message.stop()
+        else:
+            log_message("selected_nothing")
 
     @log_call(action_type="remake_grp_list" > _GROUP_VIEW, include_result=False)
     async def remake_group_list(self) -> None:
@@ -266,10 +269,12 @@ class GroupView(Screen[None]):
         @callback
         async def callback_rename_group(name: str | None) -> None:
             if name:
-                assert self.selected_group is not None
-                self._model_manager.rename_group(self.selected_group, name)
-                self.selected_group = name
-                await self.remake_group_list()
+                if self.selected_group is not None:
+                    self._model_manager.rename_group(self.selected_group, name)
+                    self.selected_group = name
+                    await self.remake_group_list()
+                else:
+                    log_message("rename_nothing")
 
         self.app.push_screen(
             GetStringQuestion(
@@ -286,10 +291,12 @@ class GroupView(Screen[None]):
         @callback
         async def callback_delete_group(delete: bool | None) -> None:
             if delete:
-                assert self.selected_group is not None
-                self._model_manager.delete_group(self.selected_group)
-                self.selected_group = None
-                await self.remake_group_list()
+                if self.selected_group is not None:
+                    self._model_manager.delete_group(self.selected_group)
+                    self.selected_group = None
+                    await self.remake_group_list()
+                else:
+                    log_message("delete_nothing")
 
         self.app.push_screen(
             BinaryModalQuestion(

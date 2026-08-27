@@ -3,6 +3,7 @@
 import random
 from datetime import datetime
 from pathlib import Path
+from typing import cast
 
 import torch
 from eliot import log_message
@@ -51,7 +52,7 @@ def main(data_dir: Path, model_dir: Path) -> None:  # noqa: PLR0915
             else:
                 testing_data = data_manager.get_dataset(job.testing_dataset)
 
-        assert type(training_data) is ClusterClassificationDataset
+        training_data = cast(ClusterClassificationDataset, training_data)
         manager.training_job = None
 
         acc_ls: list[float] = []

@@ -84,7 +84,6 @@ class ListSelectQuestion(ModalScreen[ListItem]):
             message (Select.Changed): The event to handle.
 
         """
-        assert type(message) is Select[ListItem].Changed
         value: ListItem | NoSelection = message.value  # ty: ignore[invalid-assignment]
         if type(value) is not NoSelection:
             self.dismiss(value)  # ty: ignore[invalid-argument-type]

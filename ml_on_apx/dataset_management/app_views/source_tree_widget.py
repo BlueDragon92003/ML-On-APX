@@ -34,6 +34,21 @@ class SourceTreeWidget(Tree["SourceTreeData"]):
             super().__init__(*args, **kwargs)
             self.path = path
 
+    class MissingDataError(Exception):
+        """An exception raised if tree node is missing required data."""
+
+        def __init__(self, label: str | Text, *args, **kwargs) -> None:  # noqa: ANN002, ANN003
+            """Create a new MissingLabelError.
+
+            Args:
+                label (str | Text): The label of the node widget.
+                args: Arguments to pass to the base Exception class.
+                kwargs: Keyword arguments to pass to the base exception class.
+
+            """
+            super().__init__(*args, **kwargs)
+            self.label = label
+
     def render_label(
         self, node: TreeNode["SourceTreeData"], base_style: Style, style: Style
     ) -> Text:
@@ -94,30 +109,32 @@ class SourceTreeWidget(Tree["SourceTreeData"]):
                 its descendants.
 
         """
-        assert node.data is not None
-        labeled_sources: set[tuple[Path, Label]] = set()
-        if node.data.inclusion == node.data.InclusionType.DIRECTLY_INCLUDED:
-            if node.data.is_directory:
-                for path in self.get_paths_from_node(node):
+        if node.data is not None:
+            labeled_sources: set[tuple[Path, Label]] = set()
+            if node.data.inclusion == node.data.InclusionType.DIRECTLY_INCLUDED:
+                if node.data.is_directory:
+                    for path in self.get_paths_from_node(node):
+                        label = node.data.label
+                        if label is None:
+                            raise self.MissingLabelError(
+                                path, f"Label not set for source `{path}`!"
+                            )
+                        labeled_sources.add((path, label))
+                else:
                     label = node.data.label
+                    path = node.data.path
                     if label is None:
                         raise self.MissingLabelError(
                             path, f"Label not set for source `{path}`!"
                         )
                     labeled_sources.add((path, label))
-            else:
-                label = node.data.label
-                path = node.data.path
-                if label is None:
-                    raise self.MissingLabelError(
-                        path, f"Label not set for source `{path}`!"
-                    )
-                labeled_sources.add((path, label))
-        elif node.data.is_directory:
-            for child in node.children:
-                labeled_sources |= self.get_labeled_sources_from_node(child)
+            elif node.data.is_directory:
+                for child in node.children:
+                    labeled_sources |= self.get_labeled_sources_from_node(child)
 
-        return labeled_sources
+            return labeled_sources
+        else:
+            raise self.MissingDataError(node.label)
 
     @log_call(action_type="paths_from" > _SOURCE_TREE, include_args=[])
     def get_paths_from_node(self, node: TreeNode["SourceTreeData"]) -> list[Path]:
@@ -130,14 +147,16 @@ class SourceTreeWidget(Tree["SourceTreeData"]):
             list[Path]: A list of sources this directory causes to be included.
 
         """
-        assert node.data is not None
-        path_list: list[Path] = []
-        if node.data.is_directory:
-            for child in node.children:
-                path_list.extend(self.get_paths_from_node(child))
+        if node.data is not None:
+            path_list: list[Path] = []
+            if node.data.is_directory:
+                for child in node.children:
+                    path_list.extend(self.get_paths_from_node(child))
+            else:
+                path_list.append(node.data.path)
+            return path_list
         else:
-            path_list.append(node.data.path)
-        return path_list
+            raise self.MissingDataError(node.label)
 
 
 class SourceTreeData(object):
@@ -276,10 +295,10 @@ class SourceTreeData(object):
             Path: The path at which the source can be found.
 
         """
-        if self._is_directory:
+        if self._path is not None:
+            return self._path
+        else:
             raise self.NotASourceError()
-        assert self._path is not None
-        return self._path
 
     @property
     def label(self) -> Label | None:

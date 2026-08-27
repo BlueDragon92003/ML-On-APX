@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 from typing import ClassVar, Literal
 
+from eliot import log_message
 from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -149,8 +150,7 @@ class NewEditView(Screen[None]):
                 be and should not be shown (True, False, and None, respectively).
 
         """
-        tabs = self.get_child_by_id("new-edit-tabs")
-        assert type(tabs) is TabbedContent
+        tabs = self.get_child_by_id("new-edit-tabs", TabbedContent)
         match tabs.active:
             case "general-info-tab":
                 match action:
@@ -387,24 +387,21 @@ class NewEditView(Screen[None]):
     @log_call(action_type="view_info" > _NEW_EDIT_VIEW, include_result=False)
     def action_to_basic_info(self) -> None:
         """Process the `to_basic_info` action."""
-        tabs = self.get_child_by_id("new-edit-tabs")
-        assert type(tabs) is TabbedContent
+        tabs = self.get_child_by_id("new-edit-tabs", TabbedContent)
         tabs.active = "general-info-tab"
         self.get_widget_by_id("general-info-scroll").focus()
 
     @log_call(action_type="view_lab" > _NEW_EDIT_VIEW, include_result=False)
     def action_to_labels(self) -> None:
         """Process the `to_labels` action."""
-        tabs = self.get_child_by_id("new-edit-tabs")
-        assert type(tabs) is TabbedContent
+        tabs = self.get_child_by_id("new-edit-tabs", TabbedContent)
         tabs.active = "labels-tab"
         self.get_widget_by_id("labels-list").focus()
 
     @log_call(action_type="view_src" > _NEW_EDIT_VIEW, include_result=False)
     def action_to_sources(self) -> None:
         """Process the `to_sources` action."""
-        tabs = self.get_child_by_id("new-edit-tabs")
-        assert type(tabs) is TabbedContent
+        tabs = self.get_child_by_id("new-edit-tabs", TabbedContent)
         tabs.active = "sources-tab"
         self.get_widget_by_id("source-tree").focus()
 
@@ -416,12 +413,13 @@ class NewEditView(Screen[None]):
         async def delete_label(delete: bool | None) -> None:
             if not delete:
                 return
-            assert name is not None
-            idx = self.labels.index(SourceLabel(name))
-            self.labels = self.labels[:idx] + self.labels[idx + 1 :]
+            if name is not None:
+                idx = self.labels.index(SourceLabel(name))
+                self.labels = self.labels[:idx] + self.labels[idx + 1 :]
+            else:
+                log_message("deleted_nothing")
 
-        labels_list = self.get_widget_by_id("labels-list")
-        assert type(labels_list) is ListView
+        labels_list = self.get_widget_by_id("labels-list", ListView)
         if labels_list.highlighted_child is not None:
             name = labels_list.highlighted_child.name
 
@@ -438,9 +436,11 @@ class NewEditView(Screen[None]):
         labels_list = self.get_widget_by_id("labels-list", ListView)
         if labels_list.highlighted_child is not None:
             name = labels_list.highlighted_child.name
-            assert name is not None
-            idx = self.labels.index(SourceLabel(name))
-            self.labels = self.labels[:idx] + self.labels[idx + 1 :]
+            if name is not None:
+                idx = self.labels.index(SourceLabel(name))
+                self.labels = self.labels[:idx] + self.labels[idx + 1 :]
+            else:
+                log_message("deleted_nothing")
 
     def watch_labels(
         self, old_labels: list[SourceLabel], new_labels: list[SourceLabel]
@@ -554,11 +554,13 @@ class NewEditView(Screen[None]):
                 self.template_sources is not None
                 and this_path in self.template_sources.keys()
             ):
-                assert new_tree_node.data is not None
-                new_tree_node.data.inclusion = (
-                    new_tree_node.data.InclusionType.DIRECTLY_INCLUDED
-                )
-                new_tree_node.data.label = self.template_sources[this_path]
+                if new_tree_node.data is not None:
+                    new_tree_node.data.inclusion = (
+                        new_tree_node.data.InclusionType.DIRECTLY_INCLUDED
+                    )
+                    new_tree_node.data.label = self.template_sources[this_path]
+                else:
+                    raise SourceTreeWidget.MissingDataError(new_tree_node.label)
             self.append_nodes(new_tree_node, source_node, this_path)
         dest_tree_node.expand()
 

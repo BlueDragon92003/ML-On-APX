@@ -3,6 +3,7 @@
 from abc import ABCMeta, abstractmethod
 from typing import ClassVar
 
+from eliot import log_message
 from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -490,16 +491,20 @@ class LabelSelector(ModalScreen[list[Label]]):
         async def delete_label(delete: bool | None) -> None:
             if not delete:
                 return
-            assert name is not None
-            idx = self.labels.index(Label(name))
-            self.labels = self.labels[:idx] + self.labels[idx + 1 :]
+            if name is not None:
+                idx = self.labels.index(Label(name))
+                self.labels = self.labels[:idx] + self.labels[idx + 1 :]
+            else:
+                log_message("worse_delete_nothing")
 
         labels_list = self.get_widget_by_id("labels-list", expect_type=ListView)
         if labels_list.highlighted_child is not None:
             name = labels_list.highlighted_child.name
-            assert name is not None
-            idx = self.labels.index(Label(name))
-            self.labels = self.labels[:idx] + self.labels[idx + 1 :]
+            if name is not None:
+                idx = self.labels.index(Label(name))
+                self.labels = self.labels[:idx] + self.labels[idx + 1 :]
+            else:
+                log_message("delete_nothing")
 
     @log_call(action_type="exit" > _SELECTOR, include_result=False)
     def action_exit(self) -> None:
