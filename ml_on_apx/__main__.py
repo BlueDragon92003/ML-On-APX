@@ -27,6 +27,7 @@ MODE_IDENTIFICATION: str = "identification"
 MODES = [MODE_CLASSIFICATION, MODE_IDENTIFICATION]
 
 SUBCOMMAND_TRAIN: str = "train"
+SUBCOMMAND_TEST: str = "test"
 SUBCOMMAND_MNG_DATA: str = "manage data"
 SUBCOMMAND_MNG_MODEL: str = "manage model"
 
@@ -201,12 +202,18 @@ def main() -> int:
                 case subcommand if subcommand == SUBCOMMAND_TRAIN:
                     match mode:
                         case mode if mode is Mode.Classification:
-                            ml_on_apx.cluster_classification.main.main(
+                            ml_on_apx.cluster_classification.main.train(
                                 data_dir, model_dir
                             )
                         case mode if mode is Mode.Identification:
                             print("`train identification` not yet implemeneted")
                             return 0
+                case subcommand if subcommand == SUBCOMMAND_TEST:
+                    match mode:
+                        case Mode.Classification:
+                            ml_on_apx.cluster_classification.main.train(
+                                model_dir, data_dir
+                            )
                 case subcommand if subcommand == SUBCOMMAND_MNG_DATA:
                     ml_on_apx.dataset_management.app.main(
                         data_dir,

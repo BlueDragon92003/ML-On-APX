@@ -1,12 +1,10 @@
 """A job to test a model."""
 
-from pathlib import Path
-
 
 class TestingJob:
     """Contains info about a testing job."""
 
-    def __init__(self, target: Path, dataset: str) -> None:
+    def __init__(self, target: tuple[str, str], dataset: str) -> None:
         """Create a new testing job.
 
         Args:
@@ -14,11 +12,11 @@ class TestingJob:
             dataset (str): The dataset to test against.
 
         """
-        self._target: Path = target
+        self._target: tuple[str, str] = target
         self._dataset: str = dataset
 
     @property
-    def target(self: "TestingJob") -> Path:
+    def target(self: "TestingJob") -> tuple[str, str]:
         """The path to the model to test."""
         return self._target
 
