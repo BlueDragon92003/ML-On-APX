@@ -5,7 +5,7 @@ from typing import ClassVar
 from rich.text import Text
 from textual import on
 from textual.app import ComposeResult
-from textual.binding import Binding
+from textual.binding import BindingType
 from textual.containers import VerticalGroup, VerticalScroll
 from textual.content import Content
 from textual.screen import ModalScreen
@@ -21,9 +21,7 @@ _BMQ = "bmp" @ _TUI
 class BinaryModalQuestion(ModalScreen[bool]):
     """A question with a binary answer."""
 
-    BINDINGS: ClassVar[list[tuple[str, str, str] | Binding]] = [
-        ("escape", "exit", "Exit")
-    ]
+    BINDINGS: ClassVar[list[BindingType]] = [("escape", "exit", "Exit")]
 
     DEFAULT_CLASSES = "Popup"
 

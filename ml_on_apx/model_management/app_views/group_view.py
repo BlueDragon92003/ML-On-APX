@@ -5,7 +5,7 @@ from typing import ClassVar, Type
 from eliot import log_message
 from textual import on
 from textual.app import ComposeResult
-from textual.binding import Binding
+from textual.binding import BindingType
 from textual.containers import HorizontalGroup, VerticalGroup, VerticalScroll
 from textual.reactive import reactive
 from textual.screen import Screen
@@ -60,7 +60,7 @@ Press (control + p) to open the command palette.
 class GroupView(Screen[None]):
     """The view for the available groups."""
 
-    BINDINGS: ClassVar[list[tuple[str, str, str] | Binding]] = [
+    BINDINGS: ClassVar[list[BindingType]] = [
         ("N", "new_group", "Create a new group"),
         ("M", "manage_group", "Manage selected group"),
         ("R", "rename_group", "Rename group"),

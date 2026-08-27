@@ -4,7 +4,7 @@ from typing import ClassVar, Hashable, TypeVar
 
 from textual import on
 from textual.app import ComposeResult
-from textual.binding import Binding
+from textual.binding import BindingType
 from textual.containers import VerticalGroup
 from textual.screen import ModalScreen
 from textual.types import NoSelection
@@ -21,9 +21,7 @@ ListItem = TypeVar("ListItem", bound=Hashable)
 class ListSelectQuestion(ModalScreen[ListItem]):
     """A question with a finite set of answers."""
 
-    BINDINGS: ClassVar[list[tuple[str, str, str] | Binding]] = [
-        ("escape", "exit", "Cancel")
-    ]
+    BINDINGS: ClassVar[list[BindingType]] = [("escape", "exit", "Cancel")]
 
     DEFAULT_CLASSES = "Popup"
 

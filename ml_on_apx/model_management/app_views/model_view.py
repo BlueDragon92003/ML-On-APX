@@ -4,7 +4,7 @@ from typing import ClassVar
 
 from textual import on
 from textual.app import ComposeResult
-from textual.binding import Binding
+from textual.binding import BindingType
 from textual.containers import HorizontalGroup, VerticalGroup, VerticalScroll
 from textual.reactive import reactive
 from textual.screen import Screen
@@ -59,7 +59,7 @@ Press (control + p) to open the command palette.
 class ModelView(Screen[None]):
     """A view for the available models in a group."""
 
-    BINDINGS: ClassVar[list[tuple[str, str, str] | Binding]] = [
+    BINDINGS: ClassVar[list[BindingType]] = [
         ("escape", "back", "Back"),
         ("N", "train_model", "Train new model"),
         ("R", "rename_model", "Rename model"),

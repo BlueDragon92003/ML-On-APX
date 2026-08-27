@@ -5,7 +5,7 @@ from typing import ClassVar
 
 import textual.widgets
 from textual.app import App, ComposeResult
-from textual.binding import Binding
+from textual.binding import BindingType
 from textual.widgets import Label
 
 from ml_on_apx.dataset_management.dataset_manager import DatasetManager
@@ -20,9 +20,7 @@ from ml_on_apx.tui_common.binary_modal_question import BinaryModalQuestion
 class ModelManagerApp(App):
     """The TUI app used to manage models."""
 
-    BINDINGS: ClassVar[list[tuple[str, str, str] | Binding]] = [
-        ("q", "show_quit_screen", "Quit")
-    ]
+    BINDINGS: ClassVar[list[BindingType]] = [("q", "show_quit_screen", "Quit")]
     CSS_PATH = [  # noqa: RUF012
         "./app_views/app.tcss",
         "./models/simple_model/simple.tcss",

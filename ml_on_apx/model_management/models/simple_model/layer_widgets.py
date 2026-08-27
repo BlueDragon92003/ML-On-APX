@@ -6,7 +6,7 @@ from typing import ClassVar
 from eliot import log_message
 from textual import on
 from textual.app import ComposeResult
-from textual.binding import Binding
+from textual.binding import BindingType
 from textual.containers import VerticalGroup
 from textual.message import Message
 from textual.message_pump import _MessagePumpMeta
@@ -46,7 +46,7 @@ class LayerWidget(VerticalGroup, can_focus=True, metaclass=_LayerWidgetMeta):
             self.layer = layer
             self.above = above
 
-    BINDINGS: ClassVar[list[tuple[str, str, str] | Binding]] = [
+    BINDINGS: ClassVar[list[BindingType]] = [
         ("+", "increase_size", "Increase layer size"),
         ("-", "decrease_size", "Decrease layer size"),
         ("space", "set_size", "Set size."),
@@ -406,7 +406,7 @@ class InputLayerWidget(LayerWidget):
 class LabelSelector(ModalScreen[list[Label]]):
     """A popup version of the label menu."""
 
-    BINDINGS: ClassVar[list[tuple[str, str, str] | Binding]] = [
+    BINDINGS: ClassVar[list[BindingType]] = [
         ("backspace", "delete_label", "Delete selected label"),
         ("escape", "exit", "Exit"),
     ]

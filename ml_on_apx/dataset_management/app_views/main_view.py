@@ -6,7 +6,7 @@ from typing import ClassVar
 from eliot import log_message
 from textual import on
 from textual.app import ComposeResult
-from textual.binding import Binding
+from textual.binding import BindingType
 from textual.containers import HorizontalGroup, VerticalGroup, VerticalScroll
 from textual.reactive import reactive
 from textual.screen import Screen
@@ -35,7 +35,7 @@ _MAIN_VIEW = "main" @ _TUI
 class MainView(Screen[None]):
     """The main view for the dataset management TUI."""
 
-    BINDINGS: ClassVar[list[tuple[str, str, str] | Binding]] = [
+    BINDINGS: ClassVar[list[BindingType]] = [
         ("N", "new_dataset", "Create a new dataset"),
         ("E", "edit_dataset", "Edit dataset"),
         ("R", "rename_dataset", "Rename dataset"),

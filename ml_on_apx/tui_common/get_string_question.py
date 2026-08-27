@@ -4,7 +4,7 @@ from typing import Callable, ClassVar
 
 from textual import on
 from textual.app import ComposeResult
-from textual.binding import Binding
+from textual.binding import BindingType
 from textual.containers import VerticalGroup
 from textual.screen import ModalScreen
 from textual.widgets import Input
@@ -18,9 +18,7 @@ _GSQ = "gsq" @ _TUI
 class GetStringQuestion(ModalScreen[str]):
     """A question with a text answer."""
 
-    BINDINGS: ClassVar[list[tuple[str, str, str] | Binding]] = [
-        ("escape", "exit", "Cancel")
-    ]
+    BINDINGS: ClassVar[list[BindingType]] = [("escape", "exit", "Cancel")]
 
     DEFAULT_CLASSES = "Popup"
 

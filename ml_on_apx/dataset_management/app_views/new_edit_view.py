@@ -7,7 +7,7 @@ from typing import ClassVar, Literal
 from eliot import log_message
 from textual import on
 from textual.app import ComposeResult
-from textual.binding import Binding
+from textual.binding import Binding, BindingType
 from textual.containers import HorizontalGroup, VerticalScroll
 from textual.reactive import reactive
 from textual.screen import Screen
@@ -50,7 +50,7 @@ _SOURCE_SELECT = "source_select" @ _NEW_EDIT_VIEW
 class NewEditView(Screen[None]):
     """The view used for modifying and creating new datasets."""
 
-    BINDINGS: ClassVar[list[tuple[str, str, str] | Binding]] = [
+    BINDINGS: ClassVar[list[BindingType]] = [
         ("ctrl+b", "to_basic_info", "Basic info"),
         ("ctrl+l", "to_labels", "Labels"),
         ("ctrl+s", "to_sources", "Sources"),
