@@ -1,9 +1,11 @@
 """Implements the testing-training loop for a cluster classification model."""
 
+import random
 from datetime import datetime
 from pathlib import Path
 
 import torch
+from eliot import log_message
 from torch import nn
 from torch.utils.data import DataLoader
 
@@ -27,6 +29,7 @@ _MAIN = "main" @ _CLASS
 def main(data_dir: Path, model_dir: Path) -> None:  # noqa: PLR0915
     """Train a cluster classification model."""
     start_date = datetime.today()
+    instance = random.randbytes(4).hex()
 
     with ModelManager(model_dir, Mode.Classification) as manager:
         job = manager.training_job
@@ -49,7 +52,7 @@ def main(data_dir: Path, model_dir: Path) -> None:  # noqa: PLR0915
                 testing_data = data_manager.get_dataset(job.testing_dataset)
 
         assert type(training_data) is ClusterClassificationDataset
-        # TODO manager.training_job = None
+        manager.training_job = None
 
         acc_ls: list[float] = []
         loss_ls: list[float] = []
@@ -103,7 +106,7 @@ def main(data_dir: Path, model_dir: Path) -> None:  # noqa: PLR0915
 
             # If the epoch is a checpoint epoch,
             if epoch % job.checkpoint_rate == 0:  # checkpoint rate
-                print(f"Checkpoint! (acc: {acc}, loss: {loss}, epoch: {epoch})")
+                log_message("checkpoint" > _MAIN, acc=acc, loss=loss, epoch=epoch)
 
                 acc_ls.append(acc)
                 loss_ls.append(loss)
@@ -144,6 +147,7 @@ def main(data_dir: Path, model_dir: Path) -> None:  # noqa: PLR0915
                     manager.create_model(
                         job.group_name,
                         f"~checkpoint-{start_date.isoformat()}"
+                        f"-{instance}"
                         f"-{epoch // job.checkpoint_rate}",
                         info,
                         model,

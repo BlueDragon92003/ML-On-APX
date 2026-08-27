@@ -23,7 +23,9 @@ from textual.widgets import Label as TuiLabel
 from ml_on_apx.dataset_management.dataset_manager import DatasetManager
 from ml_on_apx.logging import CallbackDecorator, log_call, log_with_callback
 from ml_on_apx.model_management import _TUI
-from ml_on_apx.model_management.app_views.new_group_screen import NewGroupScreen
+from ml_on_apx.model_management.app_views.new_group_screen import (
+    CreateTrainingJobScreen,
+)
 from ml_on_apx.model_management.model_manager import ModelManager
 from ml_on_apx.model_management.training_job import TrainingJob
 from ml_on_apx.tui_common.binary_modal_question import BinaryModalQuestion
@@ -164,7 +166,7 @@ class ModelView(Screen[None]):
                 self.app.notify("Set trianing job.")
 
         self.app.push_screen(
-            NewGroupScreen(
+            CreateTrainingJobScreen(
                 list(self._dataset_manager.dataset_names),
                 self._model_manager.get_model_names(self._group_name),
                 self._group_name,

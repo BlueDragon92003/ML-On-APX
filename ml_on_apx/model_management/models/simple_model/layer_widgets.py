@@ -1,6 +1,5 @@
 """Widgets for the SimpleModel screen."""
 
-import re
 from abc import ABCMeta, abstractmethod
 from typing import ClassVar
 
@@ -147,12 +146,12 @@ class HiddenLayerWidget(LayerWidget):
     @log_call(action_type="inc" > _HIDDEN, include_result=False)
     def action_increase_size(self) -> None:
         """Increase the size of the layer."""
-        self.size += 1
+        self.layer_size += 1
 
     @log_call(action_type="dec" > _HIDDEN, include_result=False)
     def action_decrease_size(self) -> None:
         """Decrease the size of the layer."""
-        self.size -= 1
+        self.layer_size -= 1
 
     @log_with_callback(action_type="size" > _HIDDEN)
     def action_set_size(self, callback: CallbackDecorator) -> None:
@@ -220,11 +219,10 @@ class OutputLayerWidget(LayerWidget):
             if not label_name:
                 self.app.notify("Please input a label name.")
                 return
-            label_name = re.sub(r"\s+", "-", label_name.lower())
-            if not re.fullmatch(r"[\w-]+", label_name):
+            label = Label.validate(label_name)
+            if not label:
                 self.app.notify("Label name is invalid.", severity="error")
                 return
-            label = Label(label_name)
             if label in self.labels:
                 self.app.notify(
                     f"Label `{label_name}` already exists.", severity="error"
@@ -535,8 +533,8 @@ class LabelSelector(ModalScreen[list[Label]]):
             self.app.notify("Please input a label name.")
             input.focus()
             return
-        label_name = re.sub(r"\s+", "-", label_name.lower())
-        if not re.fullmatch(r"[\w-]+", label_name):
+        label = Label.validate(label_name)
+        if not label:
             self.app.notify("Label name is invalid.", severity="error")
             input.focus()
             return

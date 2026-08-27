@@ -42,7 +42,7 @@ ModelView {
 
 }
 
-NewGroupScreen {
+CreateTrainingJobScreen {
     align: center top;
     & HorizontalGroup {
         width: 80%;

@@ -24,8 +24,7 @@ from ml_on_apx.model_management.training_job import TrainingJob, TrainingJobBuil
 """
 
 
-# TODO rename; this should be new MODEL screen
-class NewGroupScreen(Screen[TrainingJob]):
+class CreateTrainingJobScreen(Screen[TrainingJob]):
     """Creates a training job to create a new group."""
 
     BINDINGS: ClassVar[list[BindingType]] = [
@@ -66,7 +65,7 @@ class NewGroupScreen(Screen[TrainingJob]):
         dataset_labels: dict[str, Labels],
     ) -> None:
         """Initialize a new NewGroupScreen."""
-        super(NewGroupScreen, self).__init__()
+        super(CreateTrainingJobScreen, self).__init__()
         self._dataset_options = [(x, x) for x in dataset_options]
         self._model_options = [(x, x) for x in model_options]
         self._group_name = group_name

@@ -627,12 +627,11 @@ class NewEditView(Screen[None]):
             self.app.notify("Please input a label name.")
             input.focus()
             return
-        label_name = re.sub(r"\s+", "-", label_name.lower())
-        if not re.fullmatch(r"[\w-]+", label_name):
+        label = SourceLabel.validate(label_name)
+        if not label:
             self.app.notify("Label name is invalid.", severity="error")
             input.focus()
             return
-        label = SourceLabel(label_name)
         if label in self.labels:
             self.app.notify(f"Label `{label_name}` already exists.", severity="error")
             input.focus()

@@ -1,12 +1,28 @@
 """Human-readable machine learning labels."""
 
+import re
 from typing import Iterator
 
 
 class Label(str):
     """A human-readable machine learning label."""
 
-    # TODO static label validation function
+    @staticmethod
+    def validate(string: str) -> "Label" | None:
+        """Validate a label name.
+
+        Arguments:
+            string (str): The potential label name to validate.
+
+        Returns:
+            Label: The valid label name, possibly altered from the input.
+            None: If the input could not be coerced into a valid label name.
+
+        """
+        string = re.sub(r"\s+", "-", string.lower())
+        if not re.fullmatch(r"[\w-]+", string):
+            return
+        return Label(string)
 
 
 class Labels:
