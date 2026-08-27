@@ -24,9 +24,7 @@ class DatasetManager(Generic[ManagedDataset]):
     SET_INFO_NAME = "_set_info"
     DATASET_PICKLE_SUFFIXES: ClassVar[list[str]] = [".dataset", PICKLE_SUFFIX]
 
-    def __init__(
-        self, dataset_dir: Path, mode: Mode, dataset_class: Type[ManagedDataset]
-    ) -> None:
+    def __init__(self, dataset_dir: Path, mode: Mode) -> None:
         """Create a new dataset manager for use in an environment.
 
         Args:
@@ -42,7 +40,7 @@ class DatasetManager(Generic[ManagedDataset]):
             + DatasetManager.SET_INFO_NAME
             + DatasetManager.PICKLE_SUFFIX
         )
-        self._dataset_class: Type[ManagedDataset] = dataset_class
+        self._dataset_class: Type[ManagedDataset] = mode.dataset_class  # ty: ignore[invalid-assignment]
 
     def __enter__(self) -> "DatasetManager[ManagedDataset]":
         """Initialize the environment.

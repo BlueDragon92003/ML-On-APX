@@ -87,7 +87,7 @@ def main(
     dataset_dir: Path,
     mode: Mode,
 ) -> None:
-    """Run the dataset manager app.
+    """Run the model manager app.
 
     Args:
         model_dir (Path): The directory all model information is stored under.
@@ -105,6 +105,6 @@ def main(
     #         datasets.append(data_manager.get_dataset_info(name))
 
     with ModelManager(model_dir, mode) as model_manager:
-        with DatasetManager(dataset_dir, mode, mode.dataset_class) as data_manager:
+        with DatasetManager(dataset_dir, mode) as data_manager:
             app = ModelManagerApp(model_manager, data_manager, mode.features)
             app.run()

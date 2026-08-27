@@ -68,9 +68,7 @@ def train(data_dir: Path, model_dir: Path) -> None:  # noqa: PLR0915
         else:
             model = group.model()
 
-        with DatasetManager(
-            data_dir, Mode.Classification, Mode.Classification.dataset_class
-        ) as data_manager:
+        with DatasetManager(data_dir, Mode.Classification) as data_manager:
             training_data = data_manager.get_dataset(job.dataset)
             if job.testing_dataset is None:
                 testing_data = training_data
@@ -120,7 +118,7 @@ def train(data_dir: Path, model_dir: Path) -> None:  # noqa: PLR0915
 
                 acc_ls.append(acc)
                 loss_ls.append(loss)
-                epoch_ls.append(float(epoch))
+                epoch_ls.append(epoch)
 
                 acc_ls = acc_ls[-(job.lookback_distance) :]
                 loss_ls = loss_ls[-(job.lookback_distance) :]
@@ -178,9 +176,7 @@ def test(data_dir: Path, model_dir: Path) -> None:
         model_info = manager.get_model_info(*job.target)
         model = manager.get_model(*job.target)
 
-        with DatasetManager(
-            data_dir, Mode.Classification, Mode.Classification.dataset_class
-        ) as data_manager:
+        with DatasetManager(data_dir, Mode.Classification) as data_manager:
             testing_data = data_manager.get_dataset(job.dataset)
 
         testing_data = cast(ClusterClassificationDataset, testing_data)

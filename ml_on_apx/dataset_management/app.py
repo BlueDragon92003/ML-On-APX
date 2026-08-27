@@ -85,6 +85,6 @@ def main(
         log_level (LogLevel): The logging level to use.
 
     """
-    with DatasetManager(dataset_dir, mode, dataset_class) as manager:
+    with DatasetManager(dataset_dir, mode) as manager:
         app = DatasetManagerApp(manager)
         app.run()
