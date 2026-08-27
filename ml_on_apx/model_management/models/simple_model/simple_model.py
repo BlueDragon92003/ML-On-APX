@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from typing import cast
+from typing import ClassVar, cast
 
 import torch
 from textual import on
 from textual.app import ComposeResult
+from textual.binding import BindingType
 from textual.containers import HorizontalGroup, VerticalScroll
 from textual.screen import Screen
 from textual.widgets import Button, Footer, Header
@@ -273,6 +274,11 @@ class SimpleGroupInfo(GroupInfo["SimpleModel"]):
 class SimpleScreen(Screen[SimpleGroupInfo]):
     """A screen that creates a SimpleGroupInfo object."""
 
+    BINDINGS: ClassVar[list[BindingType]] = [
+        ("escape", "cancel", "Cancel"),
+        ("^s", "save", "Save"),
+    ]
+
     def __init__(
         self, features: list[str], base: SimpleGroupInfo | None = None
     ) -> None:
@@ -306,8 +312,8 @@ class SimpleScreen(Screen[SimpleGroupInfo]):
             yield InputLayerWidget(self._features, id="input")
             yield OutputLayerWidget(id="output")
         with HorizontalGroup():
-            yield Button("Cancel.", name="cancel")
-            yield Button("Save...", name="save", variant="primary")
+            yield Button("Cancel.", id="cancel-button")
+            yield Button("Save...", id="save-button", variant="primary")
 
     def on_mount(self) -> None:
         """Finish setup of the widget once it is attached to the DOM."""
@@ -322,9 +328,9 @@ class SimpleScreen(Screen[SimpleGroupInfo]):
                 if hl == 0 or hl == self._base.layer_count - 1:
                     continue
                 hidden_layer = HiddenLayerWidget(id=f"hl{hl}")
+                box.mount(hidden_layer, before="OutputLayerWidget")
                 hidden_layer.activation = self._base.get_layer_activation(hl)
                 hidden_layer.layer_size = self._base.get_layer_size(hl)
-                box.mount(hidden_layer, before="OutputLayerWidget")
 
     @on(LayerWidget.AddLayerMessage)
     @log_call(action_type="add_layer" > _TUI, include_result=False)
@@ -341,54 +347,51 @@ class SimpleScreen(Screen[SimpleGroupInfo]):
         new_layer.focus()
         message.stop()
 
-    @on(Button.Pressed)
-    @log_call(action_type="button_pressed" > _TUI, include_result=False)
-    def handle_button_press(self, message: Button.Pressed) -> None:
-        """Handle a button press."""
-        match message.button.name:
-            case "cancel":
-                self.dismiss(None)
-            case "save":
-                new_group_info = SimpleGroupInfo(self._features)
-                box = self.get_child_by_id("hidden-layers", expect_type=VerticalScroll)
-                for child in box.children:
-                    match child.id:
-                        case "input":
-                            input_layer = cast(InputLayerWidget, child)
-                            if len(input_layer.features) < 1:
-                                self.notify(
-                                    "Input layer missing features.", severity="error"
-                                )
-                                return
-                            for feature in input_layer.features:
-                                new_group_info.enable_feature(feature)
-                        case "output":
-                            output_layer = cast(OutputLayerWidget, child)
-                            activation = output_layer.activation
-                            labels = output_layer.labels
-                            if activation is None:
-                                self.notify(
-                                    "Output layer missing activation.", severity="error"
-                                )
-                                return
-                            new_group_info.set_output_activation(activation)
-                            if len(labels) < 1:
-                                self.notify(
-                                    "Output layer missing labels.", severity="error"
-                                )
-                                return
-                            new_group_info.labels = Labels(*labels)
-                        case _:
-                            hidden_layer = cast(HiddenLayerWidget, child)
-                            size = hidden_layer.layer_size
-                            activation = hidden_layer.activation
-                            if activation is None:
-                                self.notify(
-                                    "Layer missing activation.", severity="error"
-                                )
-                                return
-                            new_group_info.insert_layer(activation, size)
-                self.dismiss(new_group_info)
-            case _:
-                raise ValueError
-        message.stop()
+    @on(Button.Pressed, "#cancel-button")
+    @log_call(action_type="cancel" > _TUI, include_result=False)
+    def action_cancel(self, message: Button.Pressed | None = None) -> None:
+        """Handle cancelling the creation of the GroupInfo."""
+        self.dismiss(None)
+        if message is not None:
+            message.stop()
+
+    @on(Button.Pressed, "#save-button")
+    @log_call(action_type="save" > _TUI, include_result=False)
+    def action_save(self, message: Button.Pressed | None = None) -> None:
+        """Handle saving the GroupInfo."""
+        new_group_info = SimpleGroupInfo(self._features)
+        box = self.get_child_by_id("hidden-layers", expect_type=VerticalScroll)
+        for child in box.children:
+            match child.id:
+                case "input":
+                    input_layer = cast(InputLayerWidget, child)
+                    if len(input_layer.features) < 1:
+                        self.notify("Input layer missing features.", severity="error")
+                        return
+                    for feature in input_layer.features:
+                        new_group_info.enable_feature(feature)
+                case "output":
+                    output_layer = cast(OutputLayerWidget, child)
+                    activation = output_layer.activation
+                    labels = output_layer.labels
+                    if activation is None:
+                        self.notify(
+                            "Output layer missing activation.", severity="error"
+                        )
+                        return
+                    new_group_info.set_output_activation(activation)
+                    if len(labels) < 1:
+                        self.notify("Output layer missing labels.", severity="error")
+                        return
+                    new_group_info.labels = Labels(*labels)
+                case _:
+                    hidden_layer = cast(HiddenLayerWidget, child)
+                    size = hidden_layer.layer_size
+                    activation = hidden_layer.activation
+                    if activation is None:
+                        self.notify("Layer missing activation.", severity="error")
+                        return
+                    new_group_info.insert_layer(activation, size)
+        if message is not None:
+            message.stop()
+        self.dismiss(new_group_info)

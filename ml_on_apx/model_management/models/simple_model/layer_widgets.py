@@ -87,7 +87,7 @@ class LayerWidget(VerticalGroup, can_focus=True, metaclass=_LayerWidgetMeta):
         ).content = f"Activation: {self.activation}"
         self.get_child_by_id(
             f"{self.id}-size", expect_type=TuiLabel
-        ).content = f"Size: {self.size}"
+        ).content = f"Size: {self._size}"
 
     def watch_layer_size(self, new_val: int) -> None:
         """Ensure internal size data is consistent with the display."""

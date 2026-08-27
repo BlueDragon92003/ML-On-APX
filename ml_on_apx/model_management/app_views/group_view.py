@@ -65,6 +65,7 @@ class GroupView(Screen[None]):
         ("M", "manage_group", "Manage selected group"),
         ("R", "rename_group", "Rename group"),
         ("D", "delete_group", "Delete group"),
+        ("P", "new_with_preset", "Clone & Edit"),
     ]
 
     selected_group: reactive[str | None] = reactive(None, bindings=True)
@@ -107,9 +108,9 @@ class GroupView(Screen[None]):
         with VerticalScroll(classes="container", id="group-info-view"):
             yield Label("", classes="title", id="group-name")
             with HorizontalGroup(id="control-buttons"):
-                # TODO New with this as preset
                 yield Button("Manage", id="manage-group-button")
                 yield Button("Rename", id="rename-group-button")
+                yield Button("Clone & Edit", id="preset-group-button")
                 yield Button("Delete", variant="error", id="delete-group-button")
             yield Markdown(id="group-info-box")
             with VerticalGroup(id="model-box"):
@@ -136,7 +137,12 @@ class GroupView(Screen[None]):
         """
         if action == "new_group":
             return True
-        if action in {"manage_group", "rename_group", "delete_group"}:
+        if action in {
+            "manage_group",
+            "rename_group",
+            "delete_group",
+            "new_with_preset",
+        }:
             return self.selected_group is not None
         return False
 
@@ -201,6 +207,28 @@ class GroupView(Screen[None]):
                 self.action_rename_group()
             case "delete-group-button":
                 self.action_delete_group()
+
+    @on(Button.Pressed, "#preset-group-button")
+    @log_with_callback("new_with_preset" > _GROUP_VIEW)
+    def action_new_with_preset(
+        self, callback: CallbackDecorator, message: Button.Pressed | None = None
+    ) -> None:
+        """Create a new group using the current one as a preset."""
+
+        @callback
+        async def callback_new_group_preset(result: GroupInfo | None) -> None:
+            if result is not None:
+                self.write_group(result)
+            else:
+                log_message("nothing_created")
+
+        if self.selected_group is not None:
+            self.app.push_screen(
+                self._model_manager.get_group_info(
+                    self.selected_group
+                ).screen_with_presets(),
+                callback=callback_new_group_preset,
+            )
 
     @on(ListView.Selected)
     @log_call(

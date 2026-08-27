@@ -14,21 +14,21 @@ GroupView, ModelView {
         border: none;
     }
 
-    & HorizontalGroup#control-buttons {
-        layout: grid;
-        grid-size: 3 1;
-
-        & Button{
-            width: 100%
-        }
-    }
-
     & #navigation-panel {
         border: vkey $primary;
 
         & Button {
             width: 100%;
         }
+    }
+}
+
+GroupView HorizontalGroup#control-buttons {
+    layout: grid;
+    grid-size: 4 1;
+
+    & Button{
+        width: 100%
     }
 }
 
@@ -39,6 +39,15 @@ ModelView {
         padding: 1;
         width: 100%;
     }
+
+    & HorizontalGroup#control-buttons {
+        layout: grid;
+        grid-size: 3 1;
+
+        & Button{
+            width: 100%
+    }
+}
 
 }
 
