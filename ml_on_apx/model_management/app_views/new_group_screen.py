@@ -1,18 +1,19 @@
 """The screen for selecting a new group."""
 
-from typing import ClassVar, Union
+from typing import ClassVar
 
 from textual import on
 from textual.app import ComposeResult
-from textual.binding import Binding
+from textual.binding import BindingType
 from textual.containers import HorizontalGroup
 from textual.reactive import reactive
 from textual.screen import Screen
 from textual.types import NoSelection
 from textual.validation import Integer, Number, ValidationResult, Validator
-from textual.widgets import Button, Input, Select
+from textual.widgets import Button, Footer, Header, Input, Markdown, Select
 from textual.widgets import Label as TuiLabel
 
+from ml_on_apx.labelling import Labels
 from ml_on_apx.model_management.stop_functions import StopFunction
 from ml_on_apx.model_management.training_job import TrainingJob, TrainingJobBuilder
 
@@ -23,11 +24,12 @@ from ml_on_apx.model_management.training_job import TrainingJob, TrainingJobBuil
 """
 
 
+# TODO rename; this should be new MODEL screen
 class NewGroupScreen(Screen[TrainingJob]):
     """Creates a training job to create a new group."""
 
-    BINDINGS: ClassVar[list[Union[tuple[str, str, str], Binding]]] = [
-        ("esc", "cancel", "Cancel"),
+    BINDINGS: ClassVar[list[BindingType]] = [
+        ("escape", "cancel", "Cancel"),
         ("^s", "save", "Create"),
     ]
 
@@ -56,16 +58,25 @@ class NewGroupScreen(Screen[TrainingJob]):
                 return self.success()
 
     def __init__(
-        self, dataset_options: list[str], model_options: list[str], group_name: str
+        self,
+        dataset_options: list[str],
+        model_options: list[str],
+        group_name: str,
+        model_labels: Labels,
+        dataset_labels: dict[str, Labels],
     ) -> None:
         """Initialize a new NewGroupScreen."""
         super(NewGroupScreen, self).__init__()
         self._dataset_options = [(x, x) for x in dataset_options]
         self._model_options = [(x, x) for x in model_options]
         self._group_name = group_name
+        self._model_labels = model_labels
+        self._dataset_labels = dataset_labels
 
     def compose(self) -> ComposeResult:
         """Build the screen from its component widgets."""
+        yield Header()
+        yield Footer()
         with HorizontalGroup():
             yield TuiLabel("Dataset: ")
             yield Select(self._dataset_options, id="dataset")
@@ -131,9 +142,24 @@ class NewGroupScreen(Screen[TrainingJob]):
         with HorizontalGroup():
             yield Button("Cancel", variant="default", id="cancel-btn")
             yield Button("Create", variant="primary", id="create-btn")
+        with HorizontalGroup():
+            yield Markdown(id="label-align")
 
     def on_mount(self) -> None:
         """Finish setup of the screen once it is attached to the DOM."""
+
+    def watch_dataset(self, new_val: str) -> None:
+        """Trigger updates based on the updated reactive component."""
+        if self.dataset is not None:
+            self.redo_markdown(
+                self._model_labels,
+                self._dataset_labels[self.dataset],
+                (
+                    self._dataset_labels[self.testing_set]
+                    if self.testing_set is not None
+                    else None
+                ),
+            )
 
     @on(Select.Changed, "#dataset")
     def handle_dataset_changed(self, message: Select.Changed) -> None:
@@ -198,12 +224,12 @@ class NewGroupScreen(Screen[TrainingJob]):
             self.learn_rate = float(message.value)
 
     @on(Button.Pressed, "#cancel-btn")
-    def action_cancel(self) -> None:
+    def action_cancel(self, message: Button.Pressed | None = None) -> None:
         """Cancel the creation of the training job."""
         self.dismiss(None)
 
     @on(Button.Pressed, "#create-btn")
-    def action_save(self) -> None:
+    def action_save(self, message: Button.Pressed | None = None) -> None:
         """Save the training job."""
         builder = TrainingJobBuilder()
         builder.group_name(self._group_name)
@@ -233,3 +259,29 @@ class NewGroupScreen(Screen[TrainingJob]):
             )
         else:
             self.dismiss(job)
+
+    def redo_markdown(
+        self, model_lbl: Labels, train_lbl: Labels, test_lbl: Labels | None
+    ) -> None:
+        """Remake the markdown."""
+        markdown = ""
+        reversed_model = {}
+        for label in model_lbl:
+            reversed_model.update({model_lbl[label]: label})
+        reversed_train = {}
+        for label in train_lbl:
+            reversed_train.update({train_lbl[label]: label})
+        if test_lbl:
+            reversed_test = {}
+            for label in test_lbl:
+                reversed_test.update({test_lbl[label]: label})
+        for i in range(len(reversed_model)):
+            markdown += (
+                f"The model label {reversed_model[i]} will be mapped to"
+                f" the label {reversed_train[i]}"
+            )
+            if test_lbl:
+                markdown += f" in training and the label {reversed_test[i]} in testing"
+            markdown += ".\n\n"
+        markdown_widget = self.get_widget_by_id("label-align", Markdown)
+        markdown_widget.update(markdown)

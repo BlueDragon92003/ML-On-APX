@@ -15,7 +15,7 @@ from ml_on_apx.cluster_classification.test import test_loop
 from ml_on_apx.cluster_classification.train import train_loop
 from ml_on_apx.dataset_management.dataset_manager import DatasetManager
 from ml_on_apx.logging import log_call
-from ml_on_apx.model_management.model_info import ModelInfo
+from ml_on_apx.model_management.model_info import ModelInfo, ModelTestInfo
 from ml_on_apx.model_management.model_manager import ModelManager
 from ml_on_apx.model_management.stop_functions import StopFunction
 from ml_on_apx.modes import Mode
@@ -125,18 +125,27 @@ def main(data_dir: Path, model_dir: Path) -> None:  # noqa: PLR0915
                     error = None
                     sentinal = not result
 
+                info = ModelInfo(
+                    start_date=start_date,
+                    fork_time=datetime.now(),
+                    group=job.group_name,
+                    training_dataset=job.dataset,
+                    stop_function_errored=error,
+                )
+                info.add_testing_information(
+                    ModelTestInfo(
+                        datetime.now(),
+                        acc,
+                        loss,
+                    )
+                )
+
                 (
                     manager.create_model(
                         job.group_name,
-                        f"~checkpoint-{start_date.isoformat}"
+                        f"~checkpoint-{start_date.isoformat()}"
                         f"-{epoch // job.checkpoint_rate}",
-                        ModelInfo(
-                            start_date=start_date,
-                            fork_time=datetime.now(),
-                            group=job.group_name,
-                            training_dataset=job.dataset,
-                            stop_function_errored=error,
-                        ),
+                        info,
                         model,
                     ),
                 )

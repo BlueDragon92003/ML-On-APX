@@ -58,7 +58,7 @@ class ModelView(Screen[None]):
     """A view for the available models in a group."""
 
     BINDINGS: ClassVar[list[tuple[str, str, str] | Binding]] = [
-        ("esc", "back", "Back"),
+        ("escape", "back", "Back"),
         ("N", "train_model", "Train new model"),
         ("R", "rename_model", "Rename model"),
         ("D", "delete_model", "Delete model"),
@@ -168,6 +168,13 @@ class ModelView(Screen[None]):
                 list(self._dataset_manager.dataset_names),
                 self._model_manager.get_model_names(self._group_name),
                 self._group_name,
+                self._model_manager.get_group_info(self._group_name).get_labels(
+                    self._model_manager
+                ),
+                {
+                    x: self._dataset_manager.get_dataset_info(x).labels
+                    for x in self._dataset_manager.dataset_names
+                },
             ),
             callback=callback_train,
         )

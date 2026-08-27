@@ -110,4 +110,3 @@ def main(
         with DatasetManager(dataset_dir, mode, mode.dataset_class) as data_manager:
             app = ModelManagerApp(model_manager, data_manager, mode.features)
             app.run()
-        print(model_manager.training_job)

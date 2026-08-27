@@ -57,7 +57,12 @@ class ModelTestInfo:
     @property
     def markdown(self) -> str:
         """Generate markdown for this model test."""
-        return "TODO"  # TODO markdown for model tests
+        markdown = f"Test run {self._test_time.ctime()}"
+        markdown += " by user" if self._run_by_user else ""
+        markdown += ":\n"
+        markdown += f"- Accuracy: {self._accuracy * 100:.2f}\n"
+        markdown += f"- Average loss: {self._average_loss:.5f}\n"
+        return markdown
 
 
 class ModelInfo:
@@ -126,7 +131,19 @@ class ModelInfo:
     @property
     def markdown(self) -> str:
         """Produce markdown for this model."""
-        return "TODO"  # TODO write markdown converter
+        markdown = "Basic information for the model:\n"
+        markdown += f"- Group: {self._group}\n"
+        markdown += f"- Training started on: {self._training_start_date.ctime()}\n"
+        markdown += f"- This model saved at: {self._model_fork_time.ctime()}\n"
+        markdown += f"- Training dataset: {self._training_dataset}\n\n"
+        if self._stop_function_error is not None:
+            markdown += "At this point, the stop function errored.\n"
+            markdown += f"- Error: {type(self._stop_function_error).__name__}\n"
+            markdown += f"- Arguments: {self._stop_function_error.args}\n\n"
+        markdown += "Testing information:\n"
+        for num, info in enumerate(self._testing_information):
+            markdown += f"Test {num}:\n{info.markdown}\n"
+        return markdown
 
     @log_call(action_type="add" > _MODEL_INFO, include_result=False)
     def add_testing_information(self, new_test: ModelTestInfo) -> None:
