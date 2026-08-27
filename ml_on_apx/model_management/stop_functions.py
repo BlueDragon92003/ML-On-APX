@@ -243,7 +243,9 @@ class StopFunction:
         )
 
     @staticmethod
-    @log_call(action_type="kwargs" > _STOP_FUNCTIONS)
+    @log_call(
+        action_type="kwargs" > _STOP_FUNCTIONS, include_result=False, include_args=[]
+    )
     def convert_kwargs(kwargs: dict[str, list[float]]) -> LispVars:
         """Convert a keyword argument dict to the interpreter's variable format.
 
@@ -323,9 +325,11 @@ class StopFunction:
         return (
             []
             if not local_vars
-            else local_vars[0][1]
-            if local_vars[0][0] == x
-            else StopFunction.assoc(x, local_vars[1:])
+            else (
+                local_vars[0][1]
+                if local_vars[0][0] == x
+                else StopFunction.assoc(x, local_vars[1:])
+            )
         )
 
     #
@@ -371,7 +375,9 @@ class StopFunction:
     #        eq[car[fn];LAMBDA] → eval[caddr[fn]; pairlis[cadr[fn];x;a]]];
     #
     @staticmethod
-    def apply(f: str, args: list[LispType], _local_vars: LispVars) -> LispType:  # noqa: PLR0911, PLR0912, PLR0915
+    def apply(  # noqa: PLR0911, PLR0912, PLR0915
+        f: str, args: list[LispType], _local_vars: LispVars
+    ) -> LispType:
         """Apply a function `f` to the arguments.
 
         Args:

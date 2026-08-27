@@ -114,6 +114,8 @@ def main(data_dir: Path, model_dir: Path) -> None:  # noqa: PLR0915
                 epoch_ls.append(float(epoch))
 
                 acc_ls = acc_ls[-(job.lookback_distance) :]
+                loss_ls = loss_ls[-(job.lookback_distance) :]
+                epoch_ls = epoch_ls[-(job.lookback_distance) :]
 
                 try:
                     result = job.stop_function(
