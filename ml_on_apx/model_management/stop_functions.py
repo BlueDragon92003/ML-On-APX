@@ -75,6 +75,13 @@ class StopFunction:
 
         The list with the first item removed.
 
+    ### idx
+        Valency: 2 [List<T: Any>, Numeric]
+        Return: T or nil
+
+        The element at the given index, negatives evaluated pythonically, or nil if the
+        index is out of bounds.
+
     ### cons
         Valency: 2 [Any, List<Any> | nil]
         Return: List<Any>
@@ -258,7 +265,7 @@ class StopFunction:
         """
         globals = []
         for key, val in kwargs.items():
-            globals.append((key.upper(), val))
+            globals.append((key.upper(), [float(v) for v in val]))
         return globals
 
     # Very simple lexer, split by parens and whitespace
@@ -377,6 +384,7 @@ class StopFunction:
     # TODO multiple arguments
     # TODO multiple expressions
     # TODO setting variables
+    # TODO smarter resolution (allow shortcutting)
     @staticmethod
     def apply(  # noqa: PLR0911, PLR0912, PLR0915
         f: str, args: list[LispType], _local_vars: LispVars
