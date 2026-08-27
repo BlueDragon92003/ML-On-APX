@@ -4,6 +4,8 @@ import argparse
 import os
 from pathlib import Path
 
+from eliot import log_message
+
 import ml_on_apx.cluster_classification.main
 import ml_on_apx.dataset_management.app
 import ml_on_apx.model_management.app
@@ -144,6 +146,7 @@ def get_parser() -> argparse.ArgumentParser:
 @log_call(action_type="start" > _MAIN)
 def main() -> int:
     """Start the application."""
+    log_message("pid", pid=os.getpid())
     argparser = get_parser()
     args = argparser.parse_args()
 
