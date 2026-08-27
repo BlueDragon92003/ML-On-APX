@@ -31,7 +31,7 @@ SUBCOMMAND_MNG_DATA: str = "manage data"
 SUBCOMMAND_MNG_MODEL: str = "manage model"
 
 
-@log_call(action_type="get_parser" > _MAIN)
+@log_call(action_type="get_parser" > _MAIN, include_result=False)
 def get_parser() -> argparse.ArgumentParser:
     """Get the argument parser.
 

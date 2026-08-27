@@ -74,6 +74,36 @@ class TestsStopFunction(unittest.TestCase):
         self.assertEqual([2, 3], simple_eval("(cdr (quote (1 2 3)))"))
         self.assertEqual([], simple_eval("(cdr (quote (1)))"))
 
+    def test_stop_function__idx__valency_check(self) -> None:
+        """Test if the `idx` function's valency check works."""
+        with self.assertRaises(StopFunction.InvalidArgumentNumberError):
+            simple_eval("(idx)")
+        with self.assertRaises(StopFunction.InvalidArgumentNumberError):
+            simple_eval("(idx 1)")
+
+    def test_stop_function__idx__type_check(self) -> None:
+        """Test if the `idx` function's type checks work."""
+        with self.assertRaises(StopFunction.InvalidArgumentTypeError):
+            simple_eval("(idx 1 1)")
+        with self.assertRaises(StopFunction.InvalidArgumentTypeError):
+            simple_eval("(idx (not nil) 1 )")
+        with self.assertRaises(StopFunction.InvalidArgumentTypeError):
+            simple_eval("(idx nil 1 )")
+        with self.assertRaises(StopFunction.InvalidArgumentTypeError):
+            simple_eval("(idx (quote (1 2 3) ) nil )")
+        with self.assertRaises(StopFunction.InvalidArgumentTypeError):
+            simple_eval("(idx (quote (1 2 3) ) (not nil) )")
+        with self.assertRaises(StopFunction.InvalidArgumentTypeError):
+            simple_eval("(idx (quote (1 2 3) ) (quote (1 2 3) ) )")
+
+    def test_stop_function__idx(self) -> None:
+        """Test if the `idx` function works."""
+        self.assertEqual(3, simple_eval("(idx (quote (1 2 3 4 5 6) ) 2)"))
+        self.assertEqual(1, simple_eval("(idx (quote (1 2 3 4 5 6) ) 0)"))
+        self.assertEqual(6, simple_eval("(idx (quote (1 2 3 4 5 6) ) -1)"))
+        self.assertEqual([], simple_eval("(idx (quote (1 2 3 4 5 6) ) 10)"))
+        self.assertEqual([], simple_eval("(idx (quote (1 2 3 4 5 6) ) -9)"))
+
     def test_stop_function__cons__valency_check(self) -> None:
         """Test if the `cons` function's valency check works."""
         with self.assertRaises(StopFunction.InvalidArgumentNumberError):

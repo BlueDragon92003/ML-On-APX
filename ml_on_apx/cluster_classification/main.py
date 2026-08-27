@@ -91,19 +91,12 @@ def main(data_dir: Path, model_dir: Path) -> None:  # noqa: PLR0915
         sentinal = True
         epoch = 0
         # Epoch loop
-        # logger.log_start_major_process("train_test_loop")
-        # logger.log_preloop("epoch_while_loop")
         while sentinal:
-            # logger.log_iteration_head(Epoch=epoch)
-            # logger.log_start_minor_process("training")
             # Run through the training data once
             train_loop(device, training_data_loader, model, loss_fn, optimizer)
-            # logger.log_end_minor_process("training")
 
-            # logger.log_start_minor_process("testing")
             # Run through the testing data once and evaluate the model's accuracy
             acc, loss = test_loop(device, testing_data_loader, model, loss_fn)
-            # logger.log_end_minor_process("testing")
 
             # If the epoch is a checpoint epoch,
             if epoch % job.checkpoint_rate == 0:  # checkpoint rate

@@ -374,6 +374,9 @@ class StopFunction:
     #                    T → apply[eval[fn;a];x;a]];
     #        eq[car[fn];LAMBDA] → eval[caddr[fn]; pairlis[cadr[fn];x;a]]];
     #
+    # TODO multiple arguments
+    # TODO multiple expressions
+    # TODO setting variables
     @staticmethod
     def apply(  # noqa: PLR0911, PLR0912, PLR0915
         f: str, args: list[LispType], _local_vars: LispVars
@@ -409,6 +412,17 @@ class StopFunction:
             if type(args[0]) is not list or len(args[0]) <= 0:
                 raise StopFunction.InvalidArgumentTypeError(f, args, _local_vars)
             return args[0][1:]
+        elif f == "idx":
+            if len(args) <= 1:
+                raise StopFunction.InvalidArgumentNumberError(f, len(args))
+            if (
+                type(args[0]) is not list
+                or len(args[0]) <= 0
+                or type(args[1]) is not float
+            ):
+                raise StopFunction.InvalidArgumentTypeError(f, args, _local_vars)
+            idx = int(args[1])
+            return args[0][idx] if len(args[0]) > idx and -len(args[0]) < idx else []
         elif f == "cons":
             if len(args) <= 1:
                 raise StopFunction.InvalidArgumentNumberError(f, len(args))
