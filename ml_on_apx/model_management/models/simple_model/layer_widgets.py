@@ -12,6 +12,7 @@ from textual.message import Message
 from textual.message_pump import _MessagePumpMeta
 from textual.reactive import reactive
 from textual.screen import ModalScreen
+from textual.widget import Widget
 from textual.widgets import Button, Input, ListItem, ListView
 from textual.widgets import Label as TuiLabel
 
@@ -38,13 +39,18 @@ class LayerWidget(VerticalGroup, can_focus=True, metaclass=_LayerWidgetMeta):
     """The base class for Layer Widgets."""
 
     class AddLayerMessage(Message):
-        """Message instructing to add a layer below this one."""
+        """Message instructing to add a layer above or below this one."""
 
         def __init__(self, layer: "LayerWidget", above: bool) -> None:
             """Create a new message."""
             super(LayerWidget.AddLayerMessage, self).__init__()
             self.layer = layer
             self.above = above
+
+        @property
+        def control(self) -> Widget:
+            """`control` property for the AddLayerMessage."""
+            return self.layer
 
     BINDINGS: ClassVar[list[BindingType]] = [
         ("+", "increase_size", "Increase layer size"),
