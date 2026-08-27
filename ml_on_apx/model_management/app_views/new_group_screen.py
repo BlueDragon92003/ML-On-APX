@@ -10,17 +10,25 @@ from textual.reactive import reactive
 from textual.screen import Screen
 from textual.types import NoSelection
 from textual.validation import Integer, Number, ValidationResult, Validator
-from textual.widgets import Button, Footer, Header, Input, Markdown, Select
+from textual.widgets import Button, Collapsible, Footer, Header, Input, Markdown, Select
 from textual.widgets import Label as TuiLabel
 
 from ml_on_apx.labelling import Labels
 from ml_on_apx.model_management.stop_functions import StopFunction
 from ml_on_apx.model_management.training_job import TrainingJob, TrainingJobBuilder
 
-"""
-1. Select a group (or none) to base this one from
-    - If none was selected, specify a model type
-2. Tweak/create the model
+STOP_FUNCTION_HINT = r"""_A lisp expression that should evaluate to nil if training_
+_should continue, or a non-nil value if training should stop. Be warned! If the_
+_interpreter throws an error, training will halt early (with a notice)._
+
+_See the StopFunction documentation for the extended list of functions and some notes_
+_on the implementation. Available variables include:_
+- EPOCH: _the epoch the test was run._
+- ACC: _the accuracy of the model after testing._
+- LOSS: _the average loss of the model after testing._
+
+_All three variables come in the form of lists, with the first element being the most_
+_recent checkpoint, and then previous checkpoints up until the lookback distance._
 """
 
 
@@ -87,7 +95,9 @@ class CreateTrainingJobScreen(Screen[TrainingJob]):
                 validate_on=["changed"],
                 id="stop-fn",
             )
-            # TODO help button or markdown component
+        with HorizontalGroup():
+            with Collapsible(title="Stop Function Help"):
+                yield Markdown(STOP_FUNCTION_HINT)
         with HorizontalGroup():
             yield TuiLabel("Stop Function Lookback Distance: ")
             yield Input(
