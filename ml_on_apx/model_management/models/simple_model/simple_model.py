@@ -276,7 +276,7 @@ class SimpleScreen(Screen[SimpleGroupInfo]):
 
     BINDINGS: ClassVar[list[BindingType]] = [
         ("escape", "cancel", "Cancel"),
-        ("^s", "save", "Save"),
+        ("ctrl+s", "save", "Save"),
     ]
 
     def __init__(
@@ -324,6 +324,7 @@ class SimpleScreen(Screen[SimpleGroupInfo]):
             input_layer.all_features = self._base.all_features
             input_layer.features = self._base.features
             output_layer.labels = list(self._base.labels)
+            output_layer.activation = self._base._output_activation
             for hl in range(self._base.layer_count):
                 if hl == 0 or hl == self._base.layer_count - 1:
                     continue

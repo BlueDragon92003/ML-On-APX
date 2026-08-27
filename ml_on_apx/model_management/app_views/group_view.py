@@ -172,14 +172,20 @@ class GroupView(Screen[None]):
             self.no_selection_view()
         else:
             control_buttons = self.get_widget_by_id("control-buttons")
-            model_list = self.get_widget_by_id("model-box")
+            model_info = self.get_widget_by_id("model-box")
             control_buttons.display = True
-            model_list.display = True
+            model_info.display = True
 
             title_label = self.get_widget_by_id("group-name", Label)
 
             content_markdown = self.get_widget_by_id("group-info-box", Markdown)
             group_info = self._model_manager.get_group_info(new_name)
+
+            model_list = self.get_widget_by_id("model-list", VerticalGroup)
+            for child in model_list.children:
+                child.remove()
+            for model in self._model_manager.get_model_names(new_name):
+                model_list.mount(Label(f"- {model}"))
 
             title_label.content = new_name
             content_markdown.update(group_info.get_markdown(self._model_manager))
